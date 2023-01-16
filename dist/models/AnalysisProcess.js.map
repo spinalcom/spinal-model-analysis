@@ -1,1 +1,0 @@
-{"version":3,"file":"AnalysisProcess.js","sourceRoot":"","sources":["../../src/models/AnalysisProcess.ts"],"names":[],"mappings":";;;AAAA,+EAAiE;AAKjE,MAAM,eAAgB,SAAQ,oCAAK;IAChC,YAAY,eAAiC;QAC1C,KAAK,EAAE,CAAC;QACR,IAAI,CAAC,QAAQ,CAAC,eAAe,CAAC,CAAC;IAClC,CAAC;CACH;AAOG,0CAAe;AAHnB,yCAAU,CAAC,eAAe,CAAC,CAAC,eAAe,CAAC,CAAC,CAAC;AAC9C,kBAAe,eAAe,CAAC"}
