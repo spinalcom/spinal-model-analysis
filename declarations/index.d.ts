@@ -1,6 +1,13 @@
 import { IAnalytic } from "./interfaces/IAnalytic";
+import { IAnalysisProcess } from "./interfaces/IAnalysisProcess";
+import { IEntityType } from "./interfaces/IEntityType";
+import { ITrackedVariableMethod } from "./interfaces/ITrackedVariableMethod";
 import { Analytic } from "./models/Analytic";
+import { AnalysisProcess } from "./models/AnalysisProcess";
+import { EntityType } from "./models/EntityType";
+import { TrackedVariableMethod } from "./models/TrackedVariableMethod";
+import { ANALYTIC_RESULT_TYPE, ALGORITHMS, TRACK_METHOD, ENTITY_TYPES } from "./constants";
 import { AnalyticService } from "./services/AnalyticService";
 declare const spinalAnalyticService: AnalyticService;
-export { spinalAnalyticService, IAnalytic, Analytic };
+export { spinalAnalyticService, IAnalytic, IAnalysisProcess, IEntityType, ITrackedVariableMethod, Analytic, AnalysisProcess, EntityType, TrackedVariableMethod, ENTITY_TYPES, ALGORITHMS, ANALYTIC_RESULT_TYPE, TRACK_METHOD };
 export default spinalAnalyticService;

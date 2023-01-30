@@ -1,10 +1,11 @@
 {
   "name": "spinal-model-analysis",
   "version": "1.0.0",
-  "description": "Describe and register the models necessary for the whole analysis stack",
-  "main": "index.js",
+  "description": "Describe and register the models necessary for the whole analysis module and provide the service necessary for handling it.",
+  "main": "dist/index.js",
+  "types": "declarations/index.d.ts",
   "scripts": {
-    "build": "rm -fr dist && tsc",
+    "build": "rm -fr dist declarations && tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {

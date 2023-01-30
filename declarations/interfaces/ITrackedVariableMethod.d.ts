@@ -1,12 +1,11 @@
+import { TRACK_METHOD } from "../constants";
 /**
- * @property {string} name - The name of the entity type e.g. "Bâtiment / Etage / Pièce"
- * @property {string} description - The description of the entity type
- * @property {string} key - Any additional attribute
+ * @property {string} trackMethod - The method used to track the variable
+ * @property {string} description - The description of the node
  * @export
  * @interface ITrackedVariableMethod
  */
 export interface ITrackedVariableMethod {
-    trackMethod: string;
-    type: string;
+    trackMethod: TRACK_METHOD;
     [key: string]: string;
 }
