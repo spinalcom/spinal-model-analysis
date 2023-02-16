@@ -35,28 +35,39 @@ export function ANALYTIC_XAND(values: boolean[]) {
     return !values.reduce((acc, current) => acc !== current, true);
 };*/
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = void 0;
-function THRESHOLD_ABOVE(value, thresholds) {
-    return (value > thresholds[0]);
+exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.PUTVALUE = void 0;
+function PUTVALUE(input, params) {
+    return params['p1'];
+}
+exports.PUTVALUE = PUTVALUE;
+;
+function THRESHOLD_ABOVE(input, params) {
+    const treshold = params['p1'];
+    return (input > treshold);
 }
 exports.THRESHOLD_ABOVE = THRESHOLD_ABOVE;
 ;
-function THRESHOLD_BELOW(value, thresholds) {
-    return (value < thresholds[0]);
+function THRESHOLD_BELOW(input, params) {
+    const treshold = params['p1'];
+    return (input < treshold);
 }
 exports.THRESHOLD_BELOW = THRESHOLD_BELOW;
 ;
-function THRESHOLD_BETWEEN_IN(value, thresholds) {
-    const min = Math.min(thresholds[0], thresholds[1]);
-    const max = Math.max(thresholds[0], thresholds[1]);
-    return (value >= min && value <= max);
+function THRESHOLD_BETWEEN_IN(input, params) {
+    const p1 = params['p1'];
+    const p2 = params['p2'];
+    const min = Math.min(p1, p2);
+    const max = Math.max(p1, p2);
+    return (input >= min && input <= max);
 }
 exports.THRESHOLD_BETWEEN_IN = THRESHOLD_BETWEEN_IN;
 ;
-function THRESHOLD_BETWEEN_OUT(value, thresholds) {
-    const min = Math.min(thresholds[0], thresholds[1]);
-    const max = Math.max(thresholds[0], thresholds[1]);
-    return (value <= min && value >= max);
+function THRESHOLD_BETWEEN_OUT(input, params) {
+    const p1 = params['p1'];
+    const p2 = params['p2'];
+    const min = Math.min(p1, p2);
+    const max = Math.max(p1, p2);
+    return (input <= min || input >= max);
 }
 exports.THRESHOLD_BETWEEN_OUT = THRESHOLD_BETWEEN_OUT;
 ;

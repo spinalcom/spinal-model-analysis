@@ -25,7 +25,7 @@
 import { SpinalGraphService, SpinalContext, SpinalNodeRef } from "spinal-env-viewer-graph-service";
 import { attributeService } from "spinal-env-viewer-plugin-documentation-service";
 import { serviceTicketPersonalized, spinalServiceTicket } from "spinal-service-ticket";
-
+import * as CONSTANTS from "../constants";
 
 
 export async function findControlPoint(parentId: string, filterName: string) {
@@ -45,6 +45,18 @@ export async function findControlPoint(parentId: string, filterName: string) {
     return undefined;
 }
 
+export async function getAlgorithmParameters(config: SpinalNodeRef) {
+    const configNode = SpinalGraphService.getRealNode(config.id.get());
+    const res = {}
+    const algorithmParameters = await attributeService.getAttributesByCategory(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
+    for (const param of algorithmParameters) {
+        const obj = param.get();
+        res[obj.label] = obj.value;
+    }
+    
+    console.log("ALGORITHM PARAMETERS : ",res);
+    return res
+}
 
 export async function findEndpoints(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef[]> {
     const endpoints = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
@@ -109,12 +121,13 @@ async function getAlarmProcess(contextId: string){
 }
 
 
-async function  ticketAlreadyDeclared(nodeId:string) {
+async function  alarmAlreadyDeclared(nodeId:string, ticketName:string) {
     //SpinalNode
-    const tickets = await spinalServiceTicket.getTicketsFromNode(nodeId);
-    if (tickets.length == 0) return undefined;
-    return tickets[0];
-
+    const tickets = await spinalServiceTicket.getAlarmsFromNode(nodeId);
+    const found = tickets.find((ticket) => {
+        return ticket.name == ticketName;
+    })
+    return found;
 }
 
 
@@ -122,21 +135,24 @@ export async function addTicketAlarm(ticketInfos :any , nodeId : string){
     const ticketType = "Alarm";
     const context = getAnalysisTicketContext();
     const process = await getAlarmProcess(context.info.id.get());
-    const alreadyDeclared = await ticketAlreadyDeclared(nodeId);
+    const alreadyDeclared = await alarmAlreadyDeclared(nodeId,ticketInfos.name);
     if (alreadyDeclared){
         //just update the ticket
-          
+        console.log("update ticket "  + ticketInfos.name);
+        let declaredTicketNode = SpinalGraphService.getRealNode(alreadyDeclared.id);
+        let attr = await attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
+        if (attr != -1) {
+            let value = attr.value.get();
+            let str = value.toString();
+            let newValueInt = parseInt(str) + 1;
+            console.log(newValueInt);
+            await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+        }   
     }
     else {
-        console.log("create ticket");
-        
-        ticketInfos.occurence=1;
-        console.log({ processId: process.id.get(),
-                      contextId: context.info.id.get()
-        });
-        
+        console.log("create ticket "  + ticketInfos.name);        
         // this function should take another parameter ticketType ... ask question later
-        //const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId);
+        const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
     }
 
     
@@ -144,8 +160,6 @@ export async function addTicketAlarm(ticketInfos :any , nodeId : string){
 
 
 }
-
-
 
 export async function addTicketPersonalized(ticketInfos:any, processId: string, parentId: string) {
     const context = findContextOfNode("SpinalSystemServiceTicket", processId);
@@ -185,3 +199,4 @@ export async function addTicketPersonalized(ticketInfos:any, processId: string, 
     // let ticket = await serviceTicketPersonalized.addTicket(ticketInfos, processId, process.contextId, parentId);
     // return ticket;
 }
+

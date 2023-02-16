@@ -1,13 +1,18 @@
 export declare const CONTEXT_TYPE = "analysisContext";
 export declare const ENTITY_TYPE = "entity";
-export declare const CONTEXT_TO_ENTITY_RELATION = "hasEntity";
-export declare const ANALYSIS_PROCESS_TYPE = "analysisProcess";
-export declare const ENTITY_TO_ANALYSIS_PROCESS_RELATION = "hasAnalysisProcess";
 export declare const ANALYTIC_TYPE = "analytic";
-export declare const ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
-export declare const ANALYSIS_PROCESS_TO_ANALYTIC_RELATION = "hasAnalytic";
-export declare const TRACKED_VARIABLE_METHOD_TYPE = "trackedVariableMethod";
-export declare const ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION = "hasFollowedVariable";
+export declare const TRACKING_METHOD_TYPE = "trackingMethod";
+export declare const INPUTS_TYPE = "analyticInputs";
+export declare const OUTPUTS_TYPE = "analyticOutputs";
+export declare const CONFIG_TYPE = "analyticConfig";
+export declare const CONTEXT_TO_ENTITY_RELATION = "hasEntity";
+export declare const ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
+export declare const ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
+export declare const ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
+export declare const ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
+export declare const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
+export declare const ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = "hasTrackingMethod";
+export declare const GROUP_RELATION_PREFIX = "groupHas";
 export declare const TARGET_NODE_TYPES: Readonly<{
     Building: string;
     Floor: string;
@@ -18,6 +23,7 @@ export declare const TARGET_NODE_TYPES: Readonly<{
     "Equipment Group": string;
     Other: undefined;
 }>;
+export declare const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
 /**
  * The different types of results that an analytic can lead to.
  *
@@ -34,6 +40,7 @@ export declare const TARGET_NODE_TYPES: Readonly<{
 export declare enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
+    MODIFY_CONTROL_ENDPOINT = "modifyControlEndpoint",
     API_CALL = "apiCall"
 }
 export declare enum TRACK_METHOD {
@@ -62,5 +69,6 @@ export declare enum ALGORITHMS {
     THRESHOLD_ABOVE = "THRESHOLD_ABOVE",
     THRESHOLD_BELOW = "THRESHOLD_BELOW",
     THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
-    THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT"
+    THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
+    PUTVALUE = "PUTVALUE"
 }

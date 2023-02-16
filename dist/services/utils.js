@@ -32,10 +32,11 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketPersonalized = exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.findControlPoint = void 0;
+exports.addTicketPersonalized = exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.getAlgorithmParameters = exports.findControlPoint = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
+const CONSTANTS = require("../constants");
 function findControlPoint(parentId, filterName) {
     return __awaiter(this, void 0, void 0, function* () {
         const controlPoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(parentId, ["hasControlPoints"]);
@@ -55,6 +56,20 @@ function findControlPoint(parentId, filterName) {
     });
 }
 exports.findControlPoint = findControlPoint;
+function getAlgorithmParameters(config) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(config.id.get());
+        const res = {};
+        const algorithmParameters = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
+        for (const param of algorithmParameters) {
+            const obj = param.get();
+            res[obj.label] = obj.value;
+        }
+        console.log("ALGORITHM PARAMETERS : ", res);
+        return res;
+    });
+}
+exports.getAlgorithmParameters = getAlgorithmParameters;
 function findEndpoints(followedEntityId, filterNameValue) {
     return __awaiter(this, void 0, void 0, function* () {
         const endpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
@@ -119,13 +134,14 @@ function getAlarmProcess(contextId) {
         return processes[0];
     });
 }
-function ticketAlreadyDeclared(nodeId) {
+function alarmAlreadyDeclared(nodeId, ticketName) {
     return __awaiter(this, void 0, void 0, function* () {
         //SpinalNode
-        const tickets = yield spinal_service_ticket_1.spinalServiceTicket.getTicketsFromNode(nodeId);
-        if (tickets.length == 0)
-            return undefined;
-        return tickets[0];
+        const tickets = yield spinal_service_ticket_1.spinalServiceTicket.getAlarmsFromNode(nodeId);
+        const found = tickets.find((ticket) => {
+            return ticket.name == ticketName;
+        });
+        return found;
     });
 }
 function addTicketAlarm(ticketInfos, nodeId) {
@@ -133,18 +149,24 @@ function addTicketAlarm(ticketInfos, nodeId) {
         const ticketType = "Alarm";
         const context = getAnalysisTicketContext();
         const process = yield getAlarmProcess(context.info.id.get());
-        const alreadyDeclared = yield ticketAlreadyDeclared(nodeId);
+        const alreadyDeclared = yield alarmAlreadyDeclared(nodeId, ticketInfos.name);
         if (alreadyDeclared) {
             //just update the ticket
+            console.log("update ticket " + ticketInfos.name);
+            let declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(alreadyDeclared.id);
+            let attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
+            if (attr != -1) {
+                let value = attr.value.get();
+                let str = value.toString();
+                let newValueInt = parseInt(str) + 1;
+                console.log(newValueInt);
+                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+            }
         }
         else {
-            console.log("create ticket");
-            ticketInfos.occurence = 1;
-            console.log({ processId: process.id.get(),
-                contextId: context.info.id.get()
-            });
+            console.log("create ticket " + ticketInfos.name);
             // this function should take another parameter ticketType ... ask question later
-            //const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId);
+            const ticketId = yield spinal_service_ticket_1.spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
         }
     });
 }

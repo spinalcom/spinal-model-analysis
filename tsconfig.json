@@ -17,7 +17,7 @@
   },
   "types": ["declarations/index.d.ts"],
   "include": [
-    "src/**/*.ts",
+    "src/**/*.ts", "src/interfaces/IOutputs",
   ],
   "exclude": [
     "oldnode_modules"

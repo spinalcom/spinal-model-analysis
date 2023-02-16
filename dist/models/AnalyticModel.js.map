@@ -1,0 +1,1 @@
+{"version":3,"file":"AnalyticModel.js","sourceRoot":"","sources":["../../src/models/AnalyticModel.ts"],"names":[],"mappings":";;;AAAA,+EAAiE;AAGjE,MAAM,aAAc,SAAQ,oCAAK;IAC9B,YAAY,QAAmB;QAC5B,KAAK,EAAE,CAAC;QACR,IAAI,CAAC,QAAQ,CAAC,QAAQ,CAAC,CAAC;IAE3B,CAAC;CACH;AAOE,sCAAa;AAHhB,yCAAU,CAAC,eAAe,CAAC,aAAa,CAAC,CAAC;AAC1C,kBAAe,aAAa,CAAC"}

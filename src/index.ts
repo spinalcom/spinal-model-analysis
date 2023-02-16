@@ -1,12 +1,12 @@
 import { IAnalytic } from "./interfaces/IAnalytic";
-import { IAnalysisProcess } from "./interfaces/IAnalysisProcess";
-import { IEntityType } from "./interfaces/IEntityType";
-import { ITrackedVariableMethod } from "./interfaces/ITrackedVariableMethod";
-import { Analytic } from "./models/Analytic";
-import { AnalysisProcess } from "./models/AnalysisProcess";
-import { EntityType } from "./models/EntityType";
-import { TrackedVariableMethod } from "./models/TrackedVariableMethod";
-import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ANALYSIS_PROCESS_TYPE, TRACK_METHOD , ENTITY_TYPES} from "./constants";
+import { IEntity } from "./interfaces/IEntity";
+import { ITrackingMethod } from "./interfaces/ITrackingMethod";
+import { IConfig } from "./interfaces/IConfig"
+import { ConfigModel } from "./models/ConfigModel";
+import { AnalyticModel } from "./models/AnalyticModel";
+import { EntityModel } from "./models/EntityModel";
+import { TrackingMethodModel } from "./models/TrackingMethodModel";
+import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ANALYTIC_TYPE, TRACK_METHOD , ENTITY_TYPES} from "./constants";
 import { AnalyticService } from "./services/AnalyticService";
 
 
@@ -28,16 +28,15 @@ if (typeof globalRoot.spinal.spinalAnalyticService === 'undefined') {
 export {
    spinalAnalyticService,
    IAnalytic,
-   IAnalysisProcess,
-   IEntityType,
-   ITrackedVariableMethod,
-   Analytic,
-   AnalysisProcess,
-   EntityType,
-   TrackedVariableMethod,
+   ITrackingMethod,
+   IEntity,
+   IConfig,
+   AnalyticModel,
+   TrackingMethodModel,
    ENTITY_TYPES,
    ALGORITHMS,
    ANALYTIC_RESULT_TYPE,
+   ANALYTIC_TYPE,
    TRACK_METHOD
 }
 

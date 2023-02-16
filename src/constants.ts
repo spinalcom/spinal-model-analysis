@@ -24,14 +24,27 @@
 
 export const CONTEXT_TYPE = "analysisContext";
 export const ENTITY_TYPE = "entity";
-export const CONTEXT_TO_ENTITY_RELATION = "hasEntity";
-export const ANALYSIS_PROCESS_TYPE = "analysisProcess";
-export const ENTITY_TO_ANALYSIS_PROCESS_RELATION = "hasAnalysisProcess";
 export const ANALYTIC_TYPE = "analytic";
-export const ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
-export const ANALYSIS_PROCESS_TO_ANALYTIC_RELATION = "hasAnalytic";
-export const TRACKED_VARIABLE_METHOD_TYPE = "trackedVariableMethod";
-export const ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION= "hasFollowedVariable";
+export const TRACKING_METHOD_TYPE = "trackingMethod";
+export const INPUTS_TYPE = "analyticInputs";
+export const OUTPUTS_TYPE = "analyticOutputs";
+export const CONFIG_TYPE = "analyticConfig";
+
+
+export const CONTEXT_TO_ENTITY_RELATION = "hasEntity";
+export const ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
+
+export const ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
+export const ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
+export const ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
+
+
+export const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
+export const ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION= "hasTrackingMethod";
+
+
+
+export const GROUP_RELATION_PREFIX = "groupHas";
 
 export const TARGET_NODE_TYPES = Object.freeze({
     "Building": "geographicBuilding",
@@ -43,6 +56,11 @@ export const TARGET_NODE_TYPES = Object.freeze({
     "Equipment Group": "BIMObjectGroup",
     "Other": undefined
 });
+
+export const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
+
+
+
 
 /**
  * The different types of results that an analytic can lead to.
@@ -60,6 +78,7 @@ export const TARGET_NODE_TYPES = Object.freeze({
 export enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
+    MODIFY_CONTROL_ENDPOINT = "modifyControlEndpoint",
     API_CALL = "apiCall"
 }
 
@@ -91,5 +110,6 @@ export enum ALGORITHMS {
     THRESHOLD_ABOVE = "THRESHOLD_ABOVE",
     THRESHOLD_BELOW = "THRESHOLD_BELOW",
     THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
-    THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT"
+    THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
+    PUTVALUE = "PUTVALUE",
 }

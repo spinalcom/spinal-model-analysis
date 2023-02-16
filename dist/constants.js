@@ -23,17 +23,22 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TRACK_METHOD = exports.ANALYTIC_RESULT_TYPE = exports.TARGET_NODE_TYPES = exports.ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION = exports.TRACKED_VARIABLE_METHOD_TYPE = exports.ANALYSIS_PROCESS_TO_ANALYTIC_RELATION = exports.ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TYPE = exports.ENTITY_TO_ANALYSIS_PROCESS_RELATION = exports.ANALYSIS_PROCESS_TYPE = exports.CONTEXT_TO_ENTITY_RELATION = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
+exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TRACK_METHOD = exports.ANALYTIC_RESULT_TYPE = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.TARGET_NODE_TYPES = exports.GROUP_RELATION_PREFIX = exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TO_CONFIG_RELATION = exports.ANALYTIC_TO_OUTPUTS_RELATION = exports.ANALYTIC_TO_INPUTS_RELATION = exports.ENTITY_TO_ANALYTIC_RELATION = exports.CONTEXT_TO_ENTITY_RELATION = exports.CONFIG_TYPE = exports.OUTPUTS_TYPE = exports.INPUTS_TYPE = exports.TRACKING_METHOD_TYPE = exports.ANALYTIC_TYPE = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
 exports.CONTEXT_TYPE = "analysisContext";
 exports.ENTITY_TYPE = "entity";
-exports.CONTEXT_TO_ENTITY_RELATION = "hasEntity";
-exports.ANALYSIS_PROCESS_TYPE = "analysisProcess";
-exports.ENTITY_TO_ANALYSIS_PROCESS_RELATION = "hasAnalysisProcess";
 exports.ANALYTIC_TYPE = "analytic";
-exports.ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
-exports.ANALYSIS_PROCESS_TO_ANALYTIC_RELATION = "hasAnalytic";
-exports.TRACKED_VARIABLE_METHOD_TYPE = "trackedVariableMethod";
-exports.ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION = "hasFollowedVariable";
+exports.TRACKING_METHOD_TYPE = "trackingMethod";
+exports.INPUTS_TYPE = "analyticInputs";
+exports.OUTPUTS_TYPE = "analyticOutputs";
+exports.CONFIG_TYPE = "analyticConfig";
+exports.CONTEXT_TO_ENTITY_RELATION = "hasEntity";
+exports.ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
+exports.ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
+exports.ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
+exports.ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
+exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
+exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = "hasTrackingMethod";
+exports.GROUP_RELATION_PREFIX = "groupHas";
 exports.TARGET_NODE_TYPES = Object.freeze({
     "Building": "geographicBuilding",
     "Floor": "geographicFloor",
@@ -44,6 +49,7 @@ exports.TARGET_NODE_TYPES = Object.freeze({
     "Equipment Group": "BIMObjectGroup",
     "Other": undefined
 });
+exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
 /**
  * The different types of results that an analytic can lead to.
  *
@@ -61,6 +67,7 @@ var ANALYTIC_RESULT_TYPE;
 (function (ANALYTIC_RESULT_TYPE) {
     ANALYTIC_RESULT_TYPE["TICKET"] = "ticket";
     ANALYTIC_RESULT_TYPE["CONTROL_ENDPOINT"] = "controlEndpoint";
+    ANALYTIC_RESULT_TYPE["MODIFY_CONTROL_ENDPOINT"] = "modifyControlEndpoint";
     ANALYTIC_RESULT_TYPE["API_CALL"] = "apiCall";
 })(ANALYTIC_RESULT_TYPE = exports.ANALYTIC_RESULT_TYPE || (exports.ANALYTIC_RESULT_TYPE = {}));
 var TRACK_METHOD;
@@ -93,5 +100,6 @@ var ALGORITHMS;
     ALGORITHMS["THRESHOLD_BELOW"] = "THRESHOLD_BELOW";
     ALGORITHMS["THRESHOLD_BETWEEN_IN"] = "THRESHOLD_BETWEEN_IN";
     ALGORITHMS["THRESHOLD_BETWEEN_OUT"] = "THRESHOLD_BETWEEN_OUT";
+    ALGORITHMS["PUTVALUE"] = "PUTVALUE";
 })(ALGORITHMS = exports.ALGORITHMS || (exports.ALGORITHMS = {}));
 //# sourceMappingURL=constants.js.map

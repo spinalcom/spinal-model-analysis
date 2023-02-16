@@ -12,10 +12,13 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AnalyticService = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const CONSTANTS = require("../constants");
-const Analytic_1 = require("../models/Analytic");
-const AnalysisProcess_1 = require("../models/AnalysisProcess");
-const EntityType_1 = require("../models/EntityType");
-const TrackedVariableMethod_1 = require("../models/TrackedVariableMethod");
+const ConfigModel_1 = require("../models/ConfigModel");
+const AnalyticModel_1 = require("../models/AnalyticModel");
+const EntityModel_1 = require("../models/EntityModel");
+const TrackingMethodModel_1 = require("../models/TrackingMethodModel");
+const InputsModel_1 = require("../models/InputsModel");
+const OutputsModel_1 = require("../models/OutputsModel");
+const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const utils_1 = require("./utils");
 const algo = require("../algorithms/algorithms");
 class AnalyticService {
@@ -68,31 +71,15 @@ class AnalyticService {
     ////////////////////////////////////////////////////
     /////////////////// ENTITY /////////////////////////
     ////////////////////////////////////////////////////
-    /**
-     * This method creates a new entity type node and returns its info.
-     *
-     * @param {IEntityType} entityTypeInfo
-     * @param {string} contextId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addEntity(entityTypeInfo, contextId) {
+    addEntity(entityInfo, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            entityTypeInfo.type = CONSTANTS.ENTITY_TYPE;
-            const entityModel = new EntityType_1.EntityType(entityTypeInfo);
-            const entityNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(entityTypeInfo, entityModel);
+            entityInfo.type = CONSTANTS.ENTITY_TYPE;
+            const entityModel = new EntityModel_1.EntityModel(entityInfo);
+            const entityNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(entityInfo, entityModel);
             yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(contextId, entityNodeId, contextId, CONSTANTS.CONTEXT_TO_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(entityNodeId);
         });
     }
-    /**
-     * This method find all entities in a context that have a certain type
-     *
-     * @param {SpinalContext<any>} context
-     * @param {string} targetType
-     * @return {*}  {(Promise<SpinalNode<any> | undefined>)}
-     * @memberof AnalyticService
-     */
     findEntityByTargetType(context, targetType) {
         return __awaiter(this, void 0, void 0, function* () {
             const entities = yield context.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
@@ -101,14 +88,6 @@ class AnalyticService {
             return result;
         });
     }
-    /**
-     * This method returns the info of an entity if provided with the context name and the entity name.
-     *
-     * @param {string} contextName
-     * @param {string} entityName
-     * @return {*}  {(Promise<SpinalNodeRef | undefined>)}
-     * @memberof AnalyticService
-     */
     getEntity(contextName, entityName) {
         return __awaiter(this, void 0, void 0, function* () {
             const context = this.getContext(contextName);
@@ -120,208 +99,173 @@ class AnalyticService {
             return entitiesModels.find(entity => entity.name.get() === entityName);
         });
     }
-    /**
-     * This method finds the entity that is the parent of the given analysis process.
-     *
-     * @param {string} analysisProcessId
-     * @return {*}
-     * @memberof AnalyticService
-     */
-    getEntityFromProcess(analysisProcessId) {
+    getEntityFromAnalytic(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(analysisProcessId, [CONSTANTS.ENTITY_TO_ANALYSIS_PROCESS_RELATION]);
-            //
-            if (nodes.length != 0) {
-                if (nodes[0].type.get() == CONSTANTS.ENTITY_TYPE)
-                    return nodes[1];
-                else
-                    return nodes[0];
-            }
-            return undefined;
-        });
-    }
-    ////////////////////////////////////////////////////
-    //////////////// ANALYSIS PROCESS //////////////////
-    ////////////////////////////////////////////////////
-    /**
-     * This method creates a new analysis process node and returns its info.
-     *
-     * @param {IAnalysisProcess} analysisProcessInfo
-     * @param {string} contextId
-     * @param {string} entityId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addAnalysisProcess(analysisProcessInfo, contextId, entityId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            analysisProcessInfo.type = CONSTANTS.ANALYSIS_PROCESS_TYPE;
-            const analysisProcessModel = new AnalysisProcess_1.AnalysisProcess(analysisProcessInfo);
-            const analysisProcessNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(analysisProcessInfo, analysisProcessModel);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(entityId, analysisProcessNodeId, contextId, CONSTANTS.ENTITY_TO_ANALYSIS_PROCESS_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analysisProcessNodeId);
-        });
-    }
-    /**
-     * This method retrieves and returns all analysis processes in a context.
-     *
-     * @param {string} contextId
-     * @return {*}
-     * @memberof AnalyticService
-     */
-    getAllAnalysisProcesses(contextId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const analysisProcesses = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
-                if (node.getType().get() === CONSTANTS.ANALYSIS_PROCESS_TYPE) {
-                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-                    return true;
-                }
-                return false;
-            });
-            return analysisProcesses;
-        });
-    }
-    getAnalysisProcess(contextId, analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const analysisProcesses = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
-                if (node.getType().get() === CONSTANTS.ANALYSIS_PROCESS_TYPE) {
-                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-                    return true;
-                }
-                return false;
-            });
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analysisProcessId);
-        });
-    }
-    getAnalysisProcessByName(contextId, analysisProcessName) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const analysisProcesses = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
-                if (node.getType().get() === CONSTANTS.ANALYSIS_PROCESS_TYPE) {
-                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-                    return true;
-                }
-                return false;
-            });
-            const analysisProcess = analysisProcesses.find((el) => el.info.name.get() == analysisProcessName);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analysisProcess.id.get());
-        });
-    }
-    ////////////////////////////////////////////////////
-    /////////////////// ANALYTIC ///////////////////////
-    ////////////////////////////////////////////////////
-    /**
-     * This method creates a new analytic node and returns its info.
-     *
-     * @param {IAnalytic} analyticInfo
-     * @param {string} contextId
-     * @param {string} analysisProcessId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addAnalytic(analyticInfo, contextId, analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            analyticInfo.type = CONSTANTS.ANALYTIC_TYPE;
-            const analyticModel = new Analytic_1.Analytic(analyticInfo);
-            const analyticNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(analyticInfo, analyticModel);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analysisProcessId, analyticNodeId, contextId, CONSTANTS.ANALYSIS_PROCESS_TO_ANALYTIC_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticNodeId);
-        });
-    }
-    /**
-     * This method retrieves and returns all analytics in a context.
-     *
-     * @param {string} analysisProcessId
-     * @return {*}  {(Promise<SpinalNode<any> | undefined>)}
-     * @memberof AnalyticService
-     */
-    getAnalytic(analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const node = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analysisProcessId, [CONSTANTS.ANALYSIS_PROCESS_TO_ANALYTIC_RELATION]);
-            if (node.length != 0) {
-                return node[0];
-            }
-            return undefined;
-        });
-    }
-    ////////////////////////////////////////////////////
-    //////////////// TRACKED VARIABLE //////////////////
-    ////////////////////////////////////////////////////
-    /**
-     * This method creates a new tracked variable node and returns its info.
-     *
-     * @param {ITrackedVariableMethod} trackedVariableInfo
-     * @param {string} contextId
-     * @param {string} analysisProcessId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addTrackedVariableMethod(trackedVariableInfo, contextId, analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            trackedVariableInfo.type = CONSTANTS.TRACKED_VARIABLE_METHOD_TYPE;
-            const trackedVariableModel = new TrackedVariableMethod_1.TrackedVariableMethod(trackedVariableInfo);
-            const trackedVariableNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(trackedVariableInfo, trackedVariableModel);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analysisProcessId, trackedVariableNodeId, contextId, CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(trackedVariableNodeId);
-        });
-    }
-    /**
-     * This method retrieves and returns all tracked variables children of an analysis process.
-     *
-     * @param {string} analysisProcessId
-     * @return {*}  {(Promise<SpinalNodeRef[] | undefined>)}
-     * @memberof AnalyticService
-     */
-    getTrackedVariableMethods(analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analysisProcessId, [CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION]);
-            if (nodes.length != 0) {
-                return nodes;
-            }
-            return undefined;
-        });
-    }
-    /**
-     * This method retrieves and returns the tracked variable child (the first one) of an analysis process.
-     *
-     * @param {string} analysisProcessId
-     * @return {*}  {(Promise<SpinalNodeRef | undefined>)}
-     * @memberof AnalyticService
-     */
-    getTrackedVariableMethod(analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analysisProcessId, [CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(analyticId, [CONSTANTS.ENTITY_TO_ANALYTIC_RELATION]);
             if (nodes.length != 0) {
                 return nodes[0];
             }
             return undefined;
         });
     }
-    /**
-     * This method removes a tracked variable child of an analysis process.
-     *
-     * @param {string} analysisProcessId
-     * @param {string} trackedVariableId
-     * @memberof AnalyticService
-     */
-    removeTrackedVariableMethod(analysisProcessId, trackedVariableId) {
+    ////////////////////////////////////////////////////
+    //////////////// Analytic //////////////////////////
+    ////////////////////////////////////////////////////
+    addAnalytic(analyticInfo, contextId, entityId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(analysisProcessId, trackedVariableId, CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_VARIABLE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeFromGraph(trackedVariableId);
+            analyticInfo.type = CONSTANTS.ANALYTIC_TYPE;
+            const analyticModel = new AnalyticModel_1.AnalyticModel(analyticInfo);
+            const analyticNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(analyticInfo, analyticModel);
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(entityId, analyticNodeId, contextId, CONSTANTS.ENTITY_TO_ANALYTIC_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            yield this.addInputsNode(analyticNodeId, contextId);
+            yield this.addOutputsNode(analyticNodeId, contextId);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticNodeId);
         });
     }
-    /**
-     * This method applies a tracked variable method to an analysis process's followed entity to get the entry data.
-     *
-     * @param {string} analysisProcessId
-     * @param {string} trackedVariableId
-     * @memberof AnalyticService
-     */
-    applyTrackedVariableMethod(analysisProcessId) {
+    getAllAnalytics(contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const trackedVariableMethodModel = yield this.getTrackedVariableMethod(analysisProcessId);
-            const followedEntityModel = yield this.getFollowedEntity(analysisProcessId);
-            if (followedEntityModel && trackedVariableMethodModel) {
-                const trackMethod = trackedVariableMethodModel.trackMethod.get();
-                const filterValue = trackedVariableMethodModel.filterValue.get();
+            const analytics = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
+                if (node.getType().get() === CONSTANTS.ANALYTIC_TYPE) {
+                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+                    return true;
+                }
+                return false;
+            });
+            return analytics;
+        });
+    }
+    getAnalytic(contextId, analyticName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const analytics = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
+                if (node.getType().get() === CONSTANTS.ANALYTIC_TYPE) {
+                    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+                    return true;
+                }
+                return false;
+            });
+            const analytic = analytics.find((el) => el.info.name.get() == analyticName);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analytic.id.get());
+        });
+    }
+    addInputsNode(analyticId, contextId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputsInfo = {
+                name: "Inputs",
+                description: ""
+            };
+            const inputsModel = new InputsModel_1.InputsModel(inputsInfo);
+            let inputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(inputsInfo, inputsModel);
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analyticId, inputsId, contextId, CONSTANTS.ANALYTIC_TO_INPUTS_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(inputsId);
+        });
+    }
+    addOutputsNode(analyticId, contextId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const outputsInfo = {
+                name: "Outputs",
+                description: ""
+            };
+            const outputsModel = new OutputsModel_1.OutputsModel(outputsInfo);
+            let outputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(outputsInfo, outputsModel);
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analyticId, outputsId, contextId, CONSTANTS.ANALYTIC_TO_OUTPUTS_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(outputsId);
+        });
+    }
+    addConfig(configInfo, configAttributes, analyticId, contextId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            configInfo.name = "Config";
+            configInfo.type = CONSTANTS.CONFIG_TYPE;
+            const configModel = new ConfigModel_1.ConfigModel(configInfo);
+            let configId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(configInfo, configModel);
+            const configNode = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analyticId, configId, contextId, CONSTANTS.ANALYTIC_TO_CONFIG_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            for (let attribute of configAttributes) {
+                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS, attribute.name, attribute.value, attribute.type, "");
+            }
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(configId);
+        });
+    }
+    getConfig(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_CONFIG_RELATION]);
+            if (nodes.length === 0)
+                return undefined;
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
+        });
+    }
+    getInputsNode(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_INPUTS_RELATION]);
+            if (nodes.length === 0)
+                return undefined;
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
+        });
+    }
+    getOutputsNode(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_OUTPUTS_RELATION]);
+            if (nodes.length === 0)
+                return undefined;
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
+        });
+    }
+    ////////////////////////////////////////////////////
+    //////////////// TRACKED VARIABLE //////////////////
+    ////////////////////////////////////////////////////
+    addTrackingMethod(trackingMethodInfo, contextId, inputId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            trackingMethodInfo.type = CONSTANTS.TRACKING_METHOD_TYPE;
+            const trackingMethodModel = new TrackingMethodModel_1.TrackingMethodModel(trackingMethodInfo);
+            const trackingMethodNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(trackingMethodInfo, trackingMethodModel);
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(inputId, trackingMethodNodeId, contextId, CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(trackingMethodNodeId);
+        });
+    }
+    addInputTrackingMethod(trackingMethodInfo, contextId, analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputs = yield this.getInputsNode(analyticId);
+            if (inputs === undefined)
+                throw Error("Inputs node not found");
+            return this.addTrackingMethod(trackingMethodInfo, contextId, inputs.id.get());
+        });
+    }
+    getTrackingMethods(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputs = yield this.getInputsNode(analyticId);
+            if (inputs === undefined)
+                return undefined;
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(inputs.id.get(), [CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION]);
+            return nodes;
+        });
+    }
+    getTrackingMethod(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const trackingMethods = yield this.getTrackingMethods(analyticId);
+            if (trackingMethods === undefined)
+                return undefined;
+            return trackingMethods[0];
+        });
+    }
+    removeTrackingMethod(inputId, trackingMethodId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(inputId, trackingMethodId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeFromGraph(trackingMethodId);
+        });
+    }
+    removeInputTrackingMethod(analyticId, trackingMethodId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputs = yield this.getInputsNode(analyticId);
+            if (inputs === undefined)
+                throw Error("Inputs node not found");
+            yield this.removeTrackingMethod(inputs.id.get(), trackingMethodId);
+        });
+    }
+    applyTrackingMethodLegacy(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const trackingMethodModel = yield this.getTrackingMethod(analyticId);
+            const followedEntityModel = yield this.getFollowedEntity(analyticId);
+            if (followedEntityModel && trackingMethodModel) {
+                const trackMethod = trackingMethodModel.trackMethod.get();
+                const filterValue = trackingMethodModel.filterValue.get();
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
                         const endpoints = yield (0, utils_1.findEndpoints)(followedEntityModel.id.get(), filterValue);
@@ -338,161 +282,192 @@ class AnalyticService {
             }
         });
     }
+    applyTrackingMethod(trackingMethod, followedEntity) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (followedEntity && trackingMethod) {
+                const trackMethod = trackingMethod.trackMethod.get();
+                const filterValue = trackingMethod.filterValue.get();
+                switch (trackMethod) {
+                    case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+                        const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
+                        return endpoints;
+                    case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+                        const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
+                        return controlEndpoints;
+                    case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
+                        console.log("Ticket filter");
+                        break;
+                    default:
+                        console.log("Track method not recognized");
+                }
+            }
+        });
+    }
     ////////////////////////////////////////////////////
     //////////////// FOLLOWED ENTITY ///////////////////
     ////////////////////////////////////////////////////
-    /**
-     * This method creates a new link between an analysis process and a followed entity.
-     *
-     * @param {string} contextId
-     * @param {string} analysisProcessId
-     * @param {string} followedEntityId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addLinkToFollowedEntity(contextId, analysisProcessId, followedEntityId) {
+    addLinkToFollowedEntity(contextId, inputId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const link = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analysisProcessId, followedEntityId, contextId, CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            console.log(link);
+            const link = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(inputId, followedEntityId, contextId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
             const id = link.info.id.get();
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(id);
         });
     }
-    /**
-     * This method removes the link between an analysis process and a followed entity.
-     *
-     * @param {string} analysisProcessId
-     * @param {string} followedEntityId
-     * @return {*}  {Promise<void>}
-     * @memberof AnalyticService
-     */
-    removeLinkToFollowedEntity(analysisProcessId, followedEntityId) {
+    addInputLinkToFollowedEntity(contextId, analyticId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(analysisProcessId, followedEntityId, CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            const inputs = yield this.getInputsNode(analyticId);
+            if (inputs === undefined)
+                throw Error("Inputs node not found");
+            return this.addLinkToFollowedEntity(contextId, inputs.id.get(), followedEntityId);
         });
     }
-    /**
-     * This method retrieves and returns the followed entity child of an analysis process.
-     *
-     * @param {string} analysisProcessId
-     * @return {*}
-     * @memberof AnalyticService
-     */
-    getFollowedEntity(analysisProcessId) {
+    removeLinkToFollowedEntity(analysisProcessId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const node = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analysisProcessId, [CONSTANTS.ANALYSIS_PROCESS_TO_FOLLOWED_ENTITY_RELATION]);
-            if (node.length != 0) {
-                return node[0];
-            }
-            return undefined;
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(analysisProcessId, followedEntityId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+        });
+    }
+    getFollowedEntity(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputsNode = yield this.getInputsNode(analyticId);
+            if (inputsNode === undefined)
+                return undefined;
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(inputsNode.id.get(), [CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION]);
+            if (nodes === undefined)
+                return undefined;
+            return nodes[0];
         });
     }
     ///////////////////////////////////////////////////
     ///////////////////// GLOBAL //////////////////////
     ///////////////////////////////////////////////////
-    /**
-     * This method aims at giving a full report of an analysis process.
-     *
-     *
-     * @param {string} contextId
-     * @param {string} analysisProcessId
-     * @return {*}
-     * @memberof AnalyticService
-     */
-    getCompleteAnalysis(contextId, analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const obj = {
-                analysisProcessId: analysisProcessId,
-                contextId: contextId,
-                processName: "",
-                intervalProcessing: "",
-                followedEntityId: "",
-                followedEntityType: "",
-                variableName: "",
-                variableType: "",
-                analytic: {
-                    id: "",
-                    algorithmUsed: "",
-                    resultName: "",
-                    resultType: "",
-                }
-            };
-            const analysisProcessNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(analysisProcessId);
-            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(analysisProcessNode);
-            const entity = yield this.getFollowedEntity(analysisProcessId);
-            if (entity != undefined) {
-                obj.followedEntityId = entity.id.get();
-                obj.followedEntityType = entity.type.get();
-            }
-            const analytic = yield this.getAnalytic(analysisProcessId);
-            if (analytic != undefined) {
-                obj.analytic.id = analytic.info.id.get();
-                obj.analytic.algorithmUsed = analytic.info.name.get();
-                obj.analytic.resultName = analytic.info.resultName.get();
-                obj.analytic.resultType = analytic.info.resultType.get();
-            }
-            const followedVariable = yield this.getTrackedVariableMethod(analysisProcessId);
-            if (followedVariable != undefined) {
-                obj.variableType = followedVariable.type.get();
-                obj.variableName = followedVariable.name.get();
-            }
-            return obj;
-        });
+    /*public async getCompleteAnalysis(contextId: string, analysisProcessId: string) {
+       const obj = {
+           analysisProcessId: analysisProcessId,
+           contextId: contextId,
+           processName: "",
+           intervalProcessing : "",
+           followedEntityId: "",
+           followedEntityType: "",
+           variableName: "",
+           variableType: "",
+           analytic: {
+               id: "",
+               algorithmUsed: "",
+               resultName: "",
+               resultType: "",
+           }
+       };
+       const analysisProcessNode = SpinalGraphService.getRealNode(analysisProcessId);
+       (<any>SpinalGraphService)._addNode(analysisProcessNode);
+ 
+       const entity = await this.getFollowedEntity(analysisProcessId);
+       if (entity != undefined) {
+           obj.followedEntityId = entity.id.get();
+           obj.followedEntityType = entity.type.get();
+       }
+       const analytic = await this.getAnalytic(analysisProcessId);
+       if (analytic != undefined) {
+          obj.analytic.id = analytic.info.id.get();
+          obj.analytic.algorithmUsed = analytic.info.name.get();
+          obj.analytic.resultName = analytic.info.resultName.get();
+          obj.analytic.resultType = analytic.info.resultType.get();
+       }
+       const followedVariable = await this.getTrackedVariableMethod(analysisProcessId);
+       if(followedVariable != undefined){
+           obj.variableType = followedVariable.type.get();
+           obj.variableName = followedVariable.name.get();
+       }
+       return obj;
     }
-    /**
-     * Get the complete report for all analysis processes in a context.
-     *
-     * @param {string} contextId
-     * @return {*}
-     * @memberof AnalyticService
-     */
-    getCompleteAnalysisList(contextId) {
+ 
+    public async getCompleteAnalysisList(contextId: string) {
+       const analysisProcessList = await this.getAllAnalysisProcesses(contextId);
+       const analysisList = [];
+       for (const analysisProcess of analysisProcessList) {
+           const analysis = await this.getCompleteAnalysis(contextId, analysisProcess.id.get());
+           //analysisList.push(analysis);
+       }
+       return analysisList;
+    }*/
+    applyResult(result, analyticId, config, followedEntity, trackingMethod) {
         return __awaiter(this, void 0, void 0, function* () {
-            const analysisProcessList = yield this.getAllAnalysisProcesses(contextId);
-            const analysisList = [];
-            for (const analysisProcess of analysisProcessList) {
-                const analysis = yield this.getCompleteAnalysis(contextId, analysisProcess.id.get());
-                //analysisList.push(analysis);
-            }
-            return analysisList;
-        });
-    }
-    doAnalysis(analysisProcessId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            //step 1 get all three infos : 1- analytic , 2- followed entity, 3- tracked variable
-            //step 2 use the tracked variable method to get the data
-            //step 3 use analytic to call the correct algorithme and produce the correct result
-            const followedEntity = yield this.getFollowedEntity(analysisProcessId);
-            const trackedVariable = yield this.getTrackedVariableMethod(analysisProcessId);
-            const analytic = yield this.getAnalytic(analysisProcessId);
-            //step1 done 
-            if (followedEntity && trackedVariable && analytic) {
-                const trackedVariableId = trackedVariable.id.get();
-                const analyticId = analytic.id.get();
-                const followedEntityId = followedEntity.id.get();
-                const entryDataModels = yield this.applyTrackedVariableMethod(analysisProcessId);
-                //step2 done
-                if (entryDataModels) {
-                    const algorithm_name = analytic.name.get();
-                    const value = (yield entryDataModels[0].element.load()).currentValue.get();
-                    //const value = entryDataModels[0].currentValue.get();
-                    const result = algo[algorithm_name](value, [15]); // tmp
-                    console.log("ANALYSIS RESULT : ", result);
-                    if (result) {
-                        switch (analytic.resultType.get()) {
-                            case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
-                                const analysisInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analysisProcessId);
-                                const analysisName = analysisInfo.name.get();
-                                let ticketInfos = {
-                                    name: analysisName + " : " + followedEntity.name.get()
-                                };
-                                const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, analysisInfo.id.get());
-                                break;
-                        }
-                        //step3 done
+            switch (config.resultType.get()) {
+                case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
+                    const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
+                    const analyticName = analyticInfo.name.get();
+                    let ticketInfos = {
+                        name: analyticName + " : " + followedEntity.name.get()
+                    };
+                    const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, analyticInfo.id.get());
+                    break;
+                case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
+                    const entries = yield this.applyTrackingMethod(trackingMethod, followedEntity);
+                    if (!entries)
+                        return;
+                    for (const entry of entries) {
+                        const cp = yield entry.element.load();
+                        cp.currentValue.set(result);
                     }
+                    console.log("Modify control endpoint");
+                    break;
+            }
+        });
+    }
+    getWorkingFollowedEntities(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const followedEntity = yield this.getFollowedEntity(analyticId);
+            const trackingMethod = yield this.getTrackingMethod(analyticId);
+            const config = yield this.getConfig(analyticId);
+            const entityInfo = yield this.getEntityFromAnalytic(analyticId);
+            const entityType = entityInfo.entityType.get();
+            if (followedEntity && trackingMethod && config) {
+                if (entityType == followedEntity.type.get()) {
+                    // we can continue as planned
+                    return [followedEntity];
+                }
+                else {
+                    const isGroup = followedEntity.type.get().includes("group");
+                    const relationNameToTargets = isGroup ? CONSTANTS.GROUP_RELATION_PREFIX + entityType :
+                        "has" + entityType.charAt(0).toUpperCase() + entityType.slice(1);
+                    const entities = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relationNameToTargets]);
+                    return entities;
                 }
             }
+        });
+    }
+    getEntryDataModelsFromFollowedEntity(analyticId, followedEntity) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const trackingMethod = yield this.getTrackingMethod(analyticId);
+            if (trackingMethod)
+                return this.applyTrackingMethod(trackingMethod, followedEntity);
+        });
+    }
+    getDataAndApplyAlgorithm(analyticId, followedEntity) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const trackingMethod = yield this.getTrackingMethod(analyticId);
+            const config = yield this.getConfig(analyticId);
+            if (!trackingMethod || !config)
+                return;
+            const entryDataModels = yield this.applyTrackingMethod(trackingMethod, followedEntity);
+            if (entryDataModels) {
+                const algorithm_name = config.algorithm.get();
+                const value = (yield entryDataModels[0].element.load()).currentValue.get();
+                //const value = entryDataModels[0].currentValue.get();
+                const params = yield (0, utils_1.getAlgorithmParameters)(config);
+                const result = algo[algorithm_name](value, params); // tmp
+                console.log("ANALYSIS RESULT : ", result);
+                if (result) {
+                    this.applyResult(result, analyticId, config, followedEntity, trackingMethod);
+                }
+            }
+        });
+    }
+    doAnalysis(analyticId, followedEntity) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const entryDataModels = this.getEntryDataModelsFromFollowedEntity(analyticId, followedEntity);
+            if (!entryDataModels)
+                return;
+            this.getDataAndApplyAlgorithm(analyticId, followedEntity);
         });
     }
 }
