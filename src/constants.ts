@@ -113,3 +113,13 @@ export enum ALGORITHMS {
     THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
     PUTVALUE = "PUTVALUE",
 }
+
+export const ALGO_DOC = {
+    "THRESHOLD_ABOVE": [{name : "p1",type :"number", description: "the threshold value"}],
+    "THRESHOLD_BELOW": [{name : "p1",type :"number", description: "the threshold value"}],
+    "THRESHOLD_BETWEEN_IN": [{name : "p1",type :"number", description: "the first threshold value"},
+                             {name : "p2",type :"number", description: "the second threshold value"}],
+    "THRESHOLD_BETWEEN_OUT": [{name : "p1",type :"number", description: "the first threshold value"},
+                              {name : "p2",type :"number", description: "the second threshold value"}],
+    "PUTVALUE": [{name : "p1",type :"number", description: "the value to inject"}],
+}

@@ -72,3 +72,30 @@ export declare enum ALGORITHMS {
     THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
     PUTVALUE = "PUTVALUE"
 }
+export declare const ALGO_DOC: {
+    THRESHOLD_ABOVE: {
+        name: string;
+        type: string;
+        description: string;
+    }[];
+    THRESHOLD_BELOW: {
+        name: string;
+        type: string;
+        description: string;
+    }[];
+    THRESHOLD_BETWEEN_IN: {
+        name: string;
+        type: string;
+        description: string;
+    }[];
+    THRESHOLD_BETWEEN_OUT: {
+        name: string;
+        type: string;
+        description: string;
+    }[];
+    PUTVALUE: {
+        name: string;
+        type: string;
+        description: string;
+    }[];
+};
