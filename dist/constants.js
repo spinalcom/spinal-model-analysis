@@ -23,7 +23,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGO_DOC = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TRACK_METHOD = exports.ANALYTIC_RESULT_TYPE = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.TARGET_NODE_TYPES = exports.GROUP_RELATION_PREFIX = exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TO_CONFIG_RELATION = exports.ANALYTIC_TO_OUTPUTS_RELATION = exports.ANALYTIC_TO_INPUTS_RELATION = exports.ENTITY_TO_ANALYTIC_RELATION = exports.CONTEXT_TO_ENTITY_RELATION = exports.CONFIG_TYPE = exports.OUTPUTS_TYPE = exports.INPUTS_TYPE = exports.TRACKING_METHOD_TYPE = exports.ANALYTIC_TYPE = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
+exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TRACK_METHOD = exports.ANALYTIC_RESULT_TYPE = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.TARGET_NODE_TYPES = exports.GROUP_RELATION_PREFIX = exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TO_CONFIG_RELATION = exports.ANALYTIC_TO_OUTPUTS_RELATION = exports.ANALYTIC_TO_INPUTS_RELATION = exports.ENTITY_TO_ANALYTIC_RELATION = exports.CONTEXT_TO_ENTITY_RELATION = exports.CONFIG_TYPE = exports.OUTPUTS_TYPE = exports.INPUTS_TYPE = exports.TRACKING_METHOD_TYPE = exports.ANALYTIC_TYPE = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
 exports.CONTEXT_TYPE = "analysisContext";
 exports.ENTITY_TYPE = "entity";
 exports.ANALYTIC_TYPE = "analytic";
@@ -36,7 +36,7 @@ exports.ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
 exports.ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
 exports.ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
 exports.ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
-exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
+exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasEntity";
 exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = "hasTrackingMethod";
 exports.GROUP_RELATION_PREFIX = "groupHas";
 exports.TARGET_NODE_TYPES = Object.freeze({
@@ -89,13 +89,13 @@ var ENTITY_TYPES;
 })(ENTITY_TYPES = exports.ENTITY_TYPES || (exports.ENTITY_TYPES = {}));
 var ALGORITHMS;
 (function (ALGORITHMS) {
-    ALGORITHMS["AVERAGE"] = "AVERAGE";
-    ALGORITHMS["WEIGHTED_AVERAGE"] = "WEIGHTED_AVERAGE";
-    ALGORITHMS["MEDIAN"] = "MEDIAN";
-    ALGORITHMS["ANALYTIC_AND"] = "ANALYTIC_AND";
-    ALGORITHMS["ANALYTIC_OR"] = "ANALYTIC_OR";
-    ALGORITHMS["ANALYTIC_XOR"] = "ANALYTIC_XOR";
-    ALGORITHMS["ANALYTIC_XAND"] = "ANALYTIC_XAND";
+    //AVERAGE = "AVERAGE",
+    //WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE",
+    //MEDIAN = "MEDIAN",
+    //ANALYTIC_AND = "ANALYTIC_AND",
+    //ANALYTIC_OR = "ANALYTIC_OR",
+    //ANALYTIC_XOR = "ANALYTIC_XOR",
+    //ANALYTIC_XAND = "ANALYTIC_XAND",
     ALGORITHMS["THRESHOLD_ABOVE"] = "THRESHOLD_ABOVE";
     ALGORITHMS["THRESHOLD_BELOW"] = "THRESHOLD_BELOW";
     ALGORITHMS["THRESHOLD_BETWEEN_IN"] = "THRESHOLD_BETWEEN_IN";
@@ -110,5 +110,12 @@ exports.ALGO_DOC = {
     "THRESHOLD_BETWEEN_OUT": [{ name: "p1", type: "number", description: "the first threshold value" },
         { name: "p2", type: "number", description: "the second threshold value" }],
     "PUTVALUE": [{ name: "p1", type: "number", description: "the value to inject" }],
+};
+exports.ALGO_DOC_DESCRIPTION = {
+    "THRESHOLD_ABOVE": "This algorithm returns true if the input is above the threshold set by the user",
+    "THRESHOLD_BELOW": "This algorithm returns true true if the input is below the threshold set by the user",
+    "THRESHOLD_BETWEEN_IN": "This algorithm returns true if the input is between the two thresholds set by the user",
+    "THRESHOLD_BETWEEN_OUT": "This algorithm returns true if the input is outside the two thresholds set by the user",
+    "PUTVALUE": "This algorithm injects the value set by the user",
 };
 //# sourceMappingURL=constants.js.map

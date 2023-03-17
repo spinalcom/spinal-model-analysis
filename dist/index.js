@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGO_DOC = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
+exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
 const AnalyticModel_1 = require("./models/AnalyticModel");
 Object.defineProperty(exports, "AnalyticModel", { enumerable: true, get: function () { return AnalyticModel_1.AnalyticModel; } });
 const TrackingMethodModel_1 = require("./models/TrackingMethodModel");
@@ -9,6 +9,7 @@ const constants_1 = require("./constants");
 Object.defineProperty(exports, "ANALYTIC_RESULT_TYPE", { enumerable: true, get: function () { return constants_1.ANALYTIC_RESULT_TYPE; } });
 Object.defineProperty(exports, "ALGORITHMS", { enumerable: true, get: function () { return constants_1.ALGORITHMS; } });
 Object.defineProperty(exports, "ALGO_DOC", { enumerable: true, get: function () { return constants_1.ALGO_DOC; } });
+Object.defineProperty(exports, "ALGO_DOC_DESCRIPTION", { enumerable: true, get: function () { return constants_1.ALGO_DOC_DESCRIPTION; } });
 Object.defineProperty(exports, "ANALYTIC_TYPE", { enumerable: true, get: function () { return constants_1.ANALYTIC_TYPE; } });
 Object.defineProperty(exports, "TRACK_METHOD", { enumerable: true, get: function () { return constants_1.TRACK_METHOD; } });
 Object.defineProperty(exports, "ENTITY_TYPES", { enumerable: true, get: function () { return constants_1.ENTITY_TYPES; } });

@@ -10,7 +10,7 @@ export declare const ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
 export declare const ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
 export declare const ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
 export declare const ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
-export declare const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
+export declare const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasEntity";
 export declare const ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = "hasTrackingMethod";
 export declare const GROUP_RELATION_PREFIX = "groupHas";
 export declare const TARGET_NODE_TYPES: Readonly<{
@@ -59,13 +59,6 @@ export declare enum ENTITY_TYPES {
     OTHER = "other"
 }
 export declare enum ALGORITHMS {
-    AVERAGE = "AVERAGE",
-    WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE",
-    MEDIAN = "MEDIAN",
-    ANALYTIC_AND = "ANALYTIC_AND",
-    ANALYTIC_OR = "ANALYTIC_OR",
-    ANALYTIC_XOR = "ANALYTIC_XOR",
-    ANALYTIC_XAND = "ANALYTIC_XAND",
     THRESHOLD_ABOVE = "THRESHOLD_ABOVE",
     THRESHOLD_BELOW = "THRESHOLD_BELOW",
     THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
@@ -98,4 +91,11 @@ export declare const ALGO_DOC: {
         type: string;
         description: string;
     }[];
+};
+export declare const ALGO_DOC_DESCRIPTION: {
+    THRESHOLD_ABOVE: string;
+    THRESHOLD_BELOW: string;
+    THRESHOLD_BETWEEN_IN: string;
+    THRESHOLD_BETWEEN_OUT: string;
+    PUTVALUE: string;
 };

@@ -39,7 +39,7 @@ export const ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
 export const ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
 
 
-export const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasFollowedEntity";
+export const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasEntity";
 export const ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION= "hasTrackingMethod";
 
 
@@ -100,13 +100,13 @@ export enum ENTITY_TYPES {
 }
 
 export enum ALGORITHMS {
-    AVERAGE = "AVERAGE",
-    WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE",
-    MEDIAN = "MEDIAN",
-    ANALYTIC_AND = "ANALYTIC_AND",
-    ANALYTIC_OR = "ANALYTIC_OR",
-    ANALYTIC_XOR = "ANALYTIC_XOR",
-    ANALYTIC_XAND = "ANALYTIC_XAND",
+    //AVERAGE = "AVERAGE",
+    //WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE",
+    //MEDIAN = "MEDIAN",
+    //ANALYTIC_AND = "ANALYTIC_AND",
+    //ANALYTIC_OR = "ANALYTIC_OR",
+    //ANALYTIC_XOR = "ANALYTIC_XOR",
+    //ANALYTIC_XAND = "ANALYTIC_XAND",
     THRESHOLD_ABOVE = "THRESHOLD_ABOVE",
     THRESHOLD_BELOW = "THRESHOLD_BELOW",
     THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
@@ -123,3 +123,11 @@ export const ALGO_DOC = {
                               {name : "p2",type :"number", description: "the second threshold value"}],
     "PUTVALUE": [{name : "p1",type :"number", description: "the value to inject"}],
 }
+
+export const ALGO_DOC_DESCRIPTION = {
+    "THRESHOLD_ABOVE": "This algorithm returns true if the input is above the threshold set by the user",
+    "THRESHOLD_BELOW": "This algorithm returns true true if the input is below the threshold set by the user",
+    "THRESHOLD_BETWEEN_IN": "This algorithm returns true if the input is between the two thresholds set by the user",
+    "THRESHOLD_BETWEEN_OUT": "This algorithm returns true if the input is outside the two thresholds set by the user",
+    "PUTVALUE": "This algorithm injects the value set by the user",
+};

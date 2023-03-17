@@ -6,7 +6,7 @@ import { ConfigModel } from "./models/ConfigModel";
 import { AnalyticModel } from "./models/AnalyticModel";
 import { EntityModel } from "./models/EntityModel";
 import { TrackingMethodModel } from "./models/TrackingMethodModel";
-import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ALGO_DOC, ANALYTIC_TYPE, TRACK_METHOD , ENTITY_TYPES,
+import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ALGO_DOC, ALGO_DOC_DESCRIPTION, ANALYTIC_TYPE, TRACK_METHOD , ENTITY_TYPES,
    CONTEXT_TYPE, ENTITY_TYPE} from "./constants";
 import { AnalyticService } from "./services/AnalyticService";
 
@@ -41,7 +41,8 @@ export {
    TRACK_METHOD,
    CONTEXT_TYPE,
    ENTITY_TYPE,
-   ALGO_DOC
+   ALGO_DOC,
+   ALGO_DOC_DESCRIPTION,
 }
 
 export default spinalAnalyticService;
