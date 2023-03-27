@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
+exports.findEndpoints = exports.findControlEndpoints = exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
 const AnalyticModel_1 = require("./models/AnalyticModel");
 Object.defineProperty(exports, "AnalyticModel", { enumerable: true, get: function () { return AnalyticModel_1.AnalyticModel; } });
 const TrackingMethodModel_1 = require("./models/TrackingMethodModel");
@@ -16,6 +16,9 @@ Object.defineProperty(exports, "ENTITY_TYPES", { enumerable: true, get: function
 Object.defineProperty(exports, "CONTEXT_TYPE", { enumerable: true, get: function () { return constants_1.CONTEXT_TYPE; } });
 Object.defineProperty(exports, "ENTITY_TYPE", { enumerable: true, get: function () { return constants_1.ENTITY_TYPE; } });
 const AnalyticService_1 = require("./services/AnalyticService");
+const utils_1 = require("./services/utils");
+Object.defineProperty(exports, "findControlEndpoints", { enumerable: true, get: function () { return utils_1.findControlEndpoints; } });
+Object.defineProperty(exports, "findEndpoints", { enumerable: true, get: function () { return utils_1.findEndpoints; } });
 const globalRoot = typeof window === "undefined" ? global : window;
 const spinalAnalyticService = new AnalyticService_1.AnalyticService();
 exports.spinalAnalyticService = spinalAnalyticService;

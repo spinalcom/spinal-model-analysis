@@ -292,6 +292,24 @@ export default class AnalyticService {
       }
    }
 
+   public async applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef){
+      if (followedEntity) {
+         switch (trackMethod) { 
+            case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+               const endpoints = await findEndpoints(followedEntity.id.get(), filterValue)
+               return endpoints;
+            case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+               const controlEndpoints = await findControlEndpoints(followedEntity.id.get(), filterValue)
+               return controlEndpoints;
+            case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
+               console.log("Ticket filter");
+               break;
+            default:
+               console.log("Track method not recognized");
+         }
+      }
+   }
+
 
    ////////////////////////////////////////////////////
    //////////////// FOLLOWED ENTITY ///////////////////

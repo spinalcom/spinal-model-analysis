@@ -6,6 +6,7 @@ import { AnalyticModel } from "./models/AnalyticModel";
 import { TrackingMethodModel } from "./models/TrackingMethodModel";
 import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ALGO_DOC, ALGO_DOC_DESCRIPTION, ANALYTIC_TYPE, TRACK_METHOD, ENTITY_TYPES, CONTEXT_TYPE, ENTITY_TYPE } from "./constants";
 import { AnalyticService } from "./services/AnalyticService";
+import { findControlEndpoints, findEndpoints } from "./services/utils";
 declare const spinalAnalyticService: AnalyticService;
-export { spinalAnalyticService, IAnalytic, ITrackingMethod, IEntity, IConfig, AnalyticModel, TrackingMethodModel, ENTITY_TYPES, ALGORITHMS, ANALYTIC_RESULT_TYPE, ANALYTIC_TYPE, TRACK_METHOD, CONTEXT_TYPE, ENTITY_TYPE, ALGO_DOC, ALGO_DOC_DESCRIPTION, };
+export { spinalAnalyticService, IAnalytic, ITrackingMethod, IEntity, IConfig, AnalyticModel, TrackingMethodModel, ENTITY_TYPES, ALGORITHMS, ANALYTIC_RESULT_TYPE, ANALYTIC_TYPE, TRACK_METHOD, CONTEXT_TYPE, ENTITY_TYPE, ALGO_DOC, ALGO_DOC_DESCRIPTION, findControlEndpoints, findEndpoints, };
 export default spinalAnalyticService;

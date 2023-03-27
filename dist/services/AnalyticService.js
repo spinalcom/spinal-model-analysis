@@ -303,6 +303,25 @@ class AnalyticService {
             }
         });
     }
+    applyTrackingMethodWithParams(trackMethod, filterValue, followedEntity) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (followedEntity) {
+                switch (trackMethod) {
+                    case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+                        const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
+                        return endpoints;
+                    case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+                        const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
+                        return controlEndpoints;
+                    case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
+                        console.log("Ticket filter");
+                        break;
+                    default:
+                        console.log("Track method not recognized");
+                }
+            }
+        });
+    }
     ////////////////////////////////////////////////////
     //////////////// FOLLOWED ENTITY ///////////////////
     ////////////////////////////////////////////////////

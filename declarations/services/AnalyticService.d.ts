@@ -48,6 +48,7 @@ export default class AnalyticService {
     removeInputTrackingMethod(analyticId: string, trackingMethodId: string): Promise<void>;
     applyTrackingMethodLegacy(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
     applyTrackingMethod(trackingMethod: SpinalNodeRef, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef[] | undefined>;
+    applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef[] | undefined>;
     addLinkToFollowedEntity(contextId: string, inputId: string, followedEntityId: string): Promise<SpinalNodeRef>;
     addInputLinkToFollowedEntity(contextId: string, analyticId: string, followedEntityId: string): Promise<SpinalNodeRef>;
     removeLinkToFollowedEntity(analysisProcessId: string, followedEntityId: string): Promise<void>;

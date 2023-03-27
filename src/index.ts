@@ -9,6 +9,7 @@ import { TrackingMethodModel } from "./models/TrackingMethodModel";
 import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ALGO_DOC, ALGO_DOC_DESCRIPTION, ANALYTIC_TYPE, TRACK_METHOD , ENTITY_TYPES,
    CONTEXT_TYPE, ENTITY_TYPE} from "./constants";
 import { AnalyticService } from "./services/AnalyticService";
+import {findControlEndpoints, findEndpoints} from "./services/utils"
 
 
 const globalRoot: any = typeof window === "undefined" ? global : window;
@@ -43,6 +44,8 @@ export {
    ENTITY_TYPE,
    ALGO_DOC,
    ALGO_DOC_DESCRIPTION,
+   findControlEndpoints,
+   findEndpoints,
 }
 
 export default spinalAnalyticService;
