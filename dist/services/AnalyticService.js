@@ -184,6 +184,14 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(configId);
         });
     }
+    addAttributesToConfig(configId, categoryName, configAttributes) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(configId);
+            for (let attribute of configAttributes) {
+                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, categoryName, attribute.name, attribute.value, attribute.type, "");
+            }
+        });
+    }
     getConfig(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_CONFIG_RELATION]);
@@ -340,9 +348,9 @@ class AnalyticService {
             return this.addLinkToFollowedEntity(contextId, inputs.id.get(), followedEntityId);
         });
     }
-    removeLinkToFollowedEntity(analysisProcessId, followedEntityId) {
+    removeLinkToFollowedEntity(inputNodeId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(analysisProcessId, followedEntityId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(inputNodeId, followedEntityId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
         });
     }
     getFollowedEntity(analyticId) {
@@ -417,7 +425,7 @@ class AnalyticService {
                     let ticketInfos = {
                         name: analyticName + " : " + followedEntity.name.get()
                     };
-                    const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, analyticInfo.id.get());
+                    const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, config, analyticInfo.id.get());
                     break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
                     const entries = yield this.applyTrackingMethod(trackingMethod, followedEntity);
@@ -427,7 +435,6 @@ class AnalyticService {
                         const cp = yield entry.element.load();
                         cp.currentValue.set(result);
                     }
-                    console.log("Modify control endpoint");
                     break;
             }
         });
@@ -474,7 +481,7 @@ class AnalyticService {
                 //const value = entryDataModels[0].currentValue.get();
                 const params = yield (0, utils_1.getAlgorithmParameters)(config);
                 const result = algo[algorithm_name](value, params); // tmp
-                console.log("ANALYSIS RESULT : ", result);
+                //console.log("ANALYSIS RESULT : ",result);
                 if (result) {
                     this.applyResult(result, analyticId, config, followedEntity, trackingMethod);
                 }

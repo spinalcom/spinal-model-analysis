@@ -52,9 +52,19 @@ export async function getAlgorithmParameters(config: SpinalNodeRef) {
     for (const param of algorithmParameters) {
         const obj = param.get();
         res[obj.label] = obj.value;
+    } 
+    //console.log("ALGORITHM PARAMETERS : ",res);
+    return res
+}
+
+export async function getTicketLocalizationParameters(config : SpinalNodeRef) {
+    const configNode = SpinalGraphService.getRealNode(config.id.get());
+    const res = {}
+    const localizationParameters = await attributeService.getAttributesByCategory(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS);
+    for (const param of localizationParameters) {
+        const obj = param.get();
+        res[obj.label] = obj.value;
     }
-    
-    console.log("ALGORITHM PARAMETERS : ",res);
     return res
 }
 
@@ -106,7 +116,6 @@ function ticketIsAlreadyDeclared(ticketTab: any[], ticketName: string, context: 
     return false
 }
 
-
 function getAnalysisTicketContext(){
     const contexts = SpinalGraphService.getContextWithType("SpinalSystemServiceTicket")
     const context = contexts.find((ctx) => {
@@ -120,6 +129,23 @@ async function getAlarmProcess(contextId: string){
     return processes[0];
 }
 
+function getTicketContext(contextName : string ) {
+    const contexts = SpinalGraphService.getContextWithType("SpinalSystemServiceTicket")
+    const context = contexts.find((ctx) => {
+        return ctx.info.name.get() == contextName;
+    });
+    return context;
+}
+
+async function getTicketProcess(contextId: string, processName: string){
+    const processes = await SpinalGraphService.getChildrenInContext(contextId, contextId);
+    const process = processes.find((process) => {
+        return process.name.get() == processName;
+    })
+    return process;
+}
+
+
 
 async function  alarmAlreadyDeclared(nodeId:string, ticketName:string) {
     //SpinalNode
@@ -130,12 +156,21 @@ async function  alarmAlreadyDeclared(nodeId:string, ticketName:string) {
     return found;
 }
 
-
-export async function addTicketAlarm(ticketInfos :any , nodeId : string){
+export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, nodeId : string){
     const ticketType = "Alarm";
-    const context = getAnalysisTicketContext();
-    const process = await getAlarmProcess(context.info.id.get());
+    const localizationInfo = await getTicketLocalizationParameters(configInfo);
+    const contextName = localizationInfo["ticketContextName"];
+    const processName = localizationInfo["ticketProcessName"];
+
+    //const context = getAnalysisTicketContext(); // a remplacer
+    //const process = await getAlarmProcess(context.info.id.get()); // a remplacer
+
+    const context = getTicketContext(contextName);
+    const process = await getTicketProcess(context.info.id.get(), processName);
+
     const alreadyDeclared = await alarmAlreadyDeclared(nodeId,ticketInfos.name);
+
+
     if (alreadyDeclared){
         //just update the ticket
         console.log("update ticket "  + ticketInfos.name);
@@ -152,7 +187,9 @@ export async function addTicketAlarm(ticketInfos :any , nodeId : string){
     else {
         console.log("create ticket "  + ticketInfos.name);        
         // this function should take another parameter ticketType ... ask question later
-        const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
+        if (process) {
+            const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
+        }
     }
 
     

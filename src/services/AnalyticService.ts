@@ -181,6 +181,14 @@ export default class AnalyticService {
       return SpinalGraphService.getInfo(configId);
    }
 
+   public async addAttributesToConfig(configId: string, categoryName : string ,configAttributes: any): Promise<void> {
+      const configNode = SpinalGraphService.getRealNode(configId);
+      for (let attribute of configAttributes) {
+         await AttributeService.addAttributeByCategoryName(configNode, categoryName,
+         attribute.name, attribute.value, attribute.type, "");
+      }
+   }
+
    public async getConfig(analyticId: string): Promise<SpinalNodeRef | undefined> {
       const nodes = await SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_CONFIG_RELATION]);
       if (nodes.length === 0) return undefined;
@@ -329,8 +337,8 @@ export default class AnalyticService {
       return this.addLinkToFollowedEntity(contextId, inputs.id.get(), followedEntityId);
    }
 
-   public async removeLinkToFollowedEntity(analysisProcessId: string, followedEntityId:string) : Promise<void> {
-      await SpinalGraphService.removeChild(analysisProcessId, followedEntityId,
+   public async removeLinkToFollowedEntity(inputNodeId: string, followedEntityId:string) : Promise<void> {
+      await SpinalGraphService.removeChild(inputNodeId, followedEntityId,
          CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, SPINAL_RELATION_PTR_LST_TYPE);
    }
 
@@ -398,17 +406,18 @@ export default class AnalyticService {
       return analysisList;
    }*/
 
+
    public async applyResult(result : any, analyticId:string, config:SpinalNodeRef,
                             followedEntity:SpinalNodeRef, trackingMethod:SpinalNodeRef) {
       switch (config.resultType.get()) {
-         case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
-         const analyticInfo = SpinalGraphService.getInfo(analyticId)
-         const analyticName = analyticInfo.name.get();
-         let ticketInfos = {
-            name: analyticName + " : " + followedEntity.name.get()
-         }
-         const ticket = addTicketAlarm(ticketInfos,analyticInfo.id.get());
-         break;
+         case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET: 
+            const analyticInfo = SpinalGraphService.getInfo(analyticId)
+            const analyticName = analyticInfo.name.get();
+            let ticketInfos = {
+               name: analyticName + " : " + followedEntity.name.get()
+            }
+            const ticket = addTicketAlarm(ticketInfos,config,analyticInfo.id.get());
+            break;
          case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
             const entries = await this.applyTrackingMethod(trackingMethod, followedEntity);
             if (!entries) return;
@@ -416,7 +425,6 @@ export default class AnalyticService {
                const cp = await entry.element.load();
                cp.currentValue.set(result);
             }
-            console.log("Modify control endpoint");
             break;
       
       }
@@ -462,12 +470,14 @@ export default class AnalyticService {
          //const value = entryDataModels[0].currentValue.get();
          const params = await getAlgorithmParameters(config);
          const result = algo[algorithm_name](value,params); // tmp
-         console.log("ANALYSIS RESULT : ",result);
+         //console.log("ANALYSIS RESULT : ",result);
          if (result){
             this.applyResult(result,analyticId,config,followedEntity,trackingMethod);
          }
       }
    }
+
+
 
    public async doAnalysis(analyticId: string, followedEntity: SpinalNodeRef){
       const entryDataModels = this.getEntryDataModelsFromFollowedEntity(analyticId,followedEntity);

@@ -37,6 +37,7 @@ export default class AnalyticService {
     private addInputsNode;
     private addOutputsNode;
     addConfig(configInfo: IConfig, configAttributes: any, analyticId: string, contextId: string): Promise<SpinalNodeRef>;
+    addAttributesToConfig(configId: string, categoryName: string, configAttributes: any): Promise<void>;
     getConfig(analyticId: string): Promise<SpinalNodeRef | undefined>;
     getInputsNode(analyticId: string): Promise<SpinalNodeRef | undefined>;
     getOutputsNode(analyticId: string): Promise<SpinalNodeRef | undefined>;
@@ -51,7 +52,7 @@ export default class AnalyticService {
     applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef[] | undefined>;
     addLinkToFollowedEntity(contextId: string, inputId: string, followedEntityId: string): Promise<SpinalNodeRef>;
     addInputLinkToFollowedEntity(contextId: string, analyticId: string, followedEntityId: string): Promise<SpinalNodeRef>;
-    removeLinkToFollowedEntity(analysisProcessId: string, followedEntityId: string): Promise<void>;
+    removeLinkToFollowedEntity(inputNodeId: string, followedEntityId: string): Promise<void>;
     getFollowedEntity(analyticId: string): Promise<SpinalNodeRef | undefined>;
     applyResult(result: any, analyticId: string, config: SpinalNodeRef, followedEntity: SpinalNodeRef, trackingMethod: SpinalNodeRef): Promise<void>;
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;

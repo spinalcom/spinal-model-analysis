@@ -24,6 +24,7 @@ export declare const TARGET_NODE_TYPES: Readonly<{
     Other: undefined;
 }>;
 export declare const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
+export declare const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localization parameters";
 /**
  * The different types of results that an analytic can lead to.
  *

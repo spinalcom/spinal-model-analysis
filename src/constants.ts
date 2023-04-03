@@ -58,6 +58,7 @@ export const TARGET_NODE_TYPES = Object.freeze({
 });
 
 export const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
+export const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localization parameters";
 
 
 

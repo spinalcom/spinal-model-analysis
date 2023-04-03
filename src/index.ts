@@ -7,7 +7,7 @@ import { AnalyticModel } from "./models/AnalyticModel";
 import { EntityModel } from "./models/EntityModel";
 import { TrackingMethodModel } from "./models/TrackingMethodModel";
 import { ANALYTIC_RESULT_TYPE, ALGORITHMS, ALGO_DOC, ALGO_DOC_DESCRIPTION, ANALYTIC_TYPE, TRACK_METHOD , ENTITY_TYPES,
-   CONTEXT_TYPE, ENTITY_TYPE} from "./constants";
+   CONTEXT_TYPE, ENTITY_TYPE, CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS} from "./constants";
 import { AnalyticService } from "./services/AnalyticService";
 import {findControlEndpoints, findEndpoints} from "./services/utils"
 
@@ -44,6 +44,7 @@ export {
    ENTITY_TYPE,
    ALGO_DOC,
    ALGO_DOC_DESCRIPTION,
+   CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS,
    findControlEndpoints,
    findEndpoints,
 }
