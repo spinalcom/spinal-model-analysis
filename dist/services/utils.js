@@ -147,28 +147,29 @@ function getAlarmProcess(contextId) {
         return processes[0];
     });
 }
-function getTicketContext(contextName) {
+function getTicketContext(contextId) {
     const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType("SpinalSystemServiceTicket");
     const context = contexts.find((ctx) => {
-        return ctx.info.name.get() == contextName;
+        return ctx.info.id.get() == contextId;
     });
     return context;
 }
-function getTicketProcess(contextId, processName) {
+function getTicketProcess(contextId, processId) {
     return __awaiter(this, void 0, void 0, function* () {
         const processes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildrenInContext(contextId, contextId);
         const process = processes.find((process) => {
-            return process.name.get() == processName;
+            return process.id.get() == processId;
         });
         return process;
     });
 }
-function alarmAlreadyDeclared(nodeId, ticketName) {
+function alarmAlreadyDeclared(nodeId, contextId, processId, ticketName) {
     return __awaiter(this, void 0, void 0, function* () {
         //SpinalNode
         const tickets = yield spinal_service_ticket_1.spinalServiceTicket.getAlarmsFromNode(nodeId);
+        console.log(tickets);
         const found = tickets.find((ticket) => {
-            return ticket.name == ticketName;
+            return contextId == ticket.contextId && processId == ticket.processId && ticket.name == ticketName;
         });
         return found;
     });
@@ -177,13 +178,11 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId) {
     return __awaiter(this, void 0, void 0, function* () {
         const ticketType = "Alarm";
         const localizationInfo = yield getTicketLocalizationParameters(configInfo);
-        const contextName = localizationInfo["ticketContextName"];
-        const processName = localizationInfo["ticketProcessName"];
-        //const context = getAnalysisTicketContext(); // a remplacer
-        //const process = await getAlarmProcess(context.info.id.get()); // a remplacer
-        const context = getTicketContext(contextName);
-        const process = yield getTicketProcess(context.info.id.get(), processName);
-        const alreadyDeclared = yield alarmAlreadyDeclared(nodeId, ticketInfos.name);
+        const contextId = localizationInfo["ticketContextId"];
+        const processId = localizationInfo["ticketProcessId"];
+        const context = getTicketContext(contextId);
+        const process = yield getTicketProcess(context.info.id.get(), processId);
+        const alreadyDeclared = yield alarmAlreadyDeclared(nodeId, contextId, processId, ticketInfos.name);
         if (alreadyDeclared) {
             //just update the ticket
             console.log("update ticket " + ticketInfos.name);

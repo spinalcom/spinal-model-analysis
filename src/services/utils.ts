@@ -129,48 +129,47 @@ async function getAlarmProcess(contextId: string){
     return processes[0];
 }
 
-function getTicketContext(contextName : string ) {
+function getTicketContext(contextId : string ) {
     const contexts = SpinalGraphService.getContextWithType("SpinalSystemServiceTicket")
     const context = contexts.find((ctx) => {
-        return ctx.info.name.get() == contextName;
+        return ctx.info.id.get() == contextId;
     });
     return context;
 }
 
-async function getTicketProcess(contextId: string, processName: string){
+async function getTicketProcess(contextId: string, processId: string){
     const processes = await SpinalGraphService.getChildrenInContext(contextId, contextId);
     const process = processes.find((process) => {
-        return process.name.get() == processName;
+        return process.id.get() == processId;
     })
     return process;
 }
 
 
 
-async function  alarmAlreadyDeclared(nodeId:string, ticketName:string) {
+async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId: string, ticketName:string) {
     //SpinalNode
     const tickets = await spinalServiceTicket.getAlarmsFromNode(nodeId);
+    console.log(tickets);
     const found = tickets.find((ticket) => {
-        return ticket.name == ticketName;
+        return contextId == ticket.contextId && processId == ticket.processId && ticket.name == ticketName;
     })
+
     return found;
 }
 
 export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, nodeId : string){
     const ticketType = "Alarm";
     const localizationInfo = await getTicketLocalizationParameters(configInfo);
-    const contextName = localizationInfo["ticketContextName"];
-    const processName = localizationInfo["ticketProcessName"];
+    const contextId = localizationInfo["ticketContextId"];
+    const processId = localizationInfo["ticketProcessId"];
 
-    //const context = getAnalysisTicketContext(); // a remplacer
-    //const process = await getAlarmProcess(context.info.id.get()); // a remplacer
+    const context = getTicketContext(contextId);
+    const process = await getTicketProcess(context.info.id.get(), processId);
 
-    const context = getTicketContext(contextName);
-    const process = await getTicketProcess(context.info.id.get(), processName);
+    const alreadyDeclared = await alarmAlreadyDeclared(nodeId,contextId,processId,ticketInfos.name);
 
-    const alreadyDeclared = await alarmAlreadyDeclared(nodeId,ticketInfos.name);
-
-
+    
     if (alreadyDeclared){
         //just update the ticket
         console.log("update ticket "  + ticketInfos.name);
@@ -191,7 +190,7 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
             const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
         }
     }
-
+    
     
 
 
