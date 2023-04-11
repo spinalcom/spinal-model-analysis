@@ -426,6 +426,13 @@ export default class AnalyticService {
                cp.currentValue.set(result);
             }
             break;
+         case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
+            const entries2 = await this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, config.resultName.get(),followedEntity);
+            if (!entries2) return;
+            for (const entry of entries2) {
+               const cp = await entry.element.load();
+               cp.currentValue.set(result);
+            }
       
       }
    }

@@ -19,6 +19,14 @@
     "url": "https://github.com/spinalcom/spinal-model-analysis/issues"
   },
   "homepage": "https://github.com/spinalcom/spinal-model-analysis#readme",
+
+  "dependencies": {
+    "spinal-core-connectorjs_type": "git+https://github.com/spinalcom/spinal-core-connectorjs_type.git",
+    "spinal-env-viewer-plugin-documentation-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation-service.git",
+    "spinal-env-viewer-graph-service": "git+https://github.com/spinalcom/Spinal-Graph-Service.git",
+    "spinal-model-graph": "git+https://github.com/spinalcom/spinal-model-graph.git",
+    "spinal-service-ticket": "git+https://github.com/spinalcom/spinal-service-ticket.git"
+  },
   "devDependencies": {
     "@types/node": "^18.11.18",
     "@typescript-eslint/eslint-plugin": "^5.47.1",
