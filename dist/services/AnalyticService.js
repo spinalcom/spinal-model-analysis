@@ -25,8 +25,8 @@ class AnalyticService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() { }
     /**
-     * This method creates a new context and returns its info.
-     * If the context already exists (same name), it returns its info instead of creating a new one.
+     * This method creates a new context and returns the info of the newly created context.
+     * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
      * @param {string} contextName
      * @return {*}  {Promise<SpinalNodeRef>}
      * @memberof AnalyticService
@@ -38,8 +38,7 @@ class AnalyticService {
                 console.error(`Context ${contextName} already exists`);
                 return alreadyExists;
             }
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, CONSTANTS.CONTEXT_TYPE, undefined)
-                .then((context) => {
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, CONSTANTS.CONTEXT_TYPE, undefined).then((context) => {
                 const contextId = context.getId().get();
                 return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId);
             });
@@ -53,11 +52,12 @@ class AnalyticService {
      */
     getContexts() {
         const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(CONSTANTS.CONTEXT_TYPE);
-        const argContexts = contexts.map(el => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
+        const argContexts = contexts.map((el) => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
         return argContexts;
     }
     /**
-     * This method retrieves and returns the info of a context. If the context does not exist, it returns undefined.
+     * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
+     * If multiple contexts have the same name, it returns the first one.
      * @param {string} contextName
      * @return {*}  {(SpinalNodeRef | undefined)}
      * @memberof AnalyticService
@@ -66,11 +66,19 @@ class AnalyticService {
         const contexts = this.getContexts();
         if (!contexts)
             return undefined;
-        return contexts.find(context => context.name.get() === contextName);
+        return contexts.find((context) => context.name.get() === contextName);
     }
     ////////////////////////////////////////////////////
     /////////////////// ENTITY /////////////////////////
     ////////////////////////////////////////////////////
+    /**
+     * This method creates a new entity and returns the info of the newly created entity.
+     *
+     * @param {IEntity} entityInfo
+     * @param {string} contextId
+     * @return {*}  {Promise<SpinalNodeRef>}
+     * @memberof AnalyticService
+     */
     addEntity(entityInfo, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
             entityInfo.type = CONSTANTS.ENTITY_TYPE;
@@ -80,14 +88,30 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(entityNodeId);
         });
     }
+    /**
+     * Returns all the entities withing a context that have the specified type.
+     *
+     * @param {SpinalContext<any>} context
+     * @param {string} targetType
+     * @return {*}  {(Promise<SpinalNode<any> | undefined>)}
+     * @memberof AnalyticService
+     */
     findEntityByTargetType(context, targetType) {
         return __awaiter(this, void 0, void 0, function* () {
             const entities = yield context.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
-            const result = entities.find(e => e.info.targetNodeType.get() == targetType);
+            const result = entities.find((e) => e.info.entityType.get() == targetType);
             spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(result);
             return result;
         });
     }
+    /**
+     * Retrieves a SpinalNodeRef for the specified entity within the specified context.
+     * @async
+     * @param {string} contextName - The name of the context to search within.
+     * @param {string} entityName - The name of the entity to retrieve.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the SpinalNodeRef for the entity, or undefined if the context or entity cannot be found.
+     * @memberof AnalyticService
+     */
     getEntity(contextName, entityName) {
         return __awaiter(this, void 0, void 0, function* () {
             const context = this.getContext(contextName);
@@ -95,13 +119,22 @@ class AnalyticService {
                 return undefined;
             const contextNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(context.id.get());
             const entities = yield contextNode.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
-            const entitiesModels = entities.map(el => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
-            return entitiesModels.find(entity => entity.name.get() === entityName);
+            const entitiesModels = entities.map((el) => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
+            return entitiesModels.find((entity) => entity.name.get() === entityName);
         });
     }
+    /**
+     * Retrieves the parent entity of the specified analytic.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to retrieve the parent entity.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the parent entity, or undefined if the parent entity cannot be found.
+     * @memberof AnalyticService
+     */
     getEntityFromAnalytic(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(analyticId, [CONSTANTS.ENTITY_TO_ANALYTIC_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(analyticId, [
+                CONSTANTS.ENTITY_TO_ANALYTIC_RELATION,
+            ]);
             if (nodes.length != 0) {
                 return nodes[0];
             }
@@ -111,6 +144,15 @@ class AnalyticService {
     ////////////////////////////////////////////////////
     //////////////// Analytic //////////////////////////
     ////////////////////////////////////////////////////
+    /**
+     * Adds a new analytic to the specified entity within the specified context.
+     * @async
+     * @param {IAnalytic} analyticInfo - The information for the new analytic to add.
+     * @param {string} contextId - The ID of the context in which to add the analytic.
+     * @param {string} entityId - The ID of the entity to which to add the analytic.
+     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created analytic info.
+     * @memberof AnalyticService
+     */
     addAnalytic(analyticInfo, contextId, entityId) {
         return __awaiter(this, void 0, void 0, function* () {
             analyticInfo.type = CONSTANTS.ANALYTIC_TYPE;
@@ -122,6 +164,13 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticNodeId);
         });
     }
+    /**
+     * Retrieves all analytics within the specified context.
+     * @async
+     * @param {string} contextId - The ID of the context in which to retrieve analytics.
+     * @returns {Promise<SpinalNodeRef[]>} A Promise that resolves to an array of SpinalNodeRefs for all analytics in the context.
+     * @memberof AnalyticService
+     */
     getAllAnalytics(contextId) {
         return __awaiter(this, void 0, void 0, function* () {
             const analytics = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
@@ -134,6 +183,14 @@ class AnalyticService {
             return analytics;
         });
     }
+    /**
+     * Retrieves the SpinalNodeRef for the specified analytic within the specified context.
+     * @async
+     * @param {string} contextId - The ID of the context in which to search for the analytic.
+     * @param {string} analyticName - The name of the analytic to retrieve.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the SpinalNodeRef for the analytic, or undefined if the analytic cannot be found.
+     * @memberof AnalyticService
+     */
     getAnalytic(contextId, analyticName) {
         return __awaiter(this, void 0, void 0, function* () {
             const analytics = yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContext(contextId, contextId, (node) => {
@@ -147,11 +204,19 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analytic.id.get());
         });
     }
+    /**
+     * Adds an Inputs node to the specified analytic within the specified context.
+     * @async
+     * @param {string} analyticId - The ID of the analytic to which to add the Inputs node.
+     * @param {string} contextId - The ID of the context in which to add the Inputs node.
+     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Inputs node.
+     * @memberof AnalyticService
+     */
     addInputsNode(analyticId, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputsInfo = {
-                name: "Inputs",
-                description: ""
+                name: 'Inputs',
+                description: '',
             };
             const inputsModel = new InputsModel_1.InputsModel(inputsInfo);
             let inputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(inputsInfo, inputsModel);
@@ -159,11 +224,19 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(inputsId);
         });
     }
+    /**
+     * Adds an Outputs node to the specified analytic within the specified context.
+     * @async
+     * @param {string} analyticId - The ID of the analytic to which to add the Outputs node.
+     * @param {string} contextId - The ID of the context in which to add the Outputs node.
+     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Outputs node.
+     * @memberof AnalyticService
+     */
     addOutputsNode(analyticId, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
             const outputsInfo = {
-                name: "Outputs",
-                description: ""
+                name: 'Outputs',
+                description: '',
             };
             const outputsModel = new OutputsModel_1.OutputsModel(outputsInfo);
             let outputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(outputsInfo, outputsModel);
@@ -171,46 +244,92 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(outputsId);
         });
     }
+    /**
+     * Adds a new Config node to the specified analytic within the specified context, with the specified attributes.
+     * @async
+     * @param {IConfig} configInfo - The information for the new Config node to add.
+     * @param {any[]} configAttributes - An array of objects representing the attributes to add to the Config node.
+     * @param {string} analyticId - The ID of the analytic to which to add the Config node.
+     * @param {string} contextId - The ID of the context in which to add the Config node.
+     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Config node.
+     * @memberof AnalyticService
+     */
     addConfig(configInfo, configAttributes, analyticId, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            configInfo.name = "Config";
+            configInfo.name = 'Config';
             configInfo.type = CONSTANTS.CONFIG_TYPE;
             const configModel = new ConfigModel_1.ConfigModel(configInfo);
             let configId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(configInfo, configModel);
             const configNode = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analyticId, configId, contextId, CONSTANTS.ANALYTIC_TO_CONFIG_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
             for (let attribute of configAttributes) {
-                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS, attribute.name, attribute.value, attribute.type, "");
+                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS, attribute.name, attribute.value, attribute.type, '');
             }
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(configId);
         });
     }
+    /**
+     * Adds the specified attributes to the Config node with the specified ID.
+     * @async
+     * @param {string} configId - The ID of the Config node to which to add the attributes.
+     * @param {string} categoryName - The name of the category in which to add the attributes.
+     * @param {any[]} configAttributes - An array of objects representing the attributes to add to the Config node.
+     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
+     * @memberof AnalyticService
+     */
     addAttributesToConfig(configId, categoryName, configAttributes) {
         return __awaiter(this, void 0, void 0, function* () {
             const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(configId);
             for (let attribute of configAttributes) {
-                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, categoryName, attribute.name, attribute.value, attribute.type, "");
+                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, categoryName, attribute.name, attribute.value, attribute.type, '');
             }
         });
     }
+    /**
+     * Retrieves the Config node for the specified analytic.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to retrieve the Config node.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the Config node, or undefined if the Config node cannot be found.
+     * @memberof AnalyticService
+     */
     getConfig(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_CONFIG_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [
+                CONSTANTS.ANALYTIC_TO_CONFIG_RELATION,
+            ]);
             if (nodes.length === 0)
                 return undefined;
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
         });
     }
+    /**
+     * Retrieves the Inputs node for the specified analytic.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to retrieve the Inputs node.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the Inputs node, or undefined if the Inputs node cannot be found.
+     * @memberof AnalyticService
+     */
     getInputsNode(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_INPUTS_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [
+                CONSTANTS.ANALYTIC_TO_INPUTS_RELATION,
+            ]);
             if (nodes.length === 0)
                 return undefined;
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
         });
     }
+    /**
+     * Retrieves the Outputs node for the specified analytic.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to retrieve the Outputs node.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the Outputs node, or undefined if the Outputs node cannot be found.
+     * @memberof AnalyticService
+     */
     getOutputsNode(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [CONSTANTS.ANALYTIC_TO_OUTPUTS_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(analyticId, [
+                CONSTANTS.ANALYTIC_TO_OUTPUTS_RELATION,
+            ]);
             if (nodes.length === 0)
                 return undefined;
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
@@ -219,6 +338,15 @@ class AnalyticService {
     ////////////////////////////////////////////////////
     //////////////// TRACKED VARIABLE //////////////////
     ////////////////////////////////////////////////////
+    /**
+     * Adds a new Tracking Method node to the specified Input node within the specified context.
+     * @async
+     * @param {ITrackingMethod} trackingMethodInfo - The information for the new Tracking Method node to add.
+     * @param {string} contextId - The ID of the context in which to add the Tracking Method node.
+     * @param {string} inputId - The ID of the Input node to which to add the Tracking Method node.
+     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Tracking Method node.
+     * @memberof AnalyticService
+     */
     addTrackingMethod(trackingMethodInfo, contextId, inputId) {
         return __awaiter(this, void 0, void 0, function* () {
             trackingMethodInfo.type = CONSTANTS.TRACKING_METHOD_TYPE;
@@ -228,23 +356,49 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(trackingMethodNodeId);
         });
     }
+    /**
+     * Adds a new Tracking Method node to the Inputs node of the specified analytic within the specified context.
+     * @async
+     * @param {ITrackingMethod} trackingMethodInfo - The information for the new Tracking Method node to add.
+     * @param {string} contextId - The ID of the context in which to add the Tracking Method node.
+     * @param {string} analyticId - The ID of the analytic for which to add the Tracking Method node.
+     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Tracking Method node.
+     * @throws {Error} Throws an error if the Inputs node cannot be found.
+     * @memberof AnalyticService
+     */
     addInputTrackingMethod(trackingMethodInfo, contextId, analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputs = yield this.getInputsNode(analyticId);
             if (inputs === undefined)
-                throw Error("Inputs node not found");
+                throw Error('Inputs node not found');
             return this.addTrackingMethod(trackingMethodInfo, contextId, inputs.id.get());
         });
     }
+    /**
+     * Retrieves all Tracking Method nodes associated with the Inputs node of the specified analytic.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to retrieve the Tracking Method nodes.
+     * @returns {Promise<SpinalNodeRef[]|undefined>} A Promise that resolves to an array of Tracking Method nodes, or undefined if the Inputs node or Tracking Method nodes cannot be found.
+     * @memberof AnalyticService
+     */
     getTrackingMethods(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputs = yield this.getInputsNode(analyticId);
             if (inputs === undefined)
                 return undefined;
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(inputs.id.get(), [CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(inputs.id.get(), [
+                CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION,
+            ]);
             return nodes;
         });
     }
+    /**
+     * Retrieves the first Tracking Method node associated with the Inputs node of the specified analytic.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to retrieve the Tracking Method node.
+     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the first Tracking Method node, or undefined if the Inputs node or Tracking Method nodes cannot be found.
+     * @memberof AnalyticService
+     */
     getTrackingMethod(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const trackingMethods = yield this.getTrackingMethods(analyticId);
@@ -253,20 +407,45 @@ class AnalyticService {
             return trackingMethods[0];
         });
     }
+    /**
+     * Removes the specified Tracking Method node from the specified Inputs node and deletes it from the graph.
+     * @async
+     * @param {string} inputId - The ID of the Inputs node from which to remove the Tracking Method node.
+     * @param {string} trackingMethodId - The ID of the Tracking Method node to remove and delete.
+     * @returns {Promise<void>} A Promise that resolves when the Tracking Method node has been removed and deleted.
+     * @memberof AnalyticService
+     */
     removeTrackingMethod(inputId, trackingMethodId) {
         return __awaiter(this, void 0, void 0, function* () {
             yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(inputId, trackingMethodId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
             yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeFromGraph(trackingMethodId);
         });
     }
+    /**
+     * Removes the specified Tracking Method node from the Inputs node of the specified analytic and deletes it from the graph.
+     * @async
+     * @param {string} analyticId - The ID of the analytic from which to remove the Tracking Method node.
+     * @param {string} trackingMethodId - The ID of the Tracking Method node to remove and delete.
+     * @throws {Error} Throws an error if the Inputs node cannot be found.
+     * @returns {Promise<void>} A Promise that resolves when the Tracking Method node has been removed and deleted.
+     * @memberof AnalyticService
+     */
     removeInputTrackingMethod(analyticId, trackingMethodId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputs = yield this.getInputsNode(analyticId);
             if (inputs === undefined)
-                throw Error("Inputs node not found");
+                throw Error('Inputs node not found');
             yield this.removeTrackingMethod(inputs.id.get(), trackingMethodId);
         });
     }
+    /**
+     * Applies the Tracking Method specified for the specified analytic to the Followed Entity and returns the results.
+     * @async
+     * @param {string} analyticId - The ID of the analytic for which to apply the Tracking Method.
+     * @throws {Error} Throws an error if the Tracking Method or Followed Entity nodes cannot be found.
+     * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
+     * @memberof AnalyticService
+     */
     applyTrackingMethodLegacy(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const trackingMethodModel = yield this.getTrackingMethod(analyticId);
@@ -282,14 +461,22 @@ class AnalyticService {
                         const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntityModel.id.get(), filterValue);
                         return controlEndpoints;
                     case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                        console.log("Ticket filter");
+                        console.log('Ticket filter');
                         break;
                     default:
-                        console.log("Track method not recognized");
+                        console.log('Track method not recognized');
                 }
             }
         });
     }
+    /**
+     * Applies the specified Tracking Method to the specified Followed Entity and returns the results.
+     * @async
+     * @param {SpinalNodeRef} trackingMethod - The SpinalNodeRef object representing the Tracking Method to apply.
+     * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
+     * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
+     * @memberof AnalyticService
+     */
     applyTrackingMethod(trackingMethod, followedEntity) {
         return __awaiter(this, void 0, void 0, function* () {
             if (followedEntity && trackingMethod) {
@@ -303,14 +490,23 @@ class AnalyticService {
                         const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
                         return controlEndpoints;
                     case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                        console.log("Ticket filter");
+                        console.log('Ticket filter');
                         break;
                     default:
-                        console.log("Track method not recognized");
+                        console.log('Track method not recognized');
                 }
             }
         });
     }
+    /**
+     * Applies the specified Tracking Method to the specified Followed Entity using the specified filter value and returns the results.
+     * @async
+     * @param {string} trackMethod - The name of the Tracking Method to apply.
+     * @param {string} filterValue - The filter value to use when applying the Tracking Method.
+     * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
+     * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
+     * @memberof AnalyticService
+     */
     applyTrackingMethodWithParams(trackMethod, filterValue, followedEntity) {
         return __awaiter(this, void 0, void 0, function* () {
             if (followedEntity) {
@@ -322,10 +518,10 @@ class AnalyticService {
                         const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
                         return controlEndpoints;
                     case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                        console.log("Ticket filter");
+                        console.log('Ticket filter');
                         break;
                     default:
-                        console.log("Track method not recognized");
+                        console.log('Track method not recognized');
                 }
             }
         });
@@ -333,6 +529,14 @@ class AnalyticService {
     ////////////////////////////////////////////////////
     //////////////// FOLLOWED ENTITY ///////////////////
     ////////////////////////////////////////////////////
+    /**
+     * Adds a link between an input and a followed entity.
+     * @param {string} contextId - The id of the context where the link will be created.
+     * @param {string} inputId - The id of the input node.
+     * @param {string} followedEntityId - The id of the followed entity node.
+     * @returns {Promise<SpinalNodeRef>} The linked node.
+     * @memberof AnalyticService
+     */
     addLinkToFollowedEntity(contextId, inputId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
             const link = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(inputId, followedEntityId, contextId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
@@ -340,25 +544,51 @@ class AnalyticService {
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(id);
         });
     }
+    /**
+     * Adds a link between the input node of the specified analytic and a followed entity.
+     * @param {string} contextId - The id of the context where the link will be created.
+     * @param {string} analyticId - The id of the analytic node.
+     * @param {string} followedEntityId - The id of the followed entity node.
+     * @returns {Promise<SpinalNodeRef>} The linked node.
+     * @memberof AnalyticService
+     */
     addInputLinkToFollowedEntity(contextId, analyticId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputs = yield this.getInputsNode(analyticId);
             if (inputs === undefined)
-                throw Error("Inputs node not found");
+                throw Error('Inputs node not found');
             return this.addLinkToFollowedEntity(contextId, inputs.id.get(), followedEntityId);
         });
     }
+    /**
+     * Removes the link between an input node and a followed entity node.
+     *
+     * @async
+     * @param {string} inputNodeId - The ID of the input node.
+     * @param {string} followedEntityId - The ID of the followed entity node.
+     * @returns {Promise<void>}
+     * @memberof AnalyticService
+     */
     removeLinkToFollowedEntity(inputNodeId, followedEntityId) {
         return __awaiter(this, void 0, void 0, function* () {
             yield spinal_env_viewer_graph_service_1.SpinalGraphService.removeChild(inputNodeId, followedEntityId, CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
         });
     }
+    /**
+     * Get the followed entity node of an analytic.
+     * @async
+     * @param {string} analyticId - The id of the analytic.
+     * @returns {Promise<SpinalNodeRef|undefined>} The followed entity node or undefined if it does not exist.
+     * @memberof AnalyticService
+     */
     getFollowedEntity(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputsNode = yield this.getInputsNode(analyticId);
             if (inputsNode === undefined)
                 return undefined;
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(inputsNode.id.get(), [CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION]);
+            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(inputsNode.id.get(), [
+                CONSTANTS.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION,
+            ]);
             if (nodes === undefined)
                 return undefined;
             return nodes[0];
@@ -367,55 +597,17 @@ class AnalyticService {
     ///////////////////////////////////////////////////
     ///////////////////// GLOBAL //////////////////////
     ///////////////////////////////////////////////////
-    /*public async getCompleteAnalysis(contextId: string, analysisProcessId: string) {
-       const obj = {
-           analysisProcessId: analysisProcessId,
-           contextId: contextId,
-           processName: "",
-           intervalProcessing : "",
-           followedEntityId: "",
-           followedEntityType: "",
-           variableName: "",
-           variableType: "",
-           analytic: {
-               id: "",
-               algorithmUsed: "",
-               resultName: "",
-               resultType: "",
-           }
-       };
-       const analysisProcessNode = SpinalGraphService.getRealNode(analysisProcessId);
-       (<any>SpinalGraphService)._addNode(analysisProcessNode);
- 
-       const entity = await this.getFollowedEntity(analysisProcessId);
-       if (entity != undefined) {
-           obj.followedEntityId = entity.id.get();
-           obj.followedEntityType = entity.type.get();
-       }
-       const analytic = await this.getAnalytic(analysisProcessId);
-       if (analytic != undefined) {
-          obj.analytic.id = analytic.info.id.get();
-          obj.analytic.algorithmUsed = analytic.info.name.get();
-          obj.analytic.resultName = analytic.info.resultName.get();
-          obj.analytic.resultType = analytic.info.resultType.get();
-       }
-       const followedVariable = await this.getTrackedVariableMethod(analysisProcessId);
-       if(followedVariable != undefined){
-           obj.variableType = followedVariable.type.get();
-           obj.variableName = followedVariable.name.get();
-       }
-       return obj;
-    }
- 
-    public async getCompleteAnalysisList(contextId: string) {
-       const analysisProcessList = await this.getAllAnalysisProcesses(contextId);
-       const analysisList = [];
-       for (const analysisProcess of analysisProcessList) {
-           const analysis = await this.getCompleteAnalysis(contextId, analysisProcess.id.get());
-           //analysisList.push(analysis);
-       }
-       return analysisList;
-    }*/
+    /**
+     * Applies the result of an algorithm.
+     *
+     * @param {*} result The result of the algorithm used.
+     * @param {string} analyticId The ID of the analytic.
+     * @param {SpinalNodeRef} config The SpinalNodeRef of the configuration of the analytic.
+     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef of the entity.
+     * @param {SpinalNodeRef} trackingMethod The SpinalNodeRef of the tracking method.
+     * @return {*}
+     * @memberof AnalyticService
+     */
     applyResult(result, analyticId, config, followedEntity, trackingMethod) {
         return __awaiter(this, void 0, void 0, function* () {
             switch (config.resultType.get()) {
@@ -423,7 +615,7 @@ class AnalyticService {
                     const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
                     const analyticName = analyticInfo.name.get();
                     let ticketInfos = {
-                        name: analyticName + " : " + followedEntity.name.get()
+                        name: analyticName + ' : ' + followedEntity.name.get(),
                     };
                     const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, config, analyticInfo.id.get());
                     break;
@@ -447,12 +639,21 @@ class AnalyticService {
             }
         });
     }
+    /**
+     * Gets the real targeted entities for an analytic.
+     *
+     * @param {string} analyticId The ID of the analytic.
+     * @return {*}  {(Promise<SpinalNodeRef[]|undefined>)} An array of SpinalNodeRefs for the entities
+     * @memberof AnalyticService
+     */
     getWorkingFollowedEntities(analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const followedEntity = yield this.getFollowedEntity(analyticId);
             const trackingMethod = yield this.getTrackingMethod(analyticId);
             const config = yield this.getConfig(analyticId);
             const entityInfo = yield this.getEntityFromAnalytic(analyticId);
+            if (!entityInfo)
+                return;
             const entityType = entityInfo.entityType.get();
             if (followedEntity && trackingMethod && config) {
                 if (entityType == followedEntity.type.get()) {
@@ -460,15 +661,23 @@ class AnalyticService {
                     return [followedEntity];
                 }
                 else {
-                    const isGroup = followedEntity.type.get().includes("group");
-                    const relationNameToTargets = isGroup ? CONSTANTS.GROUP_RELATION_PREFIX + entityType :
-                        "has" + entityType.charAt(0).toUpperCase() + entityType.slice(1);
+                    const isGroup = followedEntity.type.get().includes('group');
+                    const relationNameToTargets = isGroup
+                        ? CONSTANTS.GROUP_RELATION_PREFIX + entityType
+                        : 'has' + entityType.charAt(0).toUpperCase() + entityType.slice(1);
                     const entities = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relationNameToTargets]);
                     return entities;
                 }
             }
         });
     }
+    /**
+     * Gets the entry data models from a followed entity for an analytic.
+     * @param {string} analyticId The ID of the analytic.
+     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
+     * @returns {*} The entry data models for the followed entity.
+     * @memberof AnalyticService
+     */
     getEntryDataModelsFromFollowedEntity(analyticId, followedEntity) {
         return __awaiter(this, void 0, void 0, function* () {
             const trackingMethod = yield this.getTrackingMethod(analyticId);
@@ -476,6 +685,14 @@ class AnalyticService {
                 return this.applyTrackingMethod(trackingMethod, followedEntity);
         });
     }
+    /**
+     * Gets the data for a followed entity and applies an algorithm to it for an analytic.
+     * @private
+     * @param {string} analyticId The ID of the analytic.
+     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
+     * @returns {*}
+     * @memberof AnalyticService
+     */
     getDataAndApplyAlgorithm(analyticId, followedEntity) {
         return __awaiter(this, void 0, void 0, function* () {
             const trackingMethod = yield this.getTrackingMethod(analyticId);
@@ -496,12 +713,19 @@ class AnalyticService {
             }
         });
     }
-    doAnalysis(analyticId, followedEntity) {
+    /**
+     * Performs an analysis on an entity for an analytic.
+     * @param {string} analyticId The ID of the analytic.
+     * @param {SpinalNodeRef} entity The SpinalNodeRef for the entity to analyze.
+     * @returns {*}
+     * @memberof AnalyticService
+     */
+    doAnalysis(analyticId, entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            const entryDataModels = this.getEntryDataModelsFromFollowedEntity(analyticId, followedEntity);
+            const entryDataModels = this.getEntryDataModelsFromFollowedEntity(analyticId, entity);
             if (!entryDataModels)
                 return;
-            this.getDataAndApplyAlgorithm(analyticId, followedEntity);
+            this.getDataAndApplyAlgorithm(analyticId, entity);
         });
     }
 }
