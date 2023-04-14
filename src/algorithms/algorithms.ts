@@ -34,22 +34,56 @@ export function ANALYTIC_XAND(values: boolean[]) {
     return !values.reduce((acc, current) => acc !== current, true);
 };*/
 
-
-export function PUTVALUE(input: number, params: any) {
+/**
+ * This algorithm returns the value set by the user (p1) regardless of the input
+ * 
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {*}  {number}
+ */
+export function PUTVALUE(input: number, params: any) : number {
     return params['p1'];
 };
 
-export function THRESHOLD_ABOVE(input: number, params: any){
+/**
+ * This algorithm returns True if the input is above the treshold set by the user (p1)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean}
+ */
+export function THRESHOLD_ABOVE(input: number, params: any) : boolean {
     const treshold = params['p1'];
     return (input > treshold);
 };
 
-export function THRESHOLD_BELOW(input: number, params: any){
+/**
+ * This algorithm returns True if the input is below the treshold set by the user (p1)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean}
+ */
+export function THRESHOLD_BELOW(input: number, params: any) : boolean{
     const treshold = params['p1'];
     return (input < treshold);
 };
 
-export function THRESHOLD_BETWEEN_IN(input: number, params: any){
+/**
+ * This algorithm returns True if the input is between the tresholds set by the user (p1 and p2)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean} 
+ */
+export function THRESHOLD_BETWEEN_IN(input: number, params: any) : boolean{
     const p1 = params['p1'];
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
@@ -57,7 +91,16 @@ export function THRESHOLD_BETWEEN_IN(input: number, params: any){
     return (input >= min && input <= max);
 };
 
-export function THRESHOLD_BETWEEN_OUT(input: number, params: any){
+/**
+ * This algorithm returns True if the input is outside the tresholds set by the user (p1 and p2)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean} 
+ */
+export function THRESHOLD_BETWEEN_OUT(input: number, params: any) : boolean{
     const p1 = params['p1'];
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
