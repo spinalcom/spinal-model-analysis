@@ -27,25 +27,14 @@ import { attributeService } from "spinal-env-viewer-plugin-documentation-service
 import { serviceTicketPersonalized, spinalServiceTicket } from "spinal-service-ticket";
 import * as CONSTANTS from "../constants";
 
-
-export async function findControlPoint(parentId: string, filterName: string) {
-    const controlPoints = await SpinalGraphService.getChildren(parentId, ["hasControlPoints"]);
-    if (controlPoints.length != 0) {
-        for (const cp of controlPoints) {
-            const bmsEndpoints = await SpinalGraphService.getChildren(cp.id.get(), ["hasBmsEndpoint"]);
-            if (bmsEndpoints.length != 0) {
-                for (const bms of bmsEndpoints) {
-                    if (bms.name.get().includes(filterName)) {
-                        return bms;
-                    }
-                }
-            }
-        }
-    }
-    return undefined;
-}
-
-export async function getAlgorithmParameters(config: SpinalNodeRef) {
+/**
+ * Uses the documentation service to get the attributes related to the algorithm parameters
+ * 
+ * @export
+ * @param {SpinalNodeRef} config
+ * @return {*} 
+ */
+export async function getAlgorithmParameters(config: SpinalNodeRef) : Promise<any> {
     const configNode = SpinalGraphService.getRealNode(config.id.get());
     const res = {}
     const algorithmParameters = await attributeService.getAttributesByCategory(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
@@ -57,7 +46,15 @@ export async function getAlgorithmParameters(config: SpinalNodeRef) {
     return res
 }
 
-export async function getTicketLocalizationParameters(config : SpinalNodeRef) {
+/**
+ * Uses the documentation service to get the attributes related to the ticket localization 
+ * (context and process) parameters
+ *
+ * @export
+ * @param {SpinalNodeRef} config
+ * @return {*} 
+ */
+export async function getTicketLocalizationParameters(config : SpinalNodeRef) : Promise<any> {
     const configNode = SpinalGraphService.getRealNode(config.id.get());
     const res = {}
     const localizationParameters = await attributeService.getAttributesByCategory(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS);
@@ -68,6 +65,14 @@ export async function getTicketLocalizationParameters(config : SpinalNodeRef) {
     return res
 }
 
+/**
+ * Applies a name filter to find the endpoints connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef[]>}
+ */
 export async function findEndpoints(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef[]> {
     const endpoints = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
     const filteredEndpoints : SpinalNodeRef[] = [];
@@ -79,6 +84,14 @@ export async function findEndpoints(followedEntityId: string, filterNameValue: s
     return filteredEndpoints;
 }
 
+/**
+ * Applies a name filter to find the ControlEndpoints connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef[]>}
+ */
 export async function findControlEndpoints(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef[]> {
     const bmsEndpointGroups = await SpinalGraphService.getChildren(followedEntityId, ["hasControlPoints"]);
     const filteredEndpoints : SpinalNodeRef[] = [];
@@ -95,6 +108,14 @@ export async function findControlEndpoints(followedEntityId: string, filterNameV
 
 // ticket creation
 
+
+/**
+ * Finds the context of a node
+ *
+ * @param {string} contextType
+ * @param {string} nodeId
+ * @return {*} 
+ */
 function findContextOfNode(contextType: string, nodeId: string) {
     const contexts = SpinalGraphService.getContextWithType(contextType);
     const node = SpinalGraphService.getRealNode(nodeId);
@@ -107,6 +128,14 @@ function findContextOfNode(contextType: string, nodeId: string) {
     return undefined;
 }
 
+/**
+ * Checks if a ticket is already declared in the context. If it is, returns the node, else returns false
+ *
+ * @param {any[]} ticketTab
+ * @param {string} ticketName
+ * @param {SpinalContext<any>} context
+ * @return {*} 
+ */
 function ticketIsAlreadyDeclared(ticketTab: any[], ticketName: string, context: SpinalContext<any>) {
     for (const ticket of ticketTab) {
         const node = SpinalGraphService.getRealNode(ticket.id);
@@ -116,19 +145,12 @@ function ticketIsAlreadyDeclared(ticketTab: any[], ticketName: string, context: 
     return false
 }
 
-function getAnalysisTicketContext(){
-    const contexts = SpinalGraphService.getContextWithType("SpinalSystemServiceTicket")
-    const context = contexts.find((ctx) => {
-        return ctx.info.name.get() == "Analysis tickets context";
-    });
-    return context;
-}
-
-async function getAlarmProcess(contextId: string){
-    const processes = await SpinalGraphService.getChildrenInContext(contextId, contextId);
-    return processes[0];
-}
-
+/**
+ * Gets the ticket context that has the corresponding contextId
+ *
+ * @param {string} contextId
+ * @return {*} 
+ */
 function getTicketContext(contextId : string ) {
     const contexts = SpinalGraphService.getContextWithType("SpinalSystemServiceTicket")
     const context = contexts.find((ctx) => {
@@ -137,6 +159,13 @@ function getTicketContext(contextId : string ) {
     return context;
 }
 
+/**
+ * Gets the ticket process that has the corresponding processId in the context that has the corresponding contextId
+ *
+ * @param {string} contextId
+ * @param {string} processId
+ * @return {*} 
+ */
 async function getTicketProcess(contextId: string, processId: string){
     const processes = await SpinalGraphService.getChildrenInContext(contextId, contextId);
     const process = processes.find((process) => {
@@ -146,7 +175,15 @@ async function getTicketProcess(contextId: string, processId: string){
 }
 
 
-
+/**
+ * Checks if an alarm is already declared in the context and process.
+ *
+ * @param {string} nodeId
+ * @param {string} contextId
+ * @param {string} processId
+ * @param {string} ticketName
+ * @return {*} 
+ */
 async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId: string, ticketName:string) {
     //SpinalNode
     const tickets = await spinalServiceTicket.getAlarmsFromNode(nodeId);
@@ -158,6 +195,14 @@ async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId:
     return found;
 }
 
+/**
+ * Adds a ticket alarm to the context and process and link it with the node
+ *
+ * @export
+ * @param {*} ticketInfos
+ * @param {SpinalNodeRef} configInfo
+ * @param {string} nodeId
+ */
 export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, nodeId : string){
     const ticketType = "Alarm";
     const localizationInfo = await getTicketLocalizationParameters(configInfo);
@@ -197,6 +242,7 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
 
 }
 
+// not used for now
 export async function addTicketPersonalized(ticketInfos:any, processId: string, parentId: string) {
     const context = findContextOfNode("SpinalSystemServiceTicket", processId);
     if (context != undefined) {

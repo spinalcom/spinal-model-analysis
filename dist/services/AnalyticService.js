@@ -707,11 +707,11 @@ class AnalyticService {
                 const value = (yield entryDataModels[0].element.load()).currentValue.get();
                 //const value = entryDataModels[0].currentValue.get();
                 const params = yield (0, utils_1.getAlgorithmParameters)(config);
-                const result = algo[algorithm_name](value, params); // tmp
+                const result = algo[algorithm_name](value, params);
                 //console.log("ANALYSIS RESULT : ",result);
-                if (typeof result !== 'undefined') {
-                    this.applyResult(result, analyticId, config, followedEntity, trackingMethod);
-                }
+                if (typeof result === 'undefined')
+                    return;
+                this.applyResult(result, analyticId, config, followedEntity, trackingMethod);
             }
         });
     }

@@ -47,3 +47,10 @@ export declare function THRESHOLD_BETWEEN_IN(input: number, params: any): boolea
  * @return {boolean}
  */
 export declare function THRESHOLD_BETWEEN_OUT(input: number, params: any): boolean;
+/**
+ * This algorithm returns the average of the input values
+ *
+ * @export
+ * @param {number[]} values
+ */
+export declare function AVERAGE(values: number[]): void;

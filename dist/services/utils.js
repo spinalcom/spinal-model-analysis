@@ -32,30 +32,18 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketPersonalized = exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = exports.findControlPoint = void 0;
+exports.addTicketPersonalized = exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
 const CONSTANTS = require("../constants");
-function findControlPoint(parentId, filterName) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const controlPoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(parentId, ["hasControlPoints"]);
-        if (controlPoints.length != 0) {
-            for (const cp of controlPoints) {
-                const bmsEndpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(cp.id.get(), ["hasBmsEndpoint"]);
-                if (bmsEndpoints.length != 0) {
-                    for (const bms of bmsEndpoints) {
-                        if (bms.name.get().includes(filterName)) {
-                            return bms;
-                        }
-                    }
-                }
-            }
-        }
-        return undefined;
-    });
-}
-exports.findControlPoint = findControlPoint;
+/**
+ * Uses the documentation service to get the attributes related to the algorithm parameters
+ *
+ * @export
+ * @param {SpinalNodeRef} config
+ * @return {*}
+ */
 function getAlgorithmParameters(config) {
     return __awaiter(this, void 0, void 0, function* () {
         const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(config.id.get());
@@ -70,6 +58,14 @@ function getAlgorithmParameters(config) {
     });
 }
 exports.getAlgorithmParameters = getAlgorithmParameters;
+/**
+ * Uses the documentation service to get the attributes related to the ticket localization
+ * (context and process) parameters
+ *
+ * @export
+ * @param {SpinalNodeRef} config
+ * @return {*}
+ */
 function getTicketLocalizationParameters(config) {
     return __awaiter(this, void 0, void 0, function* () {
         const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(config.id.get());
@@ -83,6 +79,14 @@ function getTicketLocalizationParameters(config) {
     });
 }
 exports.getTicketLocalizationParameters = getTicketLocalizationParameters;
+/**
+ * Applies a name filter to find the endpoints connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef[]>}
+ */
 function findEndpoints(followedEntityId, filterNameValue) {
     return __awaiter(this, void 0, void 0, function* () {
         const endpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
@@ -96,6 +100,14 @@ function findEndpoints(followedEntityId, filterNameValue) {
     });
 }
 exports.findEndpoints = findEndpoints;
+/**
+ * Applies a name filter to find the ControlEndpoints connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef[]>}
+ */
 function findControlEndpoints(followedEntityId, filterNameValue) {
     return __awaiter(this, void 0, void 0, function* () {
         const bmsEndpointGroups = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasControlPoints"]);
@@ -113,6 +125,13 @@ function findControlEndpoints(followedEntityId, filterNameValue) {
 }
 exports.findControlEndpoints = findControlEndpoints;
 // ticket creation
+/**
+ * Finds the context of a node
+ *
+ * @param {string} contextType
+ * @param {string} nodeId
+ * @return {*}
+ */
 function findContextOfNode(contextType, nodeId) {
     const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(contextType);
     const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
@@ -125,6 +144,14 @@ function findContextOfNode(contextType, nodeId) {
     }
     return undefined;
 }
+/**
+ * Checks if a ticket is already declared in the context. If it is, returns the node, else returns false
+ *
+ * @param {any[]} ticketTab
+ * @param {string} ticketName
+ * @param {SpinalContext<any>} context
+ * @return {*}
+ */
 function ticketIsAlreadyDeclared(ticketTab, ticketName, context) {
     for (const ticket of ticketTab) {
         const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticket.id);
@@ -134,19 +161,12 @@ function ticketIsAlreadyDeclared(ticketTab, ticketName, context) {
     }
     return false;
 }
-function getAnalysisTicketContext() {
-    const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType("SpinalSystemServiceTicket");
-    const context = contexts.find((ctx) => {
-        return ctx.info.name.get() == "Analysis tickets context";
-    });
-    return context;
-}
-function getAlarmProcess(contextId) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const processes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildrenInContext(contextId, contextId);
-        return processes[0];
-    });
-}
+/**
+ * Gets the ticket context that has the corresponding contextId
+ *
+ * @param {string} contextId
+ * @return {*}
+ */
 function getTicketContext(contextId) {
     const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType("SpinalSystemServiceTicket");
     const context = contexts.find((ctx) => {
@@ -154,6 +174,13 @@ function getTicketContext(contextId) {
     });
     return context;
 }
+/**
+ * Gets the ticket process that has the corresponding processId in the context that has the corresponding contextId
+ *
+ * @param {string} contextId
+ * @param {string} processId
+ * @return {*}
+ */
 function getTicketProcess(contextId, processId) {
     return __awaiter(this, void 0, void 0, function* () {
         const processes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildrenInContext(contextId, contextId);
@@ -163,6 +190,15 @@ function getTicketProcess(contextId, processId) {
         return process;
     });
 }
+/**
+ * Checks if an alarm is already declared in the context and process.
+ *
+ * @param {string} nodeId
+ * @param {string} contextId
+ * @param {string} processId
+ * @param {string} ticketName
+ * @return {*}
+ */
 function alarmAlreadyDeclared(nodeId, contextId, processId, ticketName) {
     return __awaiter(this, void 0, void 0, function* () {
         //SpinalNode
@@ -174,6 +210,14 @@ function alarmAlreadyDeclared(nodeId, contextId, processId, ticketName) {
         return found;
     });
 }
+/**
+ * Adds a ticket alarm to the context and process and link it with the node
+ *
+ * @export
+ * @param {*} ticketInfos
+ * @param {SpinalNodeRef} configInfo
+ * @param {string} nodeId
+ */
 function addTicketAlarm(ticketInfos, configInfo, nodeId) {
     return __awaiter(this, void 0, void 0, function* () {
         const ticketType = "Alarm";
@@ -206,6 +250,7 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId) {
     });
 }
 exports.addTicketAlarm = addTicketAlarm;
+// not used for now
 function addTicketPersonalized(ticketInfos, processId, parentId) {
     return __awaiter(this, void 0, void 0, function* () {
         const context = findContextOfNode("SpinalSystemServiceTicket", processId);

@@ -1,6 +1,4 @@
-/*export function AVERAGE(values: number[]) {
-    values.reduce((acc, current) => acc + current, 0) / values.length;
-};
+/*
 
 export function WEIGHTED_AVERAGE(values: number[], weights: number[]) {
     if (values.length !== weights.length) {
@@ -106,4 +104,14 @@ export function THRESHOLD_BETWEEN_OUT(input: number, params: any) : boolean{
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
     return (input <= min || input >= max);
+};
+
+/**
+ * This algorithm returns the average of the input values
+ *
+ * @export
+ * @param {number[]} values
+ */
+export function AVERAGE(values: number[]) {
+    values.reduce((acc, current) => acc + current, 0) / values.length;
 };

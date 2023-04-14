@@ -113,6 +113,7 @@ export enum ALGORITHMS {
     THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
     THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
     PUTVALUE = "PUTVALUE",
+    AVERAGE = "AVERAGE",
 }
 
 export const ALGO_DOC = {
@@ -123,6 +124,7 @@ export const ALGO_DOC = {
     "THRESHOLD_BETWEEN_OUT": [{name : "p1",type :"number", description: "the first threshold value"},
                               {name : "p2",type :"number", description: "the second threshold value"}],
     "PUTVALUE": [{name : "p1",type :"number", description: "the value to inject"}],
+    "AVERAGE": [],
 }
 
 export const ALGO_DOC_DESCRIPTION = {
@@ -131,4 +133,5 @@ export const ALGO_DOC_DESCRIPTION = {
     "THRESHOLD_BETWEEN_IN": "This algorithm returns true if the input is between the two thresholds set by the user",
     "THRESHOLD_BETWEEN_OUT": "This algorithm returns true if the input is outside the two thresholds set by the user",
     "PUTVALUE": "This algorithm injects the value set by the user",
+    "AVERAGE" : "This algorithm returns the average of the inputs",
 };

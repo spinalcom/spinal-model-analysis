@@ -64,7 +64,8 @@ export declare enum ALGORITHMS {
     THRESHOLD_BELOW = "THRESHOLD_BELOW",
     THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
     THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
-    PUTVALUE = "PUTVALUE"
+    PUTVALUE = "PUTVALUE",
+    AVERAGE = "AVERAGE"
 }
 export declare const ALGO_DOC: {
     THRESHOLD_ABOVE: {
@@ -92,6 +93,7 @@ export declare const ALGO_DOC: {
         type: string;
         description: string;
     }[];
+    AVERAGE: never[];
 };
 export declare const ALGO_DOC_DESCRIPTION: {
     THRESHOLD_ABOVE: string;
@@ -99,4 +101,5 @@ export declare const ALGO_DOC_DESCRIPTION: {
     THRESHOLD_BETWEEN_IN: string;
     THRESHOLD_BETWEEN_OUT: string;
     PUTVALUE: string;
+    AVERAGE: string;
 };

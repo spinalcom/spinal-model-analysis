@@ -1,7 +1,5 @@
 "use strict";
-/*export function AVERAGE(values: number[]) {
-    values.reduce((acc, current) => acc + current, 0) / values.length;
-};
+/*
 
 export function WEIGHTED_AVERAGE(values: number[], weights: number[]) {
     if (values.length !== weights.length) {
@@ -35,7 +33,7 @@ export function ANALYTIC_XAND(values: boolean[]) {
     return !values.reduce((acc, current) => acc !== current, true);
 };*/
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.PUTVALUE = void 0;
+exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.PUTVALUE = void 0;
 /**
  * This algorithm returns the value set by the user (p1) regardless of the input
  *
@@ -114,5 +112,16 @@ function THRESHOLD_BETWEEN_OUT(input, params) {
     return (input <= min || input >= max);
 }
 exports.THRESHOLD_BETWEEN_OUT = THRESHOLD_BETWEEN_OUT;
+;
+/**
+ * This algorithm returns the average of the input values
+ *
+ * @export
+ * @param {number[]} values
+ */
+function AVERAGE(values) {
+    values.reduce((acc, current) => acc + current, 0) / values.length;
+}
+exports.AVERAGE = AVERAGE;
 ;
 //# sourceMappingURL=algorithms.js.map

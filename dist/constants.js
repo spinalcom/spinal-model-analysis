@@ -102,6 +102,7 @@ var ALGORITHMS;
     ALGORITHMS["THRESHOLD_BETWEEN_IN"] = "THRESHOLD_BETWEEN_IN";
     ALGORITHMS["THRESHOLD_BETWEEN_OUT"] = "THRESHOLD_BETWEEN_OUT";
     ALGORITHMS["PUTVALUE"] = "PUTVALUE";
+    ALGORITHMS["AVERAGE"] = "AVERAGE";
 })(ALGORITHMS = exports.ALGORITHMS || (exports.ALGORITHMS = {}));
 exports.ALGO_DOC = {
     "THRESHOLD_ABOVE": [{ name: "p1", type: "number", description: "the threshold value" }],
@@ -111,6 +112,7 @@ exports.ALGO_DOC = {
     "THRESHOLD_BETWEEN_OUT": [{ name: "p1", type: "number", description: "the first threshold value" },
         { name: "p2", type: "number", description: "the second threshold value" }],
     "PUTVALUE": [{ name: "p1", type: "number", description: "the value to inject" }],
+    "AVERAGE": [],
 };
 exports.ALGO_DOC_DESCRIPTION = {
     "THRESHOLD_ABOVE": "This algorithm returns true if the input is above the threshold set by the user",
@@ -118,5 +120,6 @@ exports.ALGO_DOC_DESCRIPTION = {
     "THRESHOLD_BETWEEN_IN": "This algorithm returns true if the input is between the two thresholds set by the user",
     "THRESHOLD_BETWEEN_OUT": "This algorithm returns true if the input is outside the two thresholds set by the user",
     "PUTVALUE": "This algorithm injects the value set by the user",
+    "AVERAGE": "This algorithm returns the average of the inputs",
 };
 //# sourceMappingURL=constants.js.map
