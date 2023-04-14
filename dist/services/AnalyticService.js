@@ -707,7 +707,7 @@ class AnalyticService {
                 const params = yield (0, utils_1.getAlgorithmParameters)(config);
                 const result = algo[algorithm_name](value, params); // tmp
                 //console.log("ANALYSIS RESULT : ",result);
-                if (result) {
+                if (typeof result !== 'undefined') {
                     this.applyResult(result, analyticId, config, followedEntity, trackingMethod);
                 }
             }

@@ -36,23 +36,58 @@ export function ANALYTIC_XAND(values: boolean[]) {
 };*/
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.PUTVALUE = void 0;
+/**
+ * This algorithm returns the value set by the user (p1) regardless of the input
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {*}  {number}
+ */
 function PUTVALUE(input, params) {
     return params['p1'];
 }
 exports.PUTVALUE = PUTVALUE;
 ;
+/**
+ * This algorithm returns True if the input is above the treshold set by the user (p1)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean}
+ */
 function THRESHOLD_ABOVE(input, params) {
     const treshold = params['p1'];
     return (input > treshold);
 }
 exports.THRESHOLD_ABOVE = THRESHOLD_ABOVE;
 ;
+/**
+ * This algorithm returns True if the input is below the treshold set by the user (p1)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean}
+ */
 function THRESHOLD_BELOW(input, params) {
     const treshold = params['p1'];
     return (input < treshold);
 }
 exports.THRESHOLD_BELOW = THRESHOLD_BELOW;
 ;
+/**
+ * This algorithm returns True if the input is between the tresholds set by the user (p1 and p2)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean}
+ */
 function THRESHOLD_BETWEEN_IN(input, params) {
     const p1 = params['p1'];
     const p2 = params['p2'];
@@ -62,6 +97,15 @@ function THRESHOLD_BETWEEN_IN(input, params) {
 }
 exports.THRESHOLD_BETWEEN_IN = THRESHOLD_BETWEEN_IN;
 ;
+/**
+ * This algorithm returns True if the input is outside the tresholds set by the user (p1 and p2)
+ * and False otherwise
+ *
+ * @export
+ * @param {number} input
+ * @param {*} params
+ * @return {boolean}
+ */
 function THRESHOLD_BETWEEN_OUT(input, params) {
     const p1 = params['p1'];
     const p2 = params['p2'];
