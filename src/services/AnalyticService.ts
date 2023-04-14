@@ -794,10 +794,11 @@ export default class AnalyticService {
   ) {
     switch (config.resultType.get()) {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
+        if (!result) return;
         const analyticInfo = SpinalGraphService.getInfo(analyticId);
         const analyticName = analyticInfo.name.get();
         let ticketInfos = {
-          name: analyticName + ' : ' + followedEntity.name.get(),
+          name: config.resultName.get() + ' : ' + followedEntity.name.get(),
         };
         const ticket = addTicketAlarm(
           ticketInfos,
@@ -891,7 +892,7 @@ export default class AnalyticService {
   private async getDataAndApplyAlgorithm(
     analyticId: string,
     followedEntity: SpinalNodeRef
-  ) : Promise<void> {
+  ): Promise<void> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     const config = await this.getConfig(analyticId);
     if (!trackingMethod || !config) return;

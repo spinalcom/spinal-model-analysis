@@ -612,10 +612,12 @@ class AnalyticService {
         return __awaiter(this, void 0, void 0, function* () {
             switch (config.resultType.get()) {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
+                    if (!result)
+                        return;
                     const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
                     const analyticName = analyticInfo.name.get();
                     let ticketInfos = {
-                        name: analyticName + ' : ' + followedEntity.name.get(),
+                        name: config.resultName.get() + ' : ' + followedEntity.name.get(),
                     };
                     const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, config, analyticInfo.id.get());
                     break;
