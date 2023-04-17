@@ -774,6 +774,9 @@ export default class AnalyticService {
   ///////////////////// GLOBAL //////////////////////
   ///////////////////////////////////////////////////
 
+  
+
+
   /**
    * Applies the result of an algorithm.
    *
@@ -902,6 +905,8 @@ export default class AnalyticService {
     );
     if (entryDataModels) {
       const algorithm_name = config.algorithm.get();
+      // this is another way to get the value that i would like to measure the performance of, later.
+      //const value2 = await attributeService.findOneAttributeInCategory(entryDataModels[0], "default", "currentValue");
       const value = (
         await entryDataModels[0].element.load()
       ).currentValue.get();
