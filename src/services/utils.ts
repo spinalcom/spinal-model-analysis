@@ -46,6 +46,8 @@ export async function getAlgorithmParameters(config: SpinalNodeRef) : Promise<an
     return res
 }
 
+
+
 /**
  * Uses the documentation service to get the attributes related to the ticket localization 
  * (context and process) parameters

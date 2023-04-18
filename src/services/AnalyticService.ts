@@ -18,6 +18,7 @@ import { IInputs } from '../interfaces/IInputs';
 import { InputsModel } from '../models/InputsModel';
 import { IOutputs } from '../interfaces/IOutputs';
 import { OutputsModel } from '../models/OutputsModel';
+import { IAttribute, INodeDocumentation } from '../interfaces/IAttribute';
 import AttributeService, {
   serviceDocumentation,
 } from 'spinal-env-viewer-plugin-documentation-service';
@@ -335,15 +336,13 @@ export default class AnalyticService {
    * @memberof AnalyticService
    */
   public async addConfig(
-    configInfo: IConfig,
-    configAttributes: any,
+    configAttributes: INodeDocumentation,
     analyticId: string,
     contextId: string
   ): Promise<SpinalNodeRef> {
-    configInfo.name = 'Config';
-    configInfo.type = CONSTANTS.CONFIG_TYPE;
-    const configModel = new ConfigModel(configInfo);
-    let configId = SpinalGraphService.createNode(configInfo, configModel);
+    const configNodeInfo = { name: 'Config', type: CONSTANTS.CONFIG_TYPE };
+    const configModel = new ConfigModel(configNodeInfo);
+    let configId = SpinalGraphService.createNode(configNodeInfo, configModel);
     const configNode = await SpinalGraphService.addChildInContext(
       analyticId,
       configId,
@@ -351,7 +350,9 @@ export default class AnalyticService {
       CONSTANTS.ANALYTIC_TO_CONFIG_RELATION,
       SPINAL_RELATION_PTR_LST_TYPE
     );
-    for (let attribute of configAttributes) {
+
+    this.addAttributesToNode(configNode, configAttributes);
+    /*for (let attribute of configAttributes) {
       await AttributeService.addAttributeByCategoryName(
         configNode,
         CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS,
@@ -360,35 +361,8 @@ export default class AnalyticService {
         attribute.type,
         ''
       );
-    }
+    }*/
     return SpinalGraphService.getInfo(configId);
-  }
-
-  /**
-   * Adds the specified attributes to the Config node with the specified ID.
-   * @async
-   * @param {string} configId - The ID of the Config node to which to add the attributes.
-   * @param {string} categoryName - The name of the category in which to add the attributes.
-   * @param {any[]} configAttributes - An array of objects representing the attributes to add to the Config node.
-   * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-   * @memberof AnalyticService
-   */
-  public async addAttributesToConfig(
-    configId: string,
-    categoryName: string,
-    configAttributes: any
-  ): Promise<void> {
-    const configNode = SpinalGraphService.getRealNode(configId);
-    for (let attribute of configAttributes) {
-      await AttributeService.addAttributeByCategoryName(
-        configNode,
-        categoryName,
-        attribute.name,
-        attribute.value,
-        attribute.type,
-        ''
-      );
-    }
   }
 
   /**
@@ -456,23 +430,28 @@ export default class AnalyticService {
    * @memberof AnalyticService
    */
   public async addTrackingMethod(
-    trackingMethodInfo: ITrackingMethod,
+    trackingMethodAttributes: INodeDocumentation,
     contextId: string,
     inputId: string
   ): Promise<SpinalNodeRef> {
-    trackingMethodInfo.type = CONSTANTS.TRACKING_METHOD_TYPE;
-    const trackingMethodModel = new TrackingMethodModel(trackingMethodInfo);
+    const trackingMethodNodeInfo = {
+      name: 'TrackingMethod',
+      type: CONSTANTS.TRACKING_METHOD_TYPE,
+    };
+    const trackingMethodModel = new TrackingMethodModel(trackingMethodNodeInfo);
     const trackingMethodNodeId = SpinalGraphService.createNode(
-      trackingMethodInfo,
+      trackingMethodNodeInfo,
       trackingMethodModel
     );
-    await SpinalGraphService.addChildInContext(
+    const createdNode = await SpinalGraphService.addChildInContext(
       inputId,
       trackingMethodNodeId,
       contextId,
       CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION,
       SPINAL_RELATION_PTR_LST_TYPE
     );
+
+    this.addAttributesToNode(createdNode, trackingMethodAttributes);
     return SpinalGraphService.getInfo(trackingMethodNodeId);
   }
 
@@ -487,14 +466,14 @@ export default class AnalyticService {
    * @memberof AnalyticService
    */
   public async addInputTrackingMethod(
-    trackingMethodInfo: ITrackingMethod,
+    trackingMethodAttributes: INodeDocumentation,
     contextId: string,
     analyticId: string
   ): Promise<SpinalNodeRef> {
     const inputs = await this.getInputsNode(analyticId);
     if (inputs === undefined) throw Error('Inputs node not found');
     return this.addTrackingMethod(
-      trackingMethodInfo,
+      trackingMethodAttributes,
       contextId,
       inputs.id.get()
     );
@@ -608,6 +587,25 @@ export default class AnalyticService {
     }
   }
 
+  public async getTrackingMethodParameters(
+    trackingMethodId: string
+  ): Promise<any> {
+    const trackingNode = SpinalGraphService.getRealNode(
+      trackingMethodId
+    );
+    const res = {};
+    const algorithmParameters = await attributeService.getAttributesByCategory(
+      trackingNode,
+      CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS
+    );
+    for (const param of algorithmParameters) {
+      const obj = param.get();
+      res[obj.label] = obj.value;
+    }
+    //console.log("ALGORITHM PARAMETERS : ",res);
+    return res;
+  }
+
   /**
    * Applies the specified Tracking Method to the specified Followed Entity and returns the results.
    * @async
@@ -621,8 +619,9 @@ export default class AnalyticService {
     followedEntity: SpinalNodeRef
   ): Promise<any> {
     if (followedEntity && trackingMethod) {
-      const trackMethod = trackingMethod.trackMethod.get();
-      const filterValue = trackingMethod.filterValue.get();
+      const params = await this.getTrackingMethodParameters(trackingMethod.id.get());
+      const trackMethod = params['trackMethod'];
+      const filterValue = params['filterValue'];
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
           const endpoints = await findEndpoints(
@@ -774,9 +773,42 @@ export default class AnalyticService {
   ///////////////////// GLOBAL //////////////////////
   ///////////////////////////////////////////////////
 
-  
+  /**
+   * Adds the specified attributes to the node with the specified ID.
+   * @async
+   * @param {SpinalNode<any>} node - The node to which to add the attributes.
+   * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
+   * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
+   * @memberof AnalyticService
+   */
+  public async addAttributesToNode(
+    node: SpinalNode<any>,
+    attributes: INodeDocumentation
+  ): Promise<void> {
+    for (let categoryName of Object.keys(attributes)) {
+      for (let attribute of attributes[categoryName]) {
+        await AttributeService.addAttributeByCategoryName(
+          node,
+          categoryName,
+          attribute.name,
+          attribute.value,
+          attribute.type,
+          ''
+        );
+      }
+    }
+  }
 
-
+  public async getAttributesFromNode(nodeId: string,category:string) : Promise<any> {
+    const node = SpinalGraphService.getRealNode(nodeId);
+    const res = {}
+    const parameters = await attributeService.getAttributesByCategory(node, category);
+    for (const param of parameters) {
+        const obj = param.get();
+        res[obj.label] = obj.value;
+    } 
+    return res
+  }
   /**
    * Applies the result of an algorithm.
    *
@@ -795,13 +827,13 @@ export default class AnalyticService {
     followedEntity: SpinalNodeRef,
     trackingMethod: SpinalNodeRef
   ) {
-    switch (config.resultType.get()) {
+    const params = this.getAttributesFromNode(config.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
+    switch (params['resultType']) {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
         if (!result) return;
         const analyticInfo = SpinalGraphService.getInfo(analyticId);
-        const analyticName = analyticInfo.name.get();
         let ticketInfos = {
-          name: config.resultName.get() + ' : ' + followedEntity.name.get(),
+          name: params['resultName'] + ' : ' + followedEntity.name.get(),
         };
         const ticket = addTicketAlarm(
           ticketInfos,
@@ -823,7 +855,7 @@ export default class AnalyticService {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
         const entries2 = await this.applyTrackingMethodWithParams(
           CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER,
-          config.resultName.get(),
+          params['resultName'],
           followedEntity
         );
         if (!entries2) return;
@@ -899,19 +931,21 @@ export default class AnalyticService {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     const config = await this.getConfig(analyticId);
     if (!trackingMethod || !config) return;
+
     const entryDataModels = await this.applyTrackingMethod(
       trackingMethod,
       followedEntity
     );
     if (entryDataModels) {
-      const algorithm_name = config.algorithm.get();
+      const params = await getAlgorithmParameters(config);
+      const algorithm_name = params['algorithm'];
       // this is another way to get the value that i would like to measure the performance of, later.
       //const value2 = await attributeService.findOneAttributeInCategory(entryDataModels[0], "default", "currentValue");
       const value = (
         await entryDataModels[0].element.load()
       ).currentValue.get();
       //const value = entryDataModels[0].currentValue.get();
-      const params = await getAlgorithmParameters(config);
+      
       const result = algo[algorithm_name](value, params);
       //console.log("ANALYSIS RESULT : ",result);
       if (typeof result === 'undefined') return;

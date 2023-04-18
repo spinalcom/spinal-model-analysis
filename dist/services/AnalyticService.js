@@ -19,6 +19,7 @@ const TrackingMethodModel_1 = require("../models/TrackingMethodModel");
 const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+const spinal_env_viewer_plugin_documentation_service_2 = require("spinal-env-viewer-plugin-documentation-service");
 const utils_1 = require("./utils");
 const algo = require("../algorithms/algorithms");
 class AnalyticService {
@@ -254,34 +255,24 @@ class AnalyticService {
      * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Config node.
      * @memberof AnalyticService
      */
-    addConfig(configInfo, configAttributes, analyticId, contextId) {
+    addConfig(configAttributes, analyticId, contextId) {
         return __awaiter(this, void 0, void 0, function* () {
-            configInfo.name = 'Config';
-            configInfo.type = CONSTANTS.CONFIG_TYPE;
-            const configModel = new ConfigModel_1.ConfigModel(configInfo);
-            let configId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(configInfo, configModel);
+            const configNodeInfo = { name: 'Config', type: CONSTANTS.CONFIG_TYPE };
+            const configModel = new ConfigModel_1.ConfigModel(configNodeInfo);
+            let configId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(configNodeInfo, configModel);
             const configNode = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analyticId, configId, contextId, CONSTANTS.ANALYTIC_TO_CONFIG_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            for (let attribute of configAttributes) {
-                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS, attribute.name, attribute.value, attribute.type, '');
-            }
+            this.addAttributesToNode(configNode, configAttributes);
+            /*for (let attribute of configAttributes) {
+              await AttributeService.addAttributeByCategoryName(
+                configNode,
+                CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS,
+                attribute.name,
+                attribute.value,
+                attribute.type,
+                ''
+              );
+            }*/
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(configId);
-        });
-    }
-    /**
-     * Adds the specified attributes to the Config node with the specified ID.
-     * @async
-     * @param {string} configId - The ID of the Config node to which to add the attributes.
-     * @param {string} categoryName - The name of the category in which to add the attributes.
-     * @param {any[]} configAttributes - An array of objects representing the attributes to add to the Config node.
-     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-     * @memberof AnalyticService
-     */
-    addAttributesToConfig(configId, categoryName, configAttributes) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(configId);
-            for (let attribute of configAttributes) {
-                yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(configNode, categoryName, attribute.name, attribute.value, attribute.type, '');
-            }
         });
     }
     /**
@@ -347,12 +338,16 @@ class AnalyticService {
      * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Tracking Method node.
      * @memberof AnalyticService
      */
-    addTrackingMethod(trackingMethodInfo, contextId, inputId) {
+    addTrackingMethod(trackingMethodAttributes, contextId, inputId) {
         return __awaiter(this, void 0, void 0, function* () {
-            trackingMethodInfo.type = CONSTANTS.TRACKING_METHOD_TYPE;
-            const trackingMethodModel = new TrackingMethodModel_1.TrackingMethodModel(trackingMethodInfo);
-            const trackingMethodNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(trackingMethodInfo, trackingMethodModel);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(inputId, trackingMethodNodeId, contextId, CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            const trackingMethodNodeInfo = {
+                name: 'TrackingMethod',
+                type: CONSTANTS.TRACKING_METHOD_TYPE,
+            };
+            const trackingMethodModel = new TrackingMethodModel_1.TrackingMethodModel(trackingMethodNodeInfo);
+            const trackingMethodNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(trackingMethodNodeInfo, trackingMethodModel);
+            const createdNode = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(inputId, trackingMethodNodeId, contextId, CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            this.addAttributesToNode(createdNode, trackingMethodAttributes);
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(trackingMethodNodeId);
         });
     }
@@ -366,12 +361,12 @@ class AnalyticService {
      * @throws {Error} Throws an error if the Inputs node cannot be found.
      * @memberof AnalyticService
      */
-    addInputTrackingMethod(trackingMethodInfo, contextId, analyticId) {
+    addInputTrackingMethod(trackingMethodAttributes, contextId, analyticId) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputs = yield this.getInputsNode(analyticId);
             if (inputs === undefined)
                 throw Error('Inputs node not found');
-            return this.addTrackingMethod(trackingMethodInfo, contextId, inputs.id.get());
+            return this.addTrackingMethod(trackingMethodAttributes, contextId, inputs.id.get());
         });
     }
     /**
@@ -469,6 +464,19 @@ class AnalyticService {
             }
         });
     }
+    getTrackingMethodParameters(trackingMethodId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const trackingNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(trackingMethodId);
+            const res = {};
+            const algorithmParameters = yield spinal_env_viewer_plugin_documentation_service_2.attributeService.getAttributesByCategory(trackingNode, CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
+            for (const param of algorithmParameters) {
+                const obj = param.get();
+                res[obj.label] = obj.value;
+            }
+            //console.log("ALGORITHM PARAMETERS : ",res);
+            return res;
+        });
+    }
     /**
      * Applies the specified Tracking Method to the specified Followed Entity and returns the results.
      * @async
@@ -480,8 +488,9 @@ class AnalyticService {
     applyTrackingMethod(trackingMethod, followedEntity) {
         return __awaiter(this, void 0, void 0, function* () {
             if (followedEntity && trackingMethod) {
-                const trackMethod = trackingMethod.trackMethod.get();
-                const filterValue = trackingMethod.filterValue.get();
+                const params = yield this.getTrackingMethodParameters(trackingMethod.id.get());
+                const trackMethod = params['trackMethod'];
+                const filterValue = params['filterValue'];
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
                         const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
@@ -598,6 +607,35 @@ class AnalyticService {
     ///////////////////// GLOBAL //////////////////////
     ///////////////////////////////////////////////////
     /**
+     * Adds the specified attributes to the node with the specified ID.
+     * @async
+     * @param {SpinalNode<any>} node - The node to which to add the attributes.
+     * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
+     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
+     * @memberof AnalyticService
+     */
+    addAttributesToNode(node, attributes) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (let categoryName of Object.keys(attributes)) {
+                for (let attribute of attributes[categoryName]) {
+                    yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(node, categoryName, attribute.name, attribute.value, attribute.type, '');
+                }
+            }
+        });
+    }
+    getAttributesFromNode(nodeId, category) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+            const res = {};
+            const parameters = yield spinal_env_viewer_plugin_documentation_service_2.attributeService.getAttributesByCategory(node, category);
+            for (const param of parameters) {
+                const obj = param.get();
+                res[obj.label] = obj.value;
+            }
+            return res;
+        });
+    }
+    /**
      * Applies the result of an algorithm.
      *
      * @param {*} result The result of the algorithm used.
@@ -610,14 +648,14 @@ class AnalyticService {
      */
     applyResult(result, analyticId, config, followedEntity, trackingMethod) {
         return __awaiter(this, void 0, void 0, function* () {
-            switch (config.resultType.get()) {
+            const params = this.getAttributesFromNode(config.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
+            switch (params['resultType']) {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
                     if (!result)
                         return;
                     const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
-                    const analyticName = analyticInfo.name.get();
                     let ticketInfos = {
-                        name: config.resultName.get() + ' : ' + followedEntity.name.get(),
+                        name: params['resultName'] + ' : ' + followedEntity.name.get(),
                     };
                     const ticket = (0, utils_1.addTicketAlarm)(ticketInfos, config, analyticInfo.id.get());
                     break;
@@ -631,7 +669,7 @@ class AnalyticService {
                     }
                     break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
-                    const entries2 = yield this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, config.resultName.get(), followedEntity);
+                    const entries2 = yield this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, params['resultName'], followedEntity);
                     if (!entries2)
                         return;
                     for (const entry of entries2) {
@@ -703,10 +741,12 @@ class AnalyticService {
                 return;
             const entryDataModels = yield this.applyTrackingMethod(trackingMethod, followedEntity);
             if (entryDataModels) {
-                const algorithm_name = config.algorithm.get();
+                const params = yield (0, utils_1.getAlgorithmParameters)(config);
+                const algorithm_name = params['algorithm'];
+                // this is another way to get the value that i would like to measure the performance of, later.
+                //const value2 = await attributeService.findOneAttributeInCategory(entryDataModels[0], "default", "currentValue");
                 const value = (yield entryDataModels[0].element.load()).currentValue.get();
                 //const value = entryDataModels[0].currentValue.get();
-                const params = yield (0, utils_1.getAlgorithmParameters)(config);
                 const result = algo[algorithm_name](value, params);
                 //console.log("ANALYSIS RESULT : ",result);
                 if (typeof result === 'undefined')

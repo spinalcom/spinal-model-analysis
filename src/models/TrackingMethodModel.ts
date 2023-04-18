@@ -4,7 +4,7 @@ import { ITrackingMethod } from "../interfaces/ITrackingMethod";
 
 
 class TrackingMethodModel extends Model {
-   constructor(trackingMethod: ITrackingMethod) {
+   constructor(trackingMethod: any) {
       super();
       this.add_attr(trackingMethod);
    }

@@ -3,9 +3,9 @@ import { IConfig } from "../interfaces/IConfig";
 
 
 class ConfigModel extends Model {
-   constructor(config: IConfig) {
+   constructor(nodeInfo: any) {
       super();
-      this.add_attr(config);
+      this.add_attr(nodeInfo);
    }
 }
 

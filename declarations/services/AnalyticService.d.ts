@@ -1,8 +1,7 @@
 import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
-import { IConfig } from '../interfaces/IConfig';
 import { IAnalytic } from '../interfaces/IAnalytic';
 import { IEntity } from '../interfaces/IEntity';
-import { ITrackingMethod } from '../interfaces/ITrackingMethod';
+import { INodeDocumentation } from '../interfaces/IAttribute';
 export default class AnalyticService {
     constructor();
     /**
@@ -118,17 +117,7 @@ export default class AnalyticService {
      * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Config node.
      * @memberof AnalyticService
      */
-    addConfig(configInfo: IConfig, configAttributes: any, analyticId: string, contextId: string): Promise<SpinalNodeRef>;
-    /**
-     * Adds the specified attributes to the Config node with the specified ID.
-     * @async
-     * @param {string} configId - The ID of the Config node to which to add the attributes.
-     * @param {string} categoryName - The name of the category in which to add the attributes.
-     * @param {any[]} configAttributes - An array of objects representing the attributes to add to the Config node.
-     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-     * @memberof AnalyticService
-     */
-    addAttributesToConfig(configId: string, categoryName: string, configAttributes: any): Promise<void>;
+    addConfig(configAttributes: INodeDocumentation, analyticId: string, contextId: string): Promise<SpinalNodeRef>;
     /**
      * Retrieves the Config node for the specified analytic.
      * @async
@@ -162,7 +151,7 @@ export default class AnalyticService {
      * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Tracking Method node.
      * @memberof AnalyticService
      */
-    addTrackingMethod(trackingMethodInfo: ITrackingMethod, contextId: string, inputId: string): Promise<SpinalNodeRef>;
+    addTrackingMethod(trackingMethodAttributes: INodeDocumentation, contextId: string, inputId: string): Promise<SpinalNodeRef>;
     /**
      * Adds a new Tracking Method node to the Inputs node of the specified analytic within the specified context.
      * @async
@@ -173,7 +162,7 @@ export default class AnalyticService {
      * @throws {Error} Throws an error if the Inputs node cannot be found.
      * @memberof AnalyticService
      */
-    addInputTrackingMethod(trackingMethodInfo: ITrackingMethod, contextId: string, analyticId: string): Promise<SpinalNodeRef>;
+    addInputTrackingMethod(trackingMethodAttributes: INodeDocumentation, contextId: string, analyticId: string): Promise<SpinalNodeRef>;
     /**
      * Retrieves all Tracking Method nodes associated with the Inputs node of the specified analytic.
      * @async
@@ -218,6 +207,7 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     applyTrackingMethodLegacy(analyticId: string): Promise<any>;
+    getTrackingMethodParameters(trackingMethodId: string): Promise<any>;
     /**
      * Applies the specified Tracking Method to the specified Followed Entity and returns the results.
      * @async
@@ -273,6 +263,16 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getFollowedEntity(analyticId: string): Promise<SpinalNodeRef | undefined>;
+    /**
+     * Adds the specified attributes to the node with the specified ID.
+     * @async
+     * @param {SpinalNode<any>} node - The node to which to add the attributes.
+     * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
+     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
+     * @memberof AnalyticService
+     */
+    addAttributesToNode(node: SpinalNode<any>, attributes: INodeDocumentation): Promise<void>;
+    getAttributesFromNode(nodeId: string, category: string): Promise<any>;
     /**
      * Applies the result of an algorithm.
      *
