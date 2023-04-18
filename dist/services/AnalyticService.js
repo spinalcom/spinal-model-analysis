@@ -491,6 +491,8 @@ class AnalyticService {
                 const params = yield this.getTrackingMethodParameters(trackingMethod.id.get());
                 const trackMethod = params['trackMethod'];
                 const filterValue = params['filterValue'];
+                console.log("trackMethod : ", trackMethod);
+                console.log("filterValue : ", filterValue);
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
                         const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
