@@ -622,6 +622,10 @@ export default class AnalyticService {
       const params = await this.getTrackingMethodParameters(trackingMethod.id.get());
       const trackMethod = params['trackMethod'];
       const filterValue = params['filterValue'];
+
+      console.log("trackMethod : ",trackMethod);
+      console.log("filterValue : ",filterValue);
+      
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
           const endpoints = await findEndpoints(
