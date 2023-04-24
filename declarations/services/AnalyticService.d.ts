@@ -207,7 +207,6 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     applyTrackingMethodLegacy(analyticId: string): Promise<any>;
-    getTrackingMethodParameters(trackingMethodId: string): Promise<any>;
     /**
      * Applies the specified Tracking Method to the specified Followed Entity and returns the results.
      * @async
@@ -249,12 +248,12 @@ export default class AnalyticService {
      * Removes the link between an input node and a followed entity node.
      *
      * @async
-     * @param {string} inputNodeId - The ID of the input node.
+     * @param {string} analyticId - The ID of the analytic node.
      * @param {string} followedEntityId - The ID of the followed entity node.
      * @returns {Promise<void>}
      * @memberof AnalyticService
      */
-    removeLinkToFollowedEntity(inputNodeId: string, followedEntityId: string): Promise<void>;
+    removeLinkToFollowedEntity(analyticId: string, followedEntityId: string): Promise<void>;
     /**
      * Get the followed entity node of an analytic.
      * @async
@@ -273,18 +272,6 @@ export default class AnalyticService {
      */
     addAttributesToNode(node: SpinalNode<any>, attributes: INodeDocumentation): Promise<void>;
     getAttributesFromNode(nodeId: string, category: string): Promise<any>;
-    /**
-     * Applies the result of an algorithm.
-     *
-     * @param {*} result The result of the algorithm used.
-     * @param {string} analyticId The ID of the analytic.
-     * @param {SpinalNodeRef} config The SpinalNodeRef of the configuration of the analytic.
-     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef of the entity.
-     * @param {SpinalNodeRef} trackingMethod The SpinalNodeRef of the tracking method.
-     * @return {*}
-     * @memberof AnalyticService
-     */
-    applyResult(result: any, analyticId: string, config: SpinalNodeRef, followedEntity: SpinalNodeRef, trackingMethod: SpinalNodeRef): Promise<void>;
     /**
      * Gets the real targeted entities for an analytic.
      *
@@ -318,5 +305,20 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     doAnalysis(analyticId: string, entity: SpinalNodeRef): Promise<void>;
+    /**
+     * Applies the result of an algorithm.
+     *
+     * @param {*} result The result of the algorithm used.
+     * @param {string} analyticId The ID of the analytic.
+     * @param {SpinalNodeRef} configNode The SpinalNodeRef of the configuration of the analytic.
+     * @param {SpinalNodeRef} followedEntityNode The SpinalNodeRef of the entity.
+     * @param {SpinalNodeRef} trackingMethodNode The SpinalNodeRef of the tracking method.
+     * @return {*}
+     * @memberof AnalyticService
+     */
+    applyResult(result: any, analyticId: string, configNode: SpinalNodeRef, followedEntityNode: SpinalNodeRef, trackingMethodNode: SpinalNodeRef): Promise<void>;
+    private handleTicketResult;
+    private handleModifyControlEndpointResult;
+    private handleControlEndpointResult;
 }
 export { AnalyticService };

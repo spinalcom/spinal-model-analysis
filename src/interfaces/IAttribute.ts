@@ -10,3 +10,4 @@ export interface IAttribute {
 export interface INodeDocumentation {
     [key: string]: IAttribute[];
 }
+
