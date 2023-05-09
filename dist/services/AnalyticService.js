@@ -734,7 +734,7 @@ class AnalyticService {
             const params = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
             switch (params['resultType']) {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
-                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params);
+                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, "Ticket");
                     break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
                     yield this.handleModifyControlEndpointResult(result, trackingMethodNode, followedEntityNode);
@@ -742,10 +742,13 @@ class AnalyticService {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
                     yield this.handleControlEndpointResult(result, followedEntityNode, params);
                     break;
+                case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
+                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, "Alarm");
             }
         });
     }
-    handleTicketResult(result, analyticId, configNode, followedEntityNode, params) {
+    handleTicketResult(result, analyticId, configNode, followedEntityNode, params, ticketType // Alarm or Ticket
+    ) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!result)
                 return;
@@ -755,7 +758,7 @@ class AnalyticService {
             const ticketInfo = {
                 name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
             };
-            (0, utils_1.addTicketAlarm)(ticketInfo, configNode, outputNode.id.get());
+            (0, utils_1.addTicketAlarm)(ticketInfo, configNode, outputNode.id.get(), ticketType);
         });
     }
     handleModifyControlEndpointResult(result, trackingMethodNode, followedEntityNode) {

@@ -218,9 +218,8 @@ function alarmAlreadyDeclared(nodeId, contextId, processId, ticketName) {
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-function addTicketAlarm(ticketInfos, configInfo, nodeId) {
+function addTicketAlarm(ticketInfos, configInfo, nodeId, ticketType) {
     return __awaiter(this, void 0, void 0, function* () {
-        const ticketType = "Alarm";
         const localizationInfo = yield getTicketLocalizationParameters(configInfo);
         const contextId = localizationInfo["ticketContextId"];
         const processId = localizationInfo["ticketProcessId"];
@@ -229,22 +228,32 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId) {
         const alreadyDeclared = yield alarmAlreadyDeclared(nodeId, contextId, processId, ticketInfos.name);
         if (alreadyDeclared) {
             //just update the ticket
+            const firstStep = yield spinal_service_ticket_1.serviceTicketPersonalized.getFirstStep(processId, contextId);
             console.log("update ticket " + ticketInfos.name);
             let declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(alreadyDeclared.id);
-            let attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
-            if (attr != -1) {
-                let value = attr.value.get();
-                let str = value.toString();
-                let newValueInt = parseInt(str) + 1;
-                console.log(newValueInt);
-                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+            if (declaredTicketNode.info.stepId.get() == firstStep) {
+                let attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
+                if (attr != -1) {
+                    let value = attr.value.get();
+                    let str = value.toString();
+                    let newValueInt = parseInt(str) + 1;
+                    yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+                }
+            }
+            else {
+                yield spinal_service_ticket_1.serviceTicketPersonalized.moveTicket(declaredTicketNode.info.id.get(), declaredTicketNode.info.stepId.get(), firstStep, contextId);
+                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                console.log(`${ticketInfos.name} has been re-triggered and moved back to the first step`);
             }
         }
         else {
             console.log("create ticket " + ticketInfos.name);
-            // this function should take another parameter ticketType ... ask question later
             if (process) {
                 const ticketId = yield spinal_service_ticket_1.spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
+                if (typeof ticketId === "string") {
+                    let declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticketId);
+                    yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                }
             }
         }
     });

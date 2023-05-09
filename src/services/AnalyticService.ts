@@ -943,7 +943,8 @@ export default class AnalyticService {
           analyticId,
           configNode,
           followedEntityNode,
-          params
+          params,
+          "Ticket"
         );
         break;
       case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
@@ -960,6 +961,15 @@ export default class AnalyticService {
           params
         );
         break;
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
+        await this.handleTicketResult(
+          result,
+          analyticId,
+          configNode,
+          followedEntityNode,
+          params,
+          "Alarm"
+        );
     }
   }
 
@@ -968,7 +978,8 @@ export default class AnalyticService {
     analyticId: string,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef,
-    params: any
+    params: any,
+    ticketType: string // Alarm or Ticket
   ): Promise<void> {
     if (!result) return;
 
@@ -979,7 +990,7 @@ export default class AnalyticService {
       name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
     };
 
-    addTicketAlarm(ticketInfo, configNode, outputNode.id.get());
+    addTicketAlarm(ticketInfo, configNode, outputNode.id.get(),ticketType);
   }
 
   private async handleModifyControlEndpointResult(

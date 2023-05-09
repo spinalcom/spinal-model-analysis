@@ -81,7 +81,7 @@ export enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
     MODIFY_CONTROL_ENDPOINT = "modifyControlEndpoint",
-    API_CALL = "apiCall"
+    ALARM = "alarm"
 }
 
 export enum TRACK_METHOD {

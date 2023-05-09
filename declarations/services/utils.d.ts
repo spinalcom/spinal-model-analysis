@@ -42,5 +42,5 @@ export declare function findControlEndpoints(followedEntityId: string, filterNam
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-export declare function addTicketAlarm(ticketInfos: any, configInfo: SpinalNodeRef, nodeId: string): Promise<void>;
+export declare function addTicketAlarm(ticketInfos: any, configInfo: SpinalNodeRef, nodeId: string, ticketType: string): Promise<void>;
 export declare function addTicketPersonalized(ticketInfos: any, processId: string, parentId: string): Promise<void>;

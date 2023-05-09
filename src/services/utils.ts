@@ -197,6 +197,7 @@ async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId:
     return found;
 }
 
+
 /**
  * Adds a ticket alarm to the context and process and link it with the node
  *
@@ -205,11 +206,10 @@ async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId:
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, nodeId : string){
-    const ticketType = "Alarm";
+export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, nodeId : string, ticketType: string){
     const localizationInfo = await getTicketLocalizationParameters(configInfo);
-    const contextId = localizationInfo["ticketContextId"];
-    const processId = localizationInfo["ticketProcessId"];
+    const contextId : string = localizationInfo["ticketContextId"];
+    const processId : string = localizationInfo["ticketProcessId"];
 
     const context = getTicketContext(contextId);
     const process = await getTicketProcess(context.info.id.get(), processId);
@@ -219,22 +219,34 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
     
     if (alreadyDeclared){
         //just update the ticket
+        const firstStep = await serviceTicketPersonalized.getFirstStep(processId, contextId);
         console.log("update ticket "  + ticketInfos.name);
         let declaredTicketNode = SpinalGraphService.getRealNode(alreadyDeclared.id);
-        let attr = await attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
-        if (attr != -1) {
-            let value = attr.value.get();
-            let str = value.toString();
-            let newValueInt = parseInt(str) + 1;
-            console.log(newValueInt);
-            await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
-        }   
+        if (declaredTicketNode.info.stepId.get() == firstStep) {
+            let attr = await attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
+            if (attr != -1) {
+                let value = attr.value.get();
+                let str = value.toString();
+                let newValueInt = parseInt(str) + 1;
+                await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+            }   
+        }
+        else {
+            await serviceTicketPersonalized.moveTicket(declaredTicketNode.info.id.get(), declaredTicketNode.info.stepId.get(), firstStep, contextId);
+            await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+            console.log(`${ticketInfos.name} has been re-triggered and moved back to the first step`);
+        }
+        
     }
     else {
         console.log("create ticket "  + ticketInfos.name);        
-        // this function should take another parameter ticketType ... ask question later
         if (process) {
             const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
+            if (typeof ticketId === "string"){
+                let declaredTicketNode = SpinalGraphService.getRealNode(ticketId);
+                await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+
+            }
         }
     }
     
