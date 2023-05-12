@@ -19,10 +19,8 @@ import { InputsModel } from '../models/InputsModel';
 import { IOutputs } from '../interfaces/IOutputs';
 import { OutputsModel } from '../models/OutputsModel';
 import { IAttribute, INodeDocumentation } from '../interfaces/IAttribute';
-import AttributeService, {
-  serviceDocumentation,
+import AttributeService, { attributeService
 } from 'spinal-env-viewer-plugin-documentation-service';
-import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
 
 import {
   findEndpoints,

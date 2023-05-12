@@ -55,7 +55,6 @@ function getAlgorithmParameters(config) {
             const obj = param.get();
             res[obj.label] = obj.value;
         }
-        //console.log("ALGORITHM PARAMETERS : ",res);
         return res;
     });
 }

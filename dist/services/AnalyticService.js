@@ -19,7 +19,6 @@ const TrackingMethodModel_1 = require("../models/TrackingMethodModel");
 const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
-const spinal_env_viewer_plugin_documentation_service_2 = require("spinal-env-viewer-plugin-documentation-service");
 const utils_1 = require("./utils");
 const algo = require("../algorithms/algorithms");
 class AnalyticService {
@@ -617,7 +616,7 @@ class AnalyticService {
         return __awaiter(this, void 0, void 0, function* () {
             const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
             const res = {};
-            const parameters = yield spinal_env_viewer_plugin_documentation_service_2.attributeService.getAttributesByCategory(node, category);
+            const parameters = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, category);
             for (const param of parameters) {
                 const obj = param.get();
                 res[obj.label] = obj.value;
