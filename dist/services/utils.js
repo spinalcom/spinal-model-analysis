@@ -32,10 +32,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketPersonalized = exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
+const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
+const InputDataEndpoint_1 = require("../models/InputData/InputDataModel/InputDataEndpoint");
 const CONSTANTS = require("../constants");
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
@@ -238,11 +240,13 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId, ticketType) {
                     let str = value.toString();
                     let newValueInt = parseInt(str) + 1;
                     yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+                    yield updateEndpointOccurenceNumber(declaredTicketNode, newValueInt);
                 }
             }
             else {
                 yield spinal_service_ticket_1.serviceTicketPersonalized.moveTicket(declaredTicketNode.info.id.get(), declaredTicketNode.info.stepId.get(), firstStep, contextId);
                 yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                yield updateEndpointOccurenceNumber(declaredTicketNode, 1);
                 console.log(`${ticketInfos.name} has been re-triggered and moved back to the first step`);
             }
         }
@@ -253,49 +257,26 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId, ticketType) {
                 if (typeof ticketId === "string") {
                     let declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticketId);
                     yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                    let endpoint = new InputDataEndpoint_1.InputDataEndpoint("Occurence number", 1, "", spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Alarm);
+                    const res = new spinal_model_bmsnetwork_1.SpinalBmsEndpoint(endpoint.name, endpoint.path, endpoint.currentValue, endpoint.unit, spinal_model_bmsnetwork_1.InputDataEndpointDataType[endpoint.dataType], spinal_model_bmsnetwork_1.InputDataEndpointType[endpoint.type], endpoint.id);
+                    const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName,
+                        name: endpoint.name }, res);
+                    spinal_env_viewer_graph_service_1.SpinalGraphService.addChild(ticketId, childId, spinal_model_bmsnetwork_1.SpinalBmsEndpoint.relationName, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
                 }
             }
         }
     });
 }
 exports.addTicketAlarm = addTicketAlarm;
-// not used for now
-function addTicketPersonalized(ticketInfos, processId, parentId) {
+function updateEndpointOccurenceNumber(ticketNode, newValue) {
     return __awaiter(this, void 0, void 0, function* () {
-        const context = findContextOfNode("SpinalSystemServiceTicket", processId);
-        if (context != undefined) {
-            const tickets = yield spinal_service_ticket_1.serviceTicketPersonalized.getTicketsFromNode(parentId);
-            const declaredTicket = yield ticketIsAlreadyDeclared(tickets, ticketInfos.name, context);
-            if (declaredTicket != false) {
-                const firstStep = yield spinal_service_ticket_1.serviceTicketPersonalized.getFirstStep(processId, context.info.id.get());
-                const declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(declaredTicket.info.id.get());
-                spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(declaredTicketNode);
-                if (declaredTicket.info.stepId.get() == firstStep) {
-                    const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
-                    if (attr != -1) {
-                        const value = attr.value.get();
-                        const str = value.toString();
-                        const newValueInt = parseInt(str) + 1;
-                        console.log(newValueInt);
-                        yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
-                    }
-                }
-                else {
-                    yield spinal_service_ticket_1.serviceTicketPersonalized.moveTicket(declaredTicket.info.id.get(), declaredTicket.info.stepId.get(), firstStep, context.info.id.get());
-                    yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "0" });
-                    console.log("moved");
-                }
+        const endpoints = yield ticketNode.getChildren("hasBmsEndpoint");
+        endpoints.map((endpoint) => __awaiter(this, void 0, void 0, function* () {
+            if (endpoint.info.name.get() == "Occurence number") {
+                const element = yield endpoint.element.load();
+                element.currentValue.set(newValue);
             }
-            else {
-                const tick = yield spinal_service_ticket_1.serviceTicketPersonalized.addTicket(ticketInfos, processId, context.info.id.get(), parentId);
-                console.log("Nouveau ticket [" + ticketInfos.name + "]");
-            }
-        }
-        // console.log(processNode);
-        // console.log(contexts);
-        // let ticket = await serviceTicketPersonalized.addTicket(ticketInfos, processId, process.contextId, parentId);
-        // return ticket;
+        }));
     });
 }
-exports.addTicketPersonalized = addTicketPersonalized;
 //# sourceMappingURL=utils.js.map

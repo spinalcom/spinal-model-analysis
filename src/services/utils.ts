@@ -22,10 +22,14 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { SpinalGraphService, SpinalContext, SpinalNodeRef } from "spinal-env-viewer-graph-service";
+import { SpinalGraphService, SpinalContext, SpinalNodeRef, SPINAL_RELATION_PTR_LST_TYPE, SpinalNode } from "spinal-env-viewer-graph-service";
 import { attributeService } from "spinal-env-viewer-plugin-documentation-service";
 import { serviceTicketPersonalized, spinalServiceTicket } from "spinal-service-ticket";
+import { InputDataEndpointDataType, InputDataEndpointType, SpinalBmsEndpoint} from "spinal-model-bmsnetwork";
+import { InputDataEndpoint } from "../models/InputData/InputDataModel/InputDataEndpoint";
 import * as CONSTANTS from "../constants";
+
+
 
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
@@ -42,7 +46,6 @@ export async function getAlgorithmParameters(config: SpinalNodeRef) : Promise<an
         const obj = param.get();
         res[obj.label] = obj.value;
     } 
-    //console.log("ALGORITHM PARAMETERS : ",res);
     return res
 }
 
@@ -210,7 +213,6 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
     const localizationInfo = await getTicketLocalizationParameters(configInfo);
     const contextId : string = localizationInfo["ticketContextId"];
     const processId : string = localizationInfo["ticketProcessId"];
-
     const context = getTicketContext(contextId);
     const process = await getTicketProcess(context.info.id.get(), processId);
 
@@ -229,11 +231,13 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
                 let str = value.toString();
                 let newValueInt = parseInt(str) + 1;
                 await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+                await updateEndpointOccurenceNumber(declaredTicketNode, newValueInt);
             }   
         }
         else {
             await serviceTicketPersonalized.moveTicket(declaredTicketNode.info.id.get(), declaredTicketNode.info.stepId.get(), firstStep, contextId);
             await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+            await updateEndpointOccurenceNumber(declaredTicketNode, 1);
             console.log(`${ticketInfos.name} has been re-triggered and moved back to the first step`);
         }
         
@@ -245,54 +249,44 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
             if (typeof ticketId === "string"){
                 let declaredTicketNode = SpinalGraphService.getRealNode(ticketId);
                 await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                let endpoint = new InputDataEndpoint("Occurence number",
+                                                    1,
+                                                    "",
+                                                    InputDataEndpointDataType.Integer,
+                                                    InputDataEndpointType.Alarm
+                );
 
+                const res = new SpinalBmsEndpoint(
+                    endpoint.name,
+                    endpoint.path,
+                    endpoint.currentValue,
+                    endpoint.unit,
+                    InputDataEndpointDataType[endpoint.dataType],
+                    InputDataEndpointType[endpoint.type],
+                    endpoint.id,
+                  );
+
+                const childId = SpinalGraphService.createNode({type: SpinalBmsEndpoint.nodeTypeName,
+                    name: endpoint.name}, res);
+                SpinalGraphService.addChild(ticketId,childId,SpinalBmsEndpoint.relationName,SPINAL_RELATION_PTR_LST_TYPE)
+                
             }
+
         }
     }
     
-    
-
-
 
 }
 
-// not used for now
-export async function addTicketPersonalized(ticketInfos:any, processId: string, parentId: string) {
-    const context = findContextOfNode("SpinalSystemServiceTicket", processId);
-    if (context != undefined) {
-        const tickets = await serviceTicketPersonalized.getTicketsFromNode(parentId);
-        const declaredTicket = await ticketIsAlreadyDeclared(tickets, ticketInfos.name, context);
-        if (declaredTicket != false) {
-            const firstStep = await serviceTicketPersonalized.getFirstStep(processId, context.info.id.get());
-            const declaredTicketNode = SpinalGraphService.getRealNode(declaredTicket.info.id.get());
-            (<any>SpinalGraphService)._addNode(declaredTicketNode);
-            if (declaredTicket.info.stepId.get() == firstStep) {
-
-                const attr = await attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
-                if (attr != -1) {
-                    const value = attr.value.get();
-                    const str = value.toString();
-                    const newValueInt = parseInt(str) + 1;
-                    console.log(newValueInt);
-                    await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
-                }
-            }
-            else {
-                await serviceTicketPersonalized.moveTicket(declaredTicket.info.id.get(), declaredTicket.info.stepId.get(), firstStep, context.info.id.get());
-                await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "0" });
-                console.log("moved");
-            }
+async function updateEndpointOccurenceNumber(ticketNode :SpinalNode<any>, newValue : number){
+    const endpoints = await ticketNode.getChildren(
+        "hasBmsEndpoint"
+      );
+    endpoints.map(async (endpoint) => {
+        if(endpoint.info.name.get() == "Occurence number"){
+            const element = await endpoint.element.load();
+            element.currentValue.set(newValue);
         }
-        else{
-            const tick = await serviceTicketPersonalized.addTicket(ticketInfos, processId, context.info.id.get(), parentId);
-            console.log("Nouveau ticket [" + ticketInfos.name + "]");
-        }
-    }
-
-
-    // console.log(processNode);
-    // console.log(contexts);
-    // let ticket = await serviceTicketPersonalized.addTicket(ticketInfos, processId, process.contextId, parentId);
-    // return ticket;
+    })
 }
 
