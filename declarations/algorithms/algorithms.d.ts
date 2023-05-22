@@ -1,10 +1,11 @@
-import { IAlgorithm } from "../interfaces/IAlgorithm";
+import { IAlgorithm } from '../interfaces/IAlgorithm';
+import { IRequiredParameter } from '../interfaces/IRequiredParameter';
 declare class Algorithm implements IAlgorithm {
     name: string;
     inputTypes: string[];
     outputType: string;
     description: string;
-    requiredParams: any;
+    requiredParams: IRequiredParameter[];
     run: (input: any | any[], params?: any) => any;
     constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: any, run: (input: any | any[], params?: any) => any);
 }
