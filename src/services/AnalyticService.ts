@@ -21,7 +21,8 @@ import { OutputsModel } from '../models/OutputsModel';
 import { IAttribute, INodeDocumentation } from '../interfaces/IAttribute';
 import AttributeService, { attributeService
 } from 'spinal-env-viewer-plugin-documentation-service';
-
+import { SpinalTimeSeries , SpinalServiceTimeseries} from "spinal-model-timeseries"
+import { SingletonServiceTimeseries } from "./SingletonTimeSeries"
 import {
   findEndpoints,
   findControlEndpoints,
@@ -31,6 +32,9 @@ import {
 import * as algo from '../algorithms/algorithms';
 
 export default class AnalyticService {
+
+  private spinalServiceTimeseries: SpinalServiceTimeseries = SingletonServiceTimeseries.getInstance();
+
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
 
@@ -610,13 +614,13 @@ export default class AnalyticService {
             followedEntity.id.get(),
             filterValue
           );
-          return endpoints;
+          return endpoints[0];
         case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
           const controlEndpoints = await findControlEndpoints(
             followedEntity.id.get(),
             filterValue
           );
-          return controlEndpoints;
+          return controlEndpoints[0];
         case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
           console.log('Ticket filter');
           break;
@@ -865,22 +869,31 @@ export default class AnalyticService {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     const config = await this.getConfig(analyticId);
     if (!trackingMethod || !config) return;
-
-    const entryDataModels = await this.applyTrackingMethod(
+    const entryDataModel = await this.applyTrackingMethod(
       trackingMethod,
       followedEntity
     );
-    if (entryDataModels) {
+    if (entryDataModel) {
       const params = await getAlgorithmParameters(config);
-      const algorithm_name = params['algorithm'];
-      // this is another way to get the value that i would like to measure the performance of, later.
-      //const value2 = await attributeService.findOneAttributeInCategory(entryDataModels[0], "default", "currentValue");
-      const value = (
-        await entryDataModels[0].element.load()
-      ).currentValue.get();
-      //const value = entryDataModels[0].currentValue.get();
-
-      const result = algo[algorithm_name](value, params);
+      const trackingParams = await this.getAttributesFromNode(trackingMethod.id.get(),CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
+      let values;
+      if (trackingParams['trackingIntervalTime']== 0){
+        values = (
+          await entryDataModel.element.load()
+        ).currentValue.get();
+        //const value = entryDataModels[0].currentValue.get();
+        console.log("CURRENT VALUE");
+      }
+      else {
+        const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+        let end = Date.now();
+        let start = end - trackingParams['trackingIntervalTime'];
+        let data = await spinalTs.getFromIntervalTime(start,end)
+        values = data.map((el) => el.value);
+      }
+      const algorithm_name = params['algorithm'];      
+      const result = algo[algorithm_name].run(values, params);
+      console.log('Result:',result);
       if (typeof result === 'undefined') return;
       this.applyResult(
         result,

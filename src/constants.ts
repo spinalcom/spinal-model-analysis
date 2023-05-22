@@ -116,7 +116,6 @@ export enum ALGORITHMS {
     PUTVALUE = "PUTVALUE",
     AVERAGE = "AVERAGE",
 }
-
 export const ALGO_DOC = {
     "THRESHOLD_ABOVE": [{name : "p1",type :"number", description: "the threshold value"}],
     "THRESHOLD_BELOW": [{name : "p1",type :"number", description: "the threshold value"}],

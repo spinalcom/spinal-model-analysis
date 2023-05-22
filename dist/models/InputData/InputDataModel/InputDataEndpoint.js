@@ -62,6 +62,7 @@ class InputDataEndpoint {
         this.unit = unit;
         this.dataType = dataType;
         this.timeseries = [];
+        this.idx = Math.floor(Math.random() * 100);
     }
 }
 exports.InputDataEndpoint = InputDataEndpoint;

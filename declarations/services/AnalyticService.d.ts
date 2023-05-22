@@ -3,6 +3,7 @@ import { IAnalytic } from '../interfaces/IAnalytic';
 import { IEntity } from '../interfaces/IEntity';
 import { INodeDocumentation } from '../interfaces/IAttribute';
 export default class AnalyticService {
+    private spinalServiceTimeseries;
     constructor();
     /**
      * This method creates a new context and returns the info of the newly created context.

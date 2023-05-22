@@ -19,11 +19,14 @@ const TrackingMethodModel_1 = require("../models/TrackingMethodModel");
 const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
 const utils_1 = require("./utils");
 const algo = require("../algorithms/algorithms");
 class AnalyticService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
-    constructor() { }
+    constructor() {
+        this.spinalServiceTimeseries = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
+    }
     /**
      * This method creates a new context and returns the info of the newly created context.
      * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
@@ -480,10 +483,10 @@ class AnalyticService {
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
                         const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
-                        return endpoints;
+                        return endpoints[0];
                     case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
                         const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
-                        return controlEndpoints;
+                        return controlEndpoints[0];
                     case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
                         console.log('Ticket filter');
                         break;
@@ -684,15 +687,26 @@ class AnalyticService {
             const config = yield this.getConfig(analyticId);
             if (!trackingMethod || !config)
                 return;
-            const entryDataModels = yield this.applyTrackingMethod(trackingMethod, followedEntity);
-            if (entryDataModels) {
+            const entryDataModel = yield this.applyTrackingMethod(trackingMethod, followedEntity);
+            if (entryDataModel) {
                 const params = yield (0, utils_1.getAlgorithmParameters)(config);
+                const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
+                let values;
+                if (trackingParams['trackingIntervalTime'] == 0) {
+                    values = (yield entryDataModel.element.load()).currentValue.get();
+                    //const value = entryDataModels[0].currentValue.get();
+                    console.log("CURRENT VALUE");
+                }
+                else {
+                    const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+                    let end = Date.now();
+                    let start = end - trackingParams['trackingIntervalTime'];
+                    let data = yield spinalTs.getFromIntervalTime(start, end);
+                    values = data.map((el) => el.value);
+                }
                 const algorithm_name = params['algorithm'];
-                // this is another way to get the value that i would like to measure the performance of, later.
-                //const value2 = await attributeService.findOneAttributeInCategory(entryDataModels[0], "default", "currentValue");
-                const value = (yield entryDataModels[0].element.load()).currentValue.get();
-                //const value = entryDataModels[0].currentValue.get();
-                const result = algo[algorithm_name](value, params);
+                const result = algo[algorithm_name].run(values, params);
+                console.log('Result:', result);
                 if (typeof result === 'undefined')
                     return;
                 this.applyResult(result, analyticId, config, followedEntity, trackingMethod);

@@ -21,6 +21,8 @@ import {
   CATEGORY_ATTRIBUTE_RESULT_PARAMETERS,
   CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS,
 } from './constants';
+
+import * as algos from './algorithms/algorithms';
 import { AnalyticService } from './services/AnalyticService';
 import { findControlEndpoints, findEndpoints } from './services/utils';
 
@@ -61,6 +63,7 @@ export {
   CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS,
   findControlEndpoints,
   findEndpoints,
+  algos
 };
 
 export default spinalAnalyticService;

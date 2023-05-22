@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.findEndpoints = exports.findControlEndpoints = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
+exports.algos = exports.findEndpoints = exports.findControlEndpoints = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
 const AnalyticModel_1 = require("./models/AnalyticModel");
 Object.defineProperty(exports, "AnalyticModel", { enumerable: true, get: function () { return AnalyticModel_1.AnalyticModel; } });
 const TrackingMethodModel_1 = require("./models/TrackingMethodModel");
@@ -19,6 +19,8 @@ Object.defineProperty(exports, "CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETER
 Object.defineProperty(exports, "CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS", { enumerable: true, get: function () { return constants_1.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS; } });
 Object.defineProperty(exports, "CATEGORY_ATTRIBUTE_RESULT_PARAMETERS", { enumerable: true, get: function () { return constants_1.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS; } });
 Object.defineProperty(exports, "CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS", { enumerable: true, get: function () { return constants_1.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS; } });
+const algos = require("./algorithms/algorithms");
+exports.algos = algos;
 const AnalyticService_1 = require("./services/AnalyticService");
 const utils_1 = require("./services/utils");
 Object.defineProperty(exports, "findControlEndpoints", { enumerable: true, get: function () { return utils_1.findControlEndpoints; } });
