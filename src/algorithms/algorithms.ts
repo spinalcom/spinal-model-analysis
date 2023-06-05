@@ -45,9 +45,12 @@ export const THRESHOLD_ABOVE = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: number, params: any): boolean => {
+  (input: number[], params: any): boolean => {
     const treshold = params['p1'];
-    return input > treshold;
+    for (const n of input) {
+      if (n > treshold) return true;
+    }
+    return false;
   }
 );
 
@@ -57,9 +60,12 @@ export const THRESHOLD_BELOW = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: number, params: any): boolean => {
+  (input: number[], params: any): boolean => {
     const treshold = params['p1'];
-    return input < treshold;
+    for (const n of input) {
+      if (n < treshold) return true;
+    }
+    return false;
   }
 );
 
@@ -72,12 +78,15 @@ export const THRESHOLD_BETWEEN_IN = new Algorithm(
     { name: 'p1', type: 'number', description: 'the first threshold value' },
     { name: 'p2', type: 'number', description: 'the second threshold value' },
   ],
-  (input: number, params: any): boolean => {
+  (input: number[], params: any): boolean => {
     const p1 = params['p1'];
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    return input >= min && input <= max;
+    for (const n of input) {
+      if (n >= min && n <= max) return true;
+    }
+    return false;
   }
 );
 
@@ -90,12 +99,15 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
     { name: 'p1', type: 'number', description: 'the first threshold value' },
     { name: 'p2', type: 'number', description: 'the second threshold value' },
   ],
-  (input: number, params: any): boolean => {
+  (input: number[], params: any): boolean => {
     const p1 = params['p1'];
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    return input <= min || input >= max;
+    for (const n of input) {
+      if (n <= min || n >= max) return true;
+    }
+    return false;
   }
 );
 
@@ -105,10 +117,35 @@ export const AVERAGE = new Algorithm(
   ['number'],
   'number',
   [],
-  (input: number[], params: any): number => {
-    return input.reduce((acc, current) => acc + current, 0) / input.length;
+  (input: [number[]], params: any): number => {
+    const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
+
+    return flattenedArray.reduce((acc, current) => acc + current, 0) / input.length;
   }
 );
+
+export const AND = new Algorithm(
+  'AND',
+  'This algorithm returns true if all the inputs are true',
+  ['boolean'],
+  'boolean',
+  [],
+  (input: boolean[], params: any): boolean => {
+    return !input.includes(false);
+  }
+);
+
+export const OR = new Algorithm(
+  'OR',
+  'This algorithm returns true if at least one of the inputs is true',
+  ['boolean'],
+  'boolean',
+  [],
+  (input: boolean[], params: any): boolean => {
+    return input.includes(true);
+  }
+);
+
 
 /*
 

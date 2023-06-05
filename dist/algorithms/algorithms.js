@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.PUTVALUE = void 0;
+exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -17,11 +17,19 @@ exports.PUTVALUE = new Algorithm('PUTVALUE', 'This algorithm returns the value s
 });
 exports.THRESHOLD_ABOVE = new Algorithm('THRESHOLD_ABOVE', 'This algorithm returns true if the input is above the threshold set by the user', ['number'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
     const treshold = params['p1'];
-    return input > treshold;
+    for (const n of input) {
+        if (n > treshold)
+            return true;
+    }
+    return false;
 });
 exports.THRESHOLD_BELOW = new Algorithm('THRESHOLD_BELOW', 'This algorithm returns true if the input is below the threshold set by the user', ['number'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
     const treshold = params['p1'];
-    return input < treshold;
+    for (const n of input) {
+        if (n < treshold)
+            return true;
+    }
+    return false;
 });
 exports.THRESHOLD_BETWEEN_IN = new Algorithm('THRESHOLD_BETWEEN_IN', 'This algorithm returns true if the input is between the two thresholds set by the user', ['number'], 'boolean', [
     { name: 'p1', type: 'number', description: 'the first threshold value' },
@@ -31,7 +39,11 @@ exports.THRESHOLD_BETWEEN_IN = new Algorithm('THRESHOLD_BETWEEN_IN', 'This algor
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    return input >= min && input <= max;
+    for (const n of input) {
+        if (n >= min && n <= max)
+            return true;
+    }
+    return false;
 });
 exports.THRESHOLD_BETWEEN_OUT = new Algorithm('THRESHOLD_BETWEEN_OUT', 'This algorithm returns true if the input is outside the two thresholds set by the user', ['number'], 'boolean', [
     { name: 'p1', type: 'number', description: 'the first threshold value' },
@@ -41,10 +53,21 @@ exports.THRESHOLD_BETWEEN_OUT = new Algorithm('THRESHOLD_BETWEEN_OUT', 'This alg
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    return input <= min || input >= max;
+    for (const n of input) {
+        if (n <= min || n >= max)
+            return true;
+    }
+    return false;
 });
 exports.AVERAGE = new Algorithm('AVERAGE', 'This algorithm returns the average of the inputs', ['number'], 'number', [], (input, params) => {
-    return input.reduce((acc, current) => acc + current, 0) / input.length;
+    const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
+    return flattenedArray.reduce((acc, current) => acc + current, 0) / input.length;
+});
+exports.AND = new Algorithm('AND', 'This algorithm returns true if all the inputs are true', ['boolean'], 'boolean', [], (input, params) => {
+    return !input.includes(false);
+});
+exports.OR = new Algorithm('OR', 'This algorithm returns true if at least one of the inputs is true', ['boolean'], 'boolean', [], (input, params) => {
+    return input.includes(true);
 });
 /*
 

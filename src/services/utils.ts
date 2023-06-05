@@ -111,6 +111,59 @@ export async function findControlEndpoints(followedEntityId: string, filterNameV
     return filteredEndpoints;
 }
 
+/**
+ * Applies a name filter to find the endpoint connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef|undefined>}
+ */
+export async function findEndpoint(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef|undefined> {
+    const endpoints = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
+    const endpoint = endpoints.find((endpoint) => {
+        return endpoint.name.get()===filterNameValue;
+    });
+    return endpoint;
+}
+
+/**
+ * Applies a name filter to find the ControlEndpoint connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef|undefined>}
+ */
+export async function findControlEndpoint(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef|undefined> {
+    const bmsEndpointGroups = await SpinalGraphService.getChildren(followedEntityId, ["hasControlPoints"]);
+    for (const bmsEndpointGroup of bmsEndpointGroups) {
+        const bmsEndpoints = await SpinalGraphService.getChildren(bmsEndpointGroup.id.get(), ["hasBmsEndpoint"]);
+        const foundBmsEndpoint = bmsEndpoints.find((endpoint) => {
+            return endpoint.name.get()===filterNameValue;
+        });
+        if (foundBmsEndpoint) return foundBmsEndpoint;
+    }
+    return undefined;
+}
+
+
+
+export function formatTrackingMethodsToList(obj) : any[]{
+    let result:any = [];
+    let keys = Object.keys(obj);
+    let length = (keys.length-1) / 2;  // Assuming every filterValue has a corresponding trackMethod
+
+    for (let i = 0; i < length; i++) {
+        let item = {
+            trackingMethod: obj[`trackingMethod${i}`],
+            filterValue: obj[`filterValue${i}`]
+        };
+        result.push(item);
+    }
+
+    return result;
+}
 // ticket creation
 
 

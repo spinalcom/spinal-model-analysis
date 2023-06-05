@@ -26,8 +26,11 @@ import { SingletonServiceTimeseries } from "./SingletonTimeSeries"
 import {
   findEndpoints,
   findControlEndpoints,
+  findControlEndpoint,
+  findEndpoint,
   addTicketAlarm,
   getAlgorithmParameters,
+  formatTrackingMethodsToList,
 } from './utils';
 import * as algo from '../algorithms/algorithms';
 
@@ -598,35 +601,36 @@ export default class AnalyticService {
    * @memberof AnalyticService
    */
   public async applyTrackingMethod(
-    trackingMethod: SpinalNodeRef,
+    trackingMethodNode: SpinalNodeRef,
     followedEntity: SpinalNodeRef
   ): Promise<any> {
-    if (followedEntity && trackingMethod) {
+    if (followedEntity && trackingMethodNode) {
       const params = await this.getAttributesFromNode(
-        trackingMethod.id.get(),
+        trackingMethodNode.id.get(),
         CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
       );
-      const trackMethod = params['trackMethod'];
-      const filterValue = params['filterValue'];
-      switch (trackMethod) {
-        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
-          const endpoints = await findEndpoints(
-            followedEntity.id.get(),
-            filterValue
-          );
-          return endpoints[0];
-        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
-          const controlEndpoints = await findControlEndpoints(
-            followedEntity.id.get(),
-            filterValue
-          );
-          return controlEndpoints[0];
-        case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-          console.log('Ticket filter');
-          break;
-        default:
-          console.log('Track method not recognized');
-      }
+
+      const inputs : SpinalNodeRef[] = [];
+      const trackingMethods = formatTrackingMethodsToList(params) // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
+      for (const trackingMethod of trackingMethods) {
+        switch (trackingMethod.trackingMethod) {
+          case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+            const endpoint = await findEndpoint(followedEntity.id.get(), trackingMethod.filterValue);
+            if (endpoint) inputs.push(endpoint);
+            break;
+          case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+            const controlEndpoint = await findControlEndpoint(followedEntity.id.get(), trackingMethod.filterValue);
+            if (controlEndpoint) inputs.push(controlEndpoint);
+            break;
+          case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
+            console.log('Ticket filter');
+            break;
+          default:
+
+            console.log('Track method not recognized: ',trackingMethod.trackingMethod);
+        }
+      } 
+      return inputs;
     }
   }
 
@@ -647,13 +651,13 @@ export default class AnalyticService {
     if (followedEntity) {
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
-          const endpoints = await findEndpoints(
+          const endpoints = await findEndpoint(
             followedEntity.id.get(),
             filterValue
           );
           return endpoints;
         case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
-          const controlEndpoints = await findControlEndpoints(
+          const controlEndpoints = await findControlEndpoint(
             followedEntity.id.get(),
             filterValue
           );
@@ -869,30 +873,33 @@ export default class AnalyticService {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     const config = await this.getConfig(analyticId);
     if (!trackingMethod || !config) return;
-    const entryDataModel = await this.applyTrackingMethod(
+    const entryDataModels = await this.applyTrackingMethod(
       trackingMethod,
       followedEntity
     );
-    if (entryDataModel) {
+    if (entryDataModels) {
       const params = await getAlgorithmParameters(config);
       const trackingParams = await this.getAttributesFromNode(trackingMethod.id.get(),CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-      let values;
-      if (trackingParams['trackingIntervalTime']== 0){
-        values = (
-          await entryDataModel.element.load()
-        ).currentValue.get();
-        //const value = entryDataModels[0].currentValue.get();
-        console.log("CURRENT VALUE");
-      }
-      else {
-        const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
-        let end = Date.now();
-        let start = end - trackingParams['trackingIntervalTime'];
-        let data = await spinalTs.getFromIntervalTime(start,end)
-        values = data.map((el) => el.value);
+      let input :any[]= [];
+      for (const entryDataModel of entryDataModels) {
+        if (trackingParams['trackingIntervalTime']== 0){
+          const currentValue = (await entryDataModel.element.load()).currentValue.get();
+          input.push (currentValue);
+          //const value = entryDataModels[0].currentValue.get();
+          console.log("CURRENT VALUE");
+        }
+        else {
+          const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+          let end = Date.now();
+          let start = end - trackingParams['trackingIntervalTime'];
+          let data = await spinalTs.getFromIntervalTime(start,end);
+          let dataValues = data.map((el) => el.value);
+          input.push(dataValues);
+        }
+
       }
       const algorithm_name = params['algorithm'];      
-      const result = algo[algorithm_name].run(values, params);
+      const result = algo[algorithm_name].run(input, params);
       console.log('Result:',result);
       if (typeof result === 'undefined') return;
       this.applyResult(
@@ -1026,19 +1033,15 @@ export default class AnalyticService {
     followedEntityNode: SpinalNodeRef,
     params: any
   ): Promise<void> {
-    const controlEndpoints = await this.applyTrackingMethodWithParams(
+    const controlEndpointNode = await this.applyTrackingMethodWithParams(
       CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER,
       params['resultName'],
       followedEntityNode
     );
-    if (!controlEndpoints) return;
-
-    for (const controlEndpointEntry of controlEndpoints) {
-      const controlEndpoint = await controlEndpointEntry.element.load();
-      controlEndpoint.currentValue.set(result);
-    }
+    if (!controlEndpointNode) return;
+    const controlEndpoint = await controlEndpointNode.element.load();
+    controlEndpoint.currentValue.set(result);
   }
-
 }
 
 export { AnalyticService };

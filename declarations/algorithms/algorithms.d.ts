@@ -15,4 +15,6 @@ export declare const THRESHOLD_BELOW: Algorithm;
 export declare const THRESHOLD_BETWEEN_IN: Algorithm;
 export declare const THRESHOLD_BETWEEN_OUT: Algorithm;
 export declare const AVERAGE: Algorithm;
+export declare const AND: Algorithm;
+export declare const OR: Algorithm;
 export {};

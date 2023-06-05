@@ -35,6 +35,25 @@ export declare function findEndpoints(followedEntityId: string, filterNameValue:
  */
 export declare function findControlEndpoints(followedEntityId: string, filterNameValue: string): Promise<SpinalNodeRef[]>;
 /**
+ * Applies a name filter to find the endpoint connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef|undefined>}
+ */
+export declare function findEndpoint(followedEntityId: string, filterNameValue: string): Promise<SpinalNodeRef | undefined>;
+/**
+ * Applies a name filter to find the ControlEndpoint connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef|undefined>}
+ */
+export declare function findControlEndpoint(followedEntityId: string, filterNameValue: string): Promise<SpinalNodeRef | undefined>;
+export declare function formatTrackingMethodsToList(obj: any): any[];
+/**
  * Adds a ticket alarm to the context and process and link it with the node
  *
  * @export

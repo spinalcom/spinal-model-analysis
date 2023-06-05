@@ -32,7 +32,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketAlarm = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.findControlEndpoint = exports.findEndpoint = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
@@ -125,6 +125,61 @@ function findControlEndpoints(followedEntityId, filterNameValue) {
     });
 }
 exports.findControlEndpoints = findControlEndpoints;
+/**
+ * Applies a name filter to find the endpoint connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef|undefined>}
+ */
+function findEndpoint(followedEntityId, filterNameValue) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const endpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
+        const endpoint = endpoints.find((endpoint) => {
+            return endpoint.name.get() === filterNameValue;
+        });
+        return endpoint;
+    });
+}
+exports.findEndpoint = findEndpoint;
+/**
+ * Applies a name filter to find the ControlEndpoint connected to the entity
+ *
+ * @export
+ * @param {string} followedEntityId
+ * @param {string} filterNameValue
+ * @return {*}  {Promise<SpinalNodeRef|undefined>}
+ */
+function findControlEndpoint(followedEntityId, filterNameValue) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const bmsEndpointGroups = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasControlPoints"]);
+        for (const bmsEndpointGroup of bmsEndpointGroups) {
+            const bmsEndpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(bmsEndpointGroup.id.get(), ["hasBmsEndpoint"]);
+            const foundBmsEndpoint = bmsEndpoints.find((endpoint) => {
+                return endpoint.name.get() === filterNameValue;
+            });
+            if (foundBmsEndpoint)
+                return foundBmsEndpoint;
+        }
+        return undefined;
+    });
+}
+exports.findControlEndpoint = findControlEndpoint;
+function formatTrackingMethodsToList(obj) {
+    let result = [];
+    let keys = Object.keys(obj);
+    let length = (keys.length - 1) / 2; // Assuming every filterValue has a corresponding trackMethod
+    for (let i = 0; i < length; i++) {
+        let item = {
+            trackingMethod: obj[`trackingMethod${i}`],
+            filterValue: obj[`filterValue${i}`]
+        };
+        result.push(item);
+    }
+    return result;
+}
+exports.formatTrackingMethodsToList = formatTrackingMethodsToList;
 // ticket creation
 /**
  * Finds the context of a node

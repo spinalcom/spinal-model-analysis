@@ -474,25 +474,32 @@ class AnalyticService {
      * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethod(trackingMethod, followedEntity) {
+    applyTrackingMethod(trackingMethodNode, followedEntity) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (followedEntity && trackingMethod) {
-                const params = yield this.getAttributesFromNode(trackingMethod.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-                const trackMethod = params['trackMethod'];
-                const filterValue = params['filterValue'];
-                switch (trackMethod) {
-                    case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
-                        const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
-                        return endpoints[0];
-                    case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
-                        const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
-                        return controlEndpoints[0];
-                    case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                        console.log('Ticket filter');
-                        break;
-                    default:
-                        console.log('Track method not recognized');
+            if (followedEntity && trackingMethodNode) {
+                const params = yield this.getAttributesFromNode(trackingMethodNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
+                const inputs = [];
+                const trackingMethods = (0, utils_1.formatTrackingMethodsToList)(params); // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
+                for (const trackingMethod of trackingMethods) {
+                    switch (trackingMethod.trackingMethod) {
+                        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+                            const endpoint = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), trackingMethod.filterValue);
+                            if (endpoint)
+                                inputs.push(endpoint);
+                            break;
+                        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+                            const controlEndpoint = yield (0, utils_1.findControlEndpoint)(followedEntity.id.get(), trackingMethod.filterValue);
+                            if (controlEndpoint)
+                                inputs.push(controlEndpoint);
+                            break;
+                        case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
+                            console.log('Ticket filter');
+                            break;
+                        default:
+                            console.log('Track method not recognized: ', trackingMethod.trackingMethod);
+                    }
                 }
+                return inputs;
             }
         });
     }
@@ -510,10 +517,10 @@ class AnalyticService {
             if (followedEntity) {
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
-                        const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue);
+                        const endpoints = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), filterValue);
                         return endpoints;
                     case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
-                        const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
+                        const controlEndpoints = yield (0, utils_1.findControlEndpoint)(followedEntity.id.get(), filterValue);
                         return controlEndpoints;
                     case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
                         console.log('Ticket filter');
@@ -687,25 +694,29 @@ class AnalyticService {
             const config = yield this.getConfig(analyticId);
             if (!trackingMethod || !config)
                 return;
-            const entryDataModel = yield this.applyTrackingMethod(trackingMethod, followedEntity);
-            if (entryDataModel) {
+            const entryDataModels = yield this.applyTrackingMethod(trackingMethod, followedEntity);
+            if (entryDataModels) {
                 const params = yield (0, utils_1.getAlgorithmParameters)(config);
                 const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-                let values;
-                if (trackingParams['trackingIntervalTime'] == 0) {
-                    values = (yield entryDataModel.element.load()).currentValue.get();
-                    //const value = entryDataModels[0].currentValue.get();
-                    console.log("CURRENT VALUE");
-                }
-                else {
-                    const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
-                    let end = Date.now();
-                    let start = end - trackingParams['trackingIntervalTime'];
-                    let data = yield spinalTs.getFromIntervalTime(start, end);
-                    values = data.map((el) => el.value);
+                let input = [];
+                for (const entryDataModel of entryDataModels) {
+                    if (trackingParams['trackingIntervalTime'] == 0) {
+                        const currentValue = (yield entryDataModel.element.load()).currentValue.get();
+                        input.push(currentValue);
+                        //const value = entryDataModels[0].currentValue.get();
+                        console.log("CURRENT VALUE");
+                    }
+                    else {
+                        const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+                        let end = Date.now();
+                        let start = end - trackingParams['trackingIntervalTime'];
+                        let data = yield spinalTs.getFromIntervalTime(start, end);
+                        let dataValues = data.map((el) => el.value);
+                        input.push(dataValues);
+                    }
                 }
                 const algorithm_name = params['algorithm'];
-                const result = algo[algorithm_name].run(values, params);
+                const result = algo[algorithm_name].run(input, params);
                 console.log('Result:', result);
                 if (typeof result === 'undefined')
                     return;
@@ -787,13 +798,11 @@ class AnalyticService {
     }
     handleControlEndpointResult(result, followedEntityNode, params) {
         return __awaiter(this, void 0, void 0, function* () {
-            const controlEndpoints = yield this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, params['resultName'], followedEntityNode);
-            if (!controlEndpoints)
+            const controlEndpointNode = yield this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, params['resultName'], followedEntityNode);
+            if (!controlEndpointNode)
                 return;
-            for (const controlEndpointEntry of controlEndpoints) {
-                const controlEndpoint = yield controlEndpointEntry.element.load();
-                controlEndpoint.currentValue.set(result);
-            }
+            const controlEndpoint = yield controlEndpointNode.element.load();
+            controlEndpoint.currentValue.set(result);
         });
     }
 }
