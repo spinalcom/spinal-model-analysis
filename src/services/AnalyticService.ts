@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   SpinalGraphService,
   SpinalNodeRef,
@@ -291,7 +292,7 @@ export default class AnalyticService {
       description: '',
     };
     const inputsModel = new InputsModel(inputsInfo);
-    let inputsId = SpinalGraphService.createNode(inputsInfo, inputsModel);
+    const inputsId = SpinalGraphService.createNode(inputsInfo, inputsModel);
     await SpinalGraphService.addChildInContext(
       analyticId,
       inputsId,
@@ -319,7 +320,7 @@ export default class AnalyticService {
       description: '',
     };
     const outputsModel = new OutputsModel(outputsInfo);
-    let outputsId = SpinalGraphService.createNode(outputsInfo, outputsModel);
+    const outputsId = SpinalGraphService.createNode(outputsInfo, outputsModel);
     await SpinalGraphService.addChildInContext(
       analyticId,
       outputsId,
@@ -347,7 +348,7 @@ export default class AnalyticService {
   ): Promise<SpinalNodeRef> {
     const configNodeInfo = { name: 'Config', type: CONSTANTS.CONFIG_TYPE };
     const configModel = new ConfigModel(configNodeInfo);
-    let configId = SpinalGraphService.createNode(configNodeInfo, configModel);
+    const configId = SpinalGraphService.createNode(configNodeInfo, configModel);
     const configNode = await SpinalGraphService.addChildInContext(
       analyticId,
       configId,
@@ -571,18 +572,20 @@ export default class AnalyticService {
       const trackMethod = trackingMethodModel.trackMethod.get();
       const filterValue = trackingMethodModel.filterValue.get();
       switch (trackMethod) {
-        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:{
           const endpoints = await findEndpoints(
             followedEntityModel.id.get(),
             filterValue
           );
           return endpoints;
-        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+        }
+        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:{
           const controlEndpoints = await findControlEndpoints(
             followedEntityModel.id.get(),
             filterValue
           );
           return controlEndpoints;
+        }
         case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
           console.log('Ticket filter');
           break;
@@ -602,26 +605,38 @@ export default class AnalyticService {
    */
   public async applyTrackingMethod(
     trackingMethodNode: SpinalNodeRef,
-    followedEntity: SpinalNodeRef
+    followedEntity: SpinalNodeRef,
+    includeIgnoredInputs = true,
+    includeIgnoredBindings = true
   ): Promise<any> {
     if (followedEntity && trackingMethodNode) {
       const params = await this.getAttributesFromNode(
         trackingMethodNode.id.get(),
         CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
       );
-
+      
       const inputs : SpinalNodeRef[] = [];
       const trackingMethods = formatTrackingMethodsToList(params) // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
       for (const trackingMethod of trackingMethods) {
+        if (!includeIgnoredInputs && trackingMethod.removeFromAnalysis) {
+          console.log('Remove from analysis : ', trackingMethod.filterValue);
+          continue;
+        }
+        if (!includeIgnoredBindings && trackingMethod.removeFromBinding) {
+          console.log('Remove from binding : ', trackingMethod.filterValue);
+          continue;
+        }
         switch (trackingMethod.trackingMethod) {
-          case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+          case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
             const endpoint = await findEndpoint(followedEntity.id.get(), trackingMethod.filterValue);
             if (endpoint) inputs.push(endpoint);
             break;
-          case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+          }
+          case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
             const controlEndpoint = await findControlEndpoint(followedEntity.id.get(), trackingMethod.filterValue);
             if (controlEndpoint) inputs.push(controlEndpoint);
             break;
+          }
           case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
             console.log('Ticket filter');
             break;
@@ -650,18 +665,22 @@ export default class AnalyticService {
   ) {
     if (followedEntity) {
       switch (trackMethod) {
-        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:
+        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
+          if(filterValue === '') return await findEndpoints(followedEntity.id.get(),'');
           const endpoints = await findEndpoint(
             followedEntity.id.get(),
             filterValue
           );
           return endpoints;
-        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:
+        }
+        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
+          if(filterValue === '') return await findControlEndpoints(followedEntity.id.get(),'');
           const controlEndpoints = await findControlEndpoint(
             followedEntity.id.get(),
             filterValue
           );
           return controlEndpoints;
+        }
         case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
           console.log('Ticket filter');
           break;
@@ -777,8 +796,8 @@ export default class AnalyticService {
     node: SpinalNode<any>,
     attributes: INodeDocumentation
   ): Promise<void> {
-    for (let categoryName of Object.keys(attributes)) {
-      for (let attribute of attributes[categoryName]) {
+    for (const categoryName of Object.keys(attributes)) {
+      for (const attribute of attributes[categoryName]) {
         await AttributeService.addAttributeByCategoryName(
           node,
           categoryName,
@@ -851,11 +870,13 @@ export default class AnalyticService {
    */
   public async getEntryDataModelsFromFollowedEntity(
     analyticId: string,
-    followedEntity: SpinalNodeRef
+    followedEntity: SpinalNodeRef,
+    includeIgnoredInputs = true,
+    includeIgnoredBindings = true
   ): Promise<any> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     if (trackingMethod)
-      return this.applyTrackingMethod(trackingMethod, followedEntity);
+      return this.applyTrackingMethod(trackingMethod, followedEntity, includeIgnoredInputs,includeIgnoredBindings );
   }
 
   /**
@@ -875,25 +896,24 @@ export default class AnalyticService {
     if (!trackingMethod || !config) return;
     const entryDataModels = await this.applyTrackingMethod(
       trackingMethod,
-      followedEntity
+      followedEntity,
+      false
     );
     if (entryDataModels) {
       const params = await getAlgorithmParameters(config);
       const trackingParams = await this.getAttributesFromNode(trackingMethod.id.get(),CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-      let input :any[]= [];
+      const input :any[]= [];
       for (const entryDataModel of entryDataModels) {
         if (trackingParams['trackingIntervalTime']== 0){
           const currentValue = (await entryDataModel.element.load()).currentValue.get();
           input.push (currentValue);
-          //const value = entryDataModels[0].currentValue.get();
-          console.log("CURRENT VALUE");
         }
         else {
           const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
-          let end = Date.now();
-          let start = end - trackingParams['trackingIntervalTime'];
-          let data = await spinalTs.getFromIntervalTime(start,end);
-          let dataValues = data.map((el) => el.value);
+          const end = Date.now();
+          const start = end - trackingParams['trackingIntervalTime'];
+          const data = await spinalTs.getFromIntervalTime(start,end);
+          const dataValues = data.map((el) => el.value);
           input.push(dataValues);
         }
 
@@ -1038,7 +1058,7 @@ export default class AnalyticService {
       params['resultName'],
       followedEntityNode
     );
-    if (!controlEndpointNode) return;
+    if (!controlEndpointNode || Array.isArray(controlEndpointNode)) return;
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
   }

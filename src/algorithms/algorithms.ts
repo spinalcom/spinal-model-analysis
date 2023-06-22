@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { IAlgorithm } from '../interfaces/IAlgorithm';
 import { IRequiredParameter } from '../interfaces/IRequiredParameter';
 
@@ -6,7 +7,7 @@ class Algorithm implements IAlgorithm {
   inputTypes: string[];
   outputType: string;
   description: string;
-  requiredParams: IRequiredParameter[];
+  requiredParams: IRequiredParameter[] | "boolean" | "number" | "string";
   run: (input: any | any[], params?: any) => any;
 
   constructor(
@@ -14,7 +15,7 @@ class Algorithm implements IAlgorithm {
     description: string,
     inputTypes: string[],
     outputType: string,
-    requiredParams: any,
+    requiredParams: IRequiredParameter[] | "boolean" | "number" | "string",
     run: (input: any | any[], params?: any) => any
   ) {
     this.name = name;
@@ -26,7 +27,6 @@ class Algorithm implements IAlgorithm {
   }
 }
 
-const algorithms: IAlgorithm[] = [];
 
 export const PUTVALUE = new Algorithm(
   'PUTVALUE',
@@ -145,6 +145,39 @@ export const OR = new Algorithm(
     return input.includes(true);
   }
 );
+
+export const NOT = new Algorithm(
+  'NOT',
+  'This algorithm returns true if all the inputs are false',
+  ['boolean'],
+  'boolean',
+  [],
+  (input: boolean[], params: any): boolean => {
+    return !input.includes(true);
+  } 
+);
+
+
+
+export const DIFFERENCE_THRESHOLD = new Algorithm(
+  'DIFFERENCE_THRESHOLD',
+  'This algorithm returns true if the difference between the first and any other input is above the threshold set by the user',
+  ['number'],
+  'boolean',
+  [{ name: 'p1', type: 'number', description: 'the threshold value' }],
+  (input: number[], params: any): boolean => {
+    const treshold = params['p1'];
+    const first = input[0];
+    for (const n of input) {
+      if (Math.abs(n - first) > treshold) return true;
+    }
+    return false;
+  }
+);
+
+
+
+
 
 
 /*

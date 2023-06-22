@@ -4,6 +4,6 @@ export interface IAlgorithm {
     inputTypes: string[];
     outputType: string;
     description: string;
-    requiredParams: IRequiredParameter[];
+    requiredParams: IRequiredParameter[] | string;
     run: (input: any | any[], params?: any) => any;
 }

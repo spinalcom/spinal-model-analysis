@@ -1,4 +1,5 @@
 "use strict";
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Copyright 2022 SpinalCom - www.spinalcom.com
  *
@@ -167,13 +168,15 @@ function findControlEndpoint(followedEntityId, filterNameValue) {
 }
 exports.findControlEndpoint = findControlEndpoint;
 function formatTrackingMethodsToList(obj) {
-    let result = [];
-    let keys = Object.keys(obj);
-    let length = (keys.length - 1) / 2; // Assuming every filterValue has a corresponding trackMethod
+    const result = [];
+    const keys = Object.keys(obj);
+    const length = (keys.length - 1) / 4;
     for (let i = 0; i < length; i++) {
-        let item = {
+        const item = {
             trackingMethod: obj[`trackingMethod${i}`],
-            filterValue: obj[`filterValue${i}`]
+            filterValue: obj[`filterValue${i}`],
+            removeFromAnalysis: obj[`removeFromAnalysis${i}`],
+            removeFromBinding: obj[`removeFromBinding${i}`]
         };
         result.push(item);
     }
@@ -181,42 +184,6 @@ function formatTrackingMethodsToList(obj) {
 }
 exports.formatTrackingMethodsToList = formatTrackingMethodsToList;
 // ticket creation
-/**
- * Finds the context of a node
- *
- * @param {string} contextType
- * @param {string} nodeId
- * @return {*}
- */
-function findContextOfNode(contextType, nodeId) {
-    const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(contextType);
-    const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
-    spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-    const ids = Object.keys(node.contextIds);
-    // utiliser belongsToContext plutot
-    for (const ctx of contexts) {
-        if (ids.includes(ctx.info.id.get()) == true)
-            return ctx;
-    }
-    return undefined;
-}
-/**
- * Checks if a ticket is already declared in the context. If it is, returns the node, else returns false
- *
- * @param {any[]} ticketTab
- * @param {string} ticketName
- * @param {SpinalContext<any>} context
- * @return {*}
- */
-function ticketIsAlreadyDeclared(ticketTab, ticketName, context) {
-    for (const ticket of ticketTab) {
-        const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticket.id);
-        spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
-        if (node.belongsToContext(context) && ticket.name == ticketName)
-            return node;
-    }
-    return false;
-}
 /**
  * Gets the ticket context that has the corresponding contextId
  *
@@ -286,13 +253,13 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId, ticketType) {
             //just update the ticket
             const firstStep = yield spinal_service_ticket_1.serviceTicketPersonalized.getFirstStep(processId, contextId);
             console.log("update ticket " + ticketInfos.name);
-            let declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(alreadyDeclared.id);
+            const declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(alreadyDeclared.id);
             if (declaredTicketNode.info.stepId.get() == firstStep) {
-                let attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
+                const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
                 if (attr != -1) {
-                    let value = attr.value.get();
-                    let str = value.toString();
-                    let newValueInt = parseInt(str) + 1;
+                    const value = attr.value.get();
+                    const str = value.toString();
+                    const newValueInt = parseInt(str) + 1;
                     yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
                     yield updateEndpointOccurenceNumber(declaredTicketNode, newValueInt);
                 }
@@ -309,9 +276,9 @@ function addTicketAlarm(ticketInfos, configInfo, nodeId, ticketType) {
             if (process) {
                 const ticketId = yield spinal_service_ticket_1.spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
                 if (typeof ticketId === "string") {
-                    let declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticketId);
+                    const declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticketId);
                     yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
-                    let endpoint = new InputDataEndpoint_1.InputDataEndpoint("Occurence number", 1, "", spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Alarm);
+                    const endpoint = new InputDataEndpoint_1.InputDataEndpoint("Occurence number", 1, "", spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Alarm);
                     const res = new spinal_model_bmsnetwork_1.SpinalBmsEndpoint(endpoint.name, endpoint.path, endpoint.currentValue, endpoint.unit, spinal_model_bmsnetwork_1.InputDataEndpointDataType[endpoint.dataType], spinal_model_bmsnetwork_1.InputDataEndpointType[endpoint.type], endpoint.id);
                     const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName,
                         name: endpoint.name }, res);

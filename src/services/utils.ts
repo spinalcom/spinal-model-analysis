@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /*
  * Copyright 2022 SpinalCom - www.spinalcom.com
  * 
@@ -22,7 +23,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { SpinalGraphService, SpinalContext, SpinalNodeRef, SPINAL_RELATION_PTR_LST_TYPE, SpinalNode } from "spinal-env-viewer-graph-service";
+import { SpinalGraphService, SpinalNodeRef, SPINAL_RELATION_PTR_LST_TYPE, SpinalNode } from "spinal-env-viewer-graph-service";
 import { attributeService } from "spinal-env-viewer-plugin-documentation-service";
 import { serviceTicketPersonalized, spinalServiceTicket } from "spinal-service-ticket";
 import { InputDataEndpointDataType, InputDataEndpointType, SpinalBmsEndpoint} from "spinal-model-bmsnetwork";
@@ -150,58 +151,22 @@ export async function findControlEndpoint(followedEntityId: string, filterNameVa
 
 
 export function formatTrackingMethodsToList(obj) : any[]{
-    let result:any = [];
-    let keys = Object.keys(obj);
-    let length = (keys.length-1) / 2;  // Assuming every filterValue has a corresponding trackMethod
+    const result:any = [];
+    const keys = Object.keys(obj);
+    const length = (keys.length-1) / 4;
 
     for (let i = 0; i < length; i++) {
-        let item = {
+        const item = {
             trackingMethod: obj[`trackingMethod${i}`],
-            filterValue: obj[`filterValue${i}`]
+            filterValue: obj[`filterValue${i}`],
+            removeFromAnalysis: obj[`removeFromAnalysis${i}`],
+            removeFromBinding: obj[`removeFromBinding${i}`]
         };
         result.push(item);
     }
-
     return result;
 }
 // ticket creation
-
-
-/**
- * Finds the context of a node
- *
- * @param {string} contextType
- * @param {string} nodeId
- * @return {*} 
- */
-function findContextOfNode(contextType: string, nodeId: string) {
-    const contexts = SpinalGraphService.getContextWithType(contextType);
-    const node = SpinalGraphService.getRealNode(nodeId);
-    (<any>SpinalGraphService)._addNode(node);
-    const ids = Object.keys(node.contextIds);
-    // utiliser belongsToContext plutot
-    for (const ctx of contexts) {
-        if (ids.includes(ctx.info.id.get()) == true) return ctx
-    }
-    return undefined;
-}
-
-/**
- * Checks if a ticket is already declared in the context. If it is, returns the node, else returns false
- *
- * @param {any[]} ticketTab
- * @param {string} ticketName
- * @param {SpinalContext<any>} context
- * @return {*} 
- */
-function ticketIsAlreadyDeclared(ticketTab: any[], ticketName: string, context: SpinalContext<any>) {
-    for (const ticket of ticketTab) {
-        const node = SpinalGraphService.getRealNode(ticket.id);
-        (<any>SpinalGraphService)._addNode(node);
-        if (node.belongsToContext(context) && ticket.name == ticketName) return node;
-    }
-    return false
-}
 
 /**
  * Gets the ticket context that has the corresponding contextId
@@ -276,13 +241,13 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
         //just update the ticket
         const firstStep = await serviceTicketPersonalized.getFirstStep(processId, contextId);
         console.log("update ticket "  + ticketInfos.name);
-        let declaredTicketNode = SpinalGraphService.getRealNode(alreadyDeclared.id);
+        const declaredTicketNode = SpinalGraphService.getRealNode(alreadyDeclared.id);
         if (declaredTicketNode.info.stepId.get() == firstStep) {
-            let attr = await attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
+            const attr = await attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
             if (attr != -1) {
-                let value = attr.value.get();
-                let str = value.toString();
-                let newValueInt = parseInt(str) + 1;
+                const value = attr.value.get();
+                const str = value.toString();
+                const newValueInt = parseInt(str) + 1;
                 await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
                 await updateEndpointOccurenceNumber(declaredTicketNode, newValueInt);
             }   
@@ -300,9 +265,9 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
         if (process) {
             const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
             if (typeof ticketId === "string"){
-                let declaredTicketNode = SpinalGraphService.getRealNode(ticketId);
+                const declaredTicketNode = SpinalGraphService.getRealNode(ticketId);
                 await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
-                let endpoint = new InputDataEndpoint("Occurence number",
+                const endpoint = new InputDataEndpoint("Occurence number",
                                                     1,
                                                     "",
                                                     InputDataEndpointDataType.Integer,
@@ -335,6 +300,7 @@ async function updateEndpointOccurenceNumber(ticketNode :SpinalNode<any>, newVal
     const endpoints = await ticketNode.getChildren(
         "hasBmsEndpoint"
       );
+
     endpoints.map(async (endpoint) => {
         if(endpoint.info.name.get() == "Occurence number"){
             const element = await endpoint.element.load();

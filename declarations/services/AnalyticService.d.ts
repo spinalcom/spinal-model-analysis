@@ -216,7 +216,7 @@ export default class AnalyticService {
      * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethod(trackingMethodNode: SpinalNodeRef, followedEntity: SpinalNodeRef): Promise<any>;
+    applyTrackingMethod(trackingMethodNode: SpinalNodeRef, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<any>;
     /**
      * Applies the specified Tracking Method to the specified Followed Entity using the specified filter value and returns the results.
      * @async
@@ -226,7 +226,7 @@ export default class AnalyticService {
      * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef | undefined>;
+    applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef | SpinalNodeRef[] | undefined>;
     /**
      * Adds a link between an input and a followed entity.
      * @param {string} contextId - The id of the context where the link will be created.
@@ -288,7 +288,7 @@ export default class AnalyticService {
      * @returns {*} The entry data models for the followed entity.
      * @memberof AnalyticService
      */
-    getEntryDataModelsFromFollowedEntity(analyticId: string, followedEntity: SpinalNodeRef): Promise<any>;
+    getEntryDataModelsFromFollowedEntity(analyticId: string, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<any>;
     /**
      * Gets the data for a followed entity and applies an algorithm to it for an analytic.
      * @private
