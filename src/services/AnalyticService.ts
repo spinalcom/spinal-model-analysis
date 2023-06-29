@@ -8,22 +8,23 @@ import {
 } from 'spinal-env-viewer-graph-service';
 import * as CONSTANTS from '../constants';
 import { ConfigModel } from '../models/ConfigModel';
-import { IConfig } from '../interfaces/IConfig';
 import { AnalyticModel } from '../models/AnalyticModel';
 import { IAnalytic } from '../interfaces/IAnalytic';
 import { EntityModel } from '../models/EntityModel';
 import { IEntity } from '../interfaces/IEntity';
 import { TrackingMethodModel } from '../models/TrackingMethodModel';
-import { ITrackingMethod } from '../interfaces/ITrackingMethod';
+
 import { IInputs } from '../interfaces/IInputs';
 import { InputsModel } from '../models/InputsModel';
 import { IOutputs } from '../interfaces/IOutputs';
 import { OutputsModel } from '../models/OutputsModel';
-import { IAttribute, INodeDocumentation } from '../interfaces/IAttribute';
-import AttributeService, { attributeService
-} from 'spinal-env-viewer-plugin-documentation-service';
-import { SpinalTimeSeries , SpinalServiceTimeseries} from "spinal-model-timeseries"
-import { SingletonServiceTimeseries } from "./SingletonTimeSeries"
+import { INodeDocumentation } from '../interfaces/IAttribute';
+import AttributeService, { attributeService} from 'spinal-env-viewer-plugin-documentation-service';
+import {
+  SpinalTimeSeries,
+  SpinalServiceTimeseries,
+} from 'spinal-model-timeseries';
+import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import {
   findEndpoints,
   findControlEndpoints,
@@ -34,13 +35,37 @@ import {
   formatTrackingMethodsToList,
 } from './utils';
 import * as algo from '../algorithms/algorithms';
+import axios from 'axios';
+import {stringify} from 'qs'
 
 export default class AnalyticService {
+  private spinalServiceTimeseries: SpinalServiceTimeseries =
+    SingletonServiceTimeseries.getInstance();
 
-  private spinalServiceTimeseries: SpinalServiceTimeseries = SingletonServiceTimeseries.getInstance();
+  private twilioFromNumber: string | undefined;
+  private twilioAccountSid: string | undefined;
+  private twilioAuthToken: string | undefined;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
+
+  public initTwilioCredentials(
+    accountSid: string,
+    authToken: string,
+    fromNumber: string
+  ) {
+    if (!accountSid || !authToken || !fromNumber) {
+      console.error(
+        'Twilio credentials not set, Messaging services will not work'
+      );
+      return;
+    }
+    console.log("Init connection to messaging services...");
+    this.twilioFromNumber = fromNumber;
+    this.twilioAccountSid = accountSid;
+    this.twilioAuthToken = authToken;
+    console.log('Done.')
+  }
 
   /**
    * This method creates a new context and returns the info of the newly created context.
@@ -80,7 +105,7 @@ export default class AnalyticService {
     );
     return argContexts;
   }
-
+  
   /**
    * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
    * If multiple contexts have the same name, it returns the first one.
@@ -572,14 +597,14 @@ export default class AnalyticService {
       const trackMethod = trackingMethodModel.trackMethod.get();
       const filterValue = trackingMethodModel.filterValue.get();
       switch (trackMethod) {
-        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER:{
+        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
           const endpoints = await findEndpoints(
             followedEntityModel.id.get(),
             filterValue
           );
           return endpoints;
         }
-        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER:{
+        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
           const controlEndpoints = await findControlEndpoints(
             followedEntityModel.id.get(),
             filterValue
@@ -614,9 +639,9 @@ export default class AnalyticService {
         trackingMethodNode.id.get(),
         CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
       );
-      
-      const inputs : SpinalNodeRef[] = [];
-      const trackingMethods = formatTrackingMethodsToList(params) // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
+
+      const inputs: SpinalNodeRef[] = [];
+      const trackingMethods = formatTrackingMethodsToList(params); // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
       for (const trackingMethod of trackingMethods) {
         if (!includeIgnoredInputs && trackingMethod.removeFromAnalysis) {
           console.log('Remove from analysis : ', trackingMethod.filterValue);
@@ -628,12 +653,18 @@ export default class AnalyticService {
         }
         switch (trackingMethod.trackingMethod) {
           case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
-            const endpoint = await findEndpoint(followedEntity.id.get(), trackingMethod.filterValue);
+            const endpoint = await findEndpoint(
+              followedEntity.id.get(),
+              trackingMethod.filterValue
+            );
             if (endpoint) inputs.push(endpoint);
             break;
           }
           case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
-            const controlEndpoint = await findControlEndpoint(followedEntity.id.get(), trackingMethod.filterValue);
+            const controlEndpoint = await findControlEndpoint(
+              followedEntity.id.get(),
+              trackingMethod.filterValue
+            );
             if (controlEndpoint) inputs.push(controlEndpoint);
             break;
           }
@@ -641,10 +672,12 @@ export default class AnalyticService {
             console.log('Ticket filter');
             break;
           default:
-
-            console.log('Track method not recognized: ',trackingMethod.trackingMethod);
+            console.log(
+              'Track method not recognized: ',
+              trackingMethod.trackingMethod
+            );
         }
-      } 
+      }
       return inputs;
     }
   }
@@ -666,7 +699,8 @@ export default class AnalyticService {
     if (followedEntity) {
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
-          if(filterValue === '') return await findEndpoints(followedEntity.id.get(),'');
+          if (filterValue === '')
+            return await findEndpoints(followedEntity.id.get(), '');
           const endpoints = await findEndpoint(
             followedEntity.id.get(),
             filterValue
@@ -674,7 +708,8 @@ export default class AnalyticService {
           return endpoints;
         }
         case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
-          if(filterValue === '') return await findControlEndpoints(followedEntity.id.get(),'');
+          if (filterValue === '')
+            return await findControlEndpoints(followedEntity.id.get(), '');
           const controlEndpoints = await findControlEndpoint(
             followedEntity.id.get(),
             filterValue
@@ -826,7 +861,7 @@ export default class AnalyticService {
     }
     return res;
   }
-  
+
   /**
    * Gets the real targeted entities for an analytic.
    *
@@ -876,7 +911,12 @@ export default class AnalyticService {
   ): Promise<any> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     if (trackingMethod)
-      return this.applyTrackingMethod(trackingMethod, followedEntity, includeIgnoredInputs,includeIgnoredBindings );
+      return this.applyTrackingMethod(
+        trackingMethod,
+        followedEntity,
+        includeIgnoredInputs,
+        includeIgnoredBindings
+      );
   }
 
   /**
@@ -901,26 +941,32 @@ export default class AnalyticService {
     );
     if (entryDataModels) {
       const params = await getAlgorithmParameters(config);
-      const trackingParams = await this.getAttributesFromNode(trackingMethod.id.get(),CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-      const input :any[]= [];
+      const trackingParams = await this.getAttributesFromNode(
+        trackingMethod.id.get(),
+        CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
+      );
+      const input: any[] = [];
       for (const entryDataModel of entryDataModels) {
-        if (trackingParams['trackingIntervalTime']== 0){
-          const currentValue = (await entryDataModel.element.load()).currentValue.get();
-          input.push (currentValue);
-        }
-        else {
-          const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+        if (trackingParams['trackingIntervalTime'] == 0) {
+          const currentValue = (
+            await entryDataModel.element.load()
+          ).currentValue.get();
+          input.push(currentValue);
+        } else {
+          const spinalTs =
+            await this.spinalServiceTimeseries.getOrCreateTimeSeries(
+              entryDataModel.id.get()
+            );
           const end = Date.now();
           const start = end - trackingParams['trackingIntervalTime'];
-          const data = await spinalTs.getFromIntervalTime(start,end);
+          const data = await spinalTs.getFromIntervalTime(start, end);
           const dataValues = data.map((el) => el.value);
           input.push(dataValues);
         }
-
       }
-      const algorithm_name = params['algorithm'];      
+      const algorithm_name = params['algorithm'];
       const result = algo[algorithm_name].run(input, params);
-      console.log('Result:',result);
+      console.log('Result:', result);
       if (typeof result === 'undefined') return;
       this.applyResult(
         result,
@@ -982,7 +1028,7 @@ export default class AnalyticService {
           configNode,
           followedEntityNode,
           params,
-          "Ticket"
+          'Ticket'
         );
         break;
       case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
@@ -1006,8 +1052,14 @@ export default class AnalyticService {
           configNode,
           followedEntityNode,
           params,
-          "Alarm"
+          'Alarm'
         );
+        break;
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
+        await this.handleSMSResult(
+          result,
+          configNode,
+          followedEntityNode);
     }
   }
 
@@ -1028,7 +1080,7 @@ export default class AnalyticService {
       name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
     };
 
-    addTicketAlarm(ticketInfo, configNode, outputNode.id.get(),ticketType);
+    addTicketAlarm(ticketInfo, configNode, outputNode.id.get(), ticketType);
   }
 
   private async handleModifyControlEndpointResult(
@@ -1061,6 +1113,39 @@ export default class AnalyticService {
     if (!controlEndpointNode || Array.isArray(controlEndpointNode)) return;
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
+  }
+
+  private async handleSMSResult(
+    result: any,
+    configNode: SpinalNodeRef,
+    followedEntityNode: SpinalNodeRef,
+  ): Promise<void> {
+    console.log('SMS result');
+    if (!this.twilioAccountSid || !this.twilioAuthToken || !this.twilioFromNumber || !result) return;
+    const twilioParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS);
+    const toNumber : string = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER]
+    const message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE]
+    const url = `https://api.twilio.com/2010-04-01/Accounts/${this.twilioAccountSid}/Messages.json`;
+    const entityName: string = followedEntityNode.name.get().replace(/[0-9]/g, "*");
+    const data = {
+        Body: `Analytic on ${entityName} triggered with the following message : ${message}`,
+        From: this.twilioFromNumber,
+        To: toNumber
+    }
+    const config = {
+      method: 'POST',
+      headers: { 'content-type': 'application/x-www-form-urlencoded' },
+      auth: {
+        username: this.twilioAccountSid,
+        password: this.twilioAuthToken
+      },
+      data: stringify(data),
+      url
+    }
+
+    const axiosResult = await axios(config)
+    console.log({status : axiosResult.status,data :axiosResult.data});
+
   }
 }
 

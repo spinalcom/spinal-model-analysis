@@ -23,10 +23,23 @@ const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-vie
 const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
 const utils_1 = require("./utils");
 const algo = require("../algorithms/algorithms");
+const axios_1 = require("axios");
+const qs_1 = require("qs");
 class AnalyticService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() {
         this.spinalServiceTimeseries = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
+    }
+    initTwilioCredentials(accountSid, authToken, fromNumber) {
+        if (!accountSid || !authToken || !fromNumber) {
+            console.error('Twilio credentials not set, Messaging services will not work');
+            return;
+        }
+        console.log("Init connection to messaging services");
+        this.twilioFromNumber = fromNumber;
+        this.twilioAccountSid = accountSid;
+        this.twilioAuthToken = authToken;
+        console.log('Done');
     }
     /**
      * This method creates a new context and returns the info of the newly created context.
@@ -775,7 +788,7 @@ class AnalyticService {
             const params = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
             switch (params['resultType']) {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
-                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, "Ticket");
+                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Ticket');
                     break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
                     yield this.handleModifyControlEndpointResult(result, trackingMethodNode, followedEntityNode);
@@ -784,7 +797,10 @@ class AnalyticService {
                     yield this.handleControlEndpointResult(result, followedEntityNode, params);
                     break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
-                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, "Alarm");
+                    yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Alarm');
+                    break;
+                case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
+                    yield this.handleSMSResult(result, configNode, followedEntityNode);
             }
         });
     }
@@ -820,6 +836,35 @@ class AnalyticService {
                 return;
             const controlEndpoint = yield controlEndpointNode.element.load();
             controlEndpoint.currentValue.set(result);
+        });
+    }
+    handleSMSResult(result, configNode, followedEntityNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log('SMS result');
+            if (!this.twilioAccountSid || !this.twilioAuthToken || !this.twilioFromNumber || !result)
+                return;
+            const twilioParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS);
+            const toNumber = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER];
+            const message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
+            const url = `https://api.twilio.com/2010-04-01/Accounts/${this.twilioAccountSid}/Messages.json`;
+            const entityName = followedEntityNode.name.get().replace(/[0-9]/g, "*");
+            const data = {
+                Body: `Analytic on ${entityName} triggered with the following message : ${message}`,
+                From: this.twilioFromNumber,
+                To: toNumber
+            };
+            const config = {
+                method: 'POST',
+                headers: { 'content-type': 'application/x-www-form-urlencoded' },
+                auth: {
+                    username: this.twilioAccountSid,
+                    password: this.twilioAuthToken
+                },
+                data: (0, qs_1.stringify)(data),
+                url
+            };
+            const axiosResult = yield (0, axios_1.default)(config);
+            console.log({ status: axiosResult.status, data: axiosResult.data });
         });
     }
 }

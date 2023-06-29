@@ -27,6 +27,9 @@ export declare const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm paramet
 export declare const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localization parameters";
 export declare const CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
 export declare const CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
+export declare const CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
+export declare const ATTRIBUTE_PHONE_NUMBER = "Phone number";
+export declare const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
 /**
  * The different types of results that an analytic can lead to.
  *
@@ -44,7 +47,8 @@ export declare enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
     MODIFY_CONTROL_ENDPOINT = "modifyControlEndpoint",
-    ALARM = "alarm"
+    ALARM = "alarm",
+    SMS = "sms"
 }
 export declare enum TRACK_METHOD {
     ENDPOINT_NAME_FILTER = "endpointFilter",
@@ -61,47 +65,3 @@ export declare enum ENTITY_TYPES {
     EQUIPMENT_GROUP = "BIMObjectGroup",
     OTHER = "other"
 }
-export declare enum ALGORITHMS {
-    THRESHOLD_ABOVE = "THRESHOLD_ABOVE",
-    THRESHOLD_BELOW = "THRESHOLD_BELOW",
-    THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
-    THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
-    PUTVALUE = "PUTVALUE",
-    AVERAGE = "AVERAGE"
-}
-export declare const ALGO_DOC: {
-    THRESHOLD_ABOVE: {
-        name: string;
-        type: string;
-        description: string;
-    }[];
-    THRESHOLD_BELOW: {
-        name: string;
-        type: string;
-        description: string;
-    }[];
-    THRESHOLD_BETWEEN_IN: {
-        name: string;
-        type: string;
-        description: string;
-    }[];
-    THRESHOLD_BETWEEN_OUT: {
-        name: string;
-        type: string;
-        description: string;
-    }[];
-    PUTVALUE: {
-        name: string;
-        type: string;
-        description: string;
-    }[];
-    AVERAGE: never[];
-};
-export declare const ALGO_DOC_DESCRIPTION: {
-    THRESHOLD_ABOVE: string;
-    THRESHOLD_BELOW: string;
-    THRESHOLD_BETWEEN_IN: string;
-    THRESHOLD_BETWEEN_OUT: string;
-    PUTVALUE: string;
-    AVERAGE: string;
-};

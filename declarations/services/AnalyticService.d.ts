@@ -4,7 +4,11 @@ import { IEntity } from '../interfaces/IEntity';
 import { INodeDocumentation } from '../interfaces/IAttribute';
 export default class AnalyticService {
     private spinalServiceTimeseries;
+    private twilioFromNumber;
+    private twilioAccountSid;
+    private twilioAuthToken;
     constructor();
+    initTwilioCredentials(accountSid: string, authToken: string, fromNumber: string): void;
     /**
      * This method creates a new context and returns the info of the newly created context.
      * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
@@ -321,5 +325,6 @@ export default class AnalyticService {
     private handleTicketResult;
     private handleModifyControlEndpointResult;
     private handleControlEndpointResult;
+    private handleSMSResult;
 }
 export { AnalyticService };

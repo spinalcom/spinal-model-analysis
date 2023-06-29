@@ -62,6 +62,12 @@ export const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localiz
 export const CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
 export const CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
 
+export const CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
+export const ATTRIBUTE_PHONE_NUMBER = "Phone number";
+export const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
+
+
+
 
 
 /**
@@ -81,7 +87,9 @@ export enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
     MODIFY_CONTROL_ENDPOINT = "modifyControlEndpoint",
-    ALARM = "alarm"
+    ALARM = "alarm",
+    SMS = "sms"
+
 }
 
 export enum TRACK_METHOD {
@@ -101,37 +109,3 @@ export enum ENTITY_TYPES {
     OTHER = "other"
 }
 
-export enum ALGORITHMS {
-    //AVERAGE = "AVERAGE",
-    //WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE",
-    //MEDIAN = "MEDIAN",
-    //ANALYTIC_AND = "ANALYTIC_AND",
-    //ANALYTIC_OR = "ANALYTIC_OR",
-    //ANALYTIC_XOR = "ANALYTIC_XOR",
-    //ANALYTIC_XAND = "ANALYTIC_XAND",
-    THRESHOLD_ABOVE = "THRESHOLD_ABOVE",
-    THRESHOLD_BELOW = "THRESHOLD_BELOW",
-    THRESHOLD_BETWEEN_IN = "THRESHOLD_BETWEEN_IN",
-    THRESHOLD_BETWEEN_OUT = "THRESHOLD_BETWEEN_OUT",
-    PUTVALUE = "PUTVALUE",
-    AVERAGE = "AVERAGE",
-}
-export const ALGO_DOC = {
-    "THRESHOLD_ABOVE": [{name : "p1",type :"number", description: "the threshold value"}],
-    "THRESHOLD_BELOW": [{name : "p1",type :"number", description: "the threshold value"}],
-    "THRESHOLD_BETWEEN_IN": [{name : "p1",type :"number", description: "the first threshold value"},
-                             {name : "p2",type :"number", description: "the second threshold value"}],
-    "THRESHOLD_BETWEEN_OUT": [{name : "p1",type :"number", description: "the first threshold value"},
-                              {name : "p2",type :"number", description: "the second threshold value"}],
-    "PUTVALUE": [{name : "p1",type :"number", description: "the value to inject"}],
-    "AVERAGE": [],
-}
-
-export const ALGO_DOC_DESCRIPTION = {
-    "THRESHOLD_ABOVE": "This algorithm returns true if the input is above the threshold set by the user",
-    "THRESHOLD_BELOW": "This algorithm returns true true if the input is below the threshold set by the user",
-    "THRESHOLD_BETWEEN_IN": "This algorithm returns true if the input is between the two thresholds set by the user",
-    "THRESHOLD_BETWEEN_OUT": "This algorithm returns true if the input is outside the two thresholds set by the user",
-    "PUTVALUE": "This algorithm injects the value set by the user",
-    "AVERAGE" : "This algorithm returns the average of the inputs",
-};

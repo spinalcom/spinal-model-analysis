@@ -23,7 +23,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGO_DOC_DESCRIPTION = exports.ALGO_DOC = exports.ALGORITHMS = exports.ENTITY_TYPES = exports.TRACK_METHOD = exports.ANALYTIC_RESULT_TYPE = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.TARGET_NODE_TYPES = exports.GROUP_RELATION_PREFIX = exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TO_CONFIG_RELATION = exports.ANALYTIC_TO_OUTPUTS_RELATION = exports.ANALYTIC_TO_INPUTS_RELATION = exports.ENTITY_TO_ANALYTIC_RELATION = exports.CONTEXT_TO_ENTITY_RELATION = exports.CONFIG_TYPE = exports.OUTPUTS_TYPE = exports.INPUTS_TYPE = exports.TRACKING_METHOD_TYPE = exports.ANALYTIC_TYPE = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
+exports.ENTITY_TYPES = exports.TRACK_METHOD = exports.ANALYTIC_RESULT_TYPE = exports.ATTRIBUTE_PHONE_MESSAGE = exports.ATTRIBUTE_PHONE_NUMBER = exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.TARGET_NODE_TYPES = exports.GROUP_RELATION_PREFIX = exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TO_CONFIG_RELATION = exports.ANALYTIC_TO_OUTPUTS_RELATION = exports.ANALYTIC_TO_INPUTS_RELATION = exports.ENTITY_TO_ANALYTIC_RELATION = exports.CONTEXT_TO_ENTITY_RELATION = exports.CONFIG_TYPE = exports.OUTPUTS_TYPE = exports.INPUTS_TYPE = exports.TRACKING_METHOD_TYPE = exports.ANALYTIC_TYPE = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
 exports.CONTEXT_TYPE = "analysisContext";
 exports.ENTITY_TYPE = "entity";
 exports.ANALYTIC_TYPE = "analytic";
@@ -53,6 +53,9 @@ exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
 exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localization parameters";
 exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
 exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
+exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
+exports.ATTRIBUTE_PHONE_NUMBER = "Phone number";
+exports.ATTRIBUTE_PHONE_MESSAGE = "Phone message";
 /**
  * The different types of results that an analytic can lead to.
  *
@@ -72,6 +75,7 @@ var ANALYTIC_RESULT_TYPE;
     ANALYTIC_RESULT_TYPE["CONTROL_ENDPOINT"] = "controlEndpoint";
     ANALYTIC_RESULT_TYPE["MODIFY_CONTROL_ENDPOINT"] = "modifyControlEndpoint";
     ANALYTIC_RESULT_TYPE["ALARM"] = "alarm";
+    ANALYTIC_RESULT_TYPE["SMS"] = "sms";
 })(ANALYTIC_RESULT_TYPE = exports.ANALYTIC_RESULT_TYPE || (exports.ANALYTIC_RESULT_TYPE = {}));
 var TRACK_METHOD;
 (function (TRACK_METHOD) {
@@ -90,38 +94,4 @@ var ENTITY_TYPES;
     ENTITY_TYPES["EQUIPMENT_GROUP"] = "BIMObjectGroup";
     ENTITY_TYPES["OTHER"] = "other";
 })(ENTITY_TYPES = exports.ENTITY_TYPES || (exports.ENTITY_TYPES = {}));
-var ALGORITHMS;
-(function (ALGORITHMS) {
-    //AVERAGE = "AVERAGE",
-    //WEIGHTED_AVERAGE = "WEIGHTED_AVERAGE",
-    //MEDIAN = "MEDIAN",
-    //ANALYTIC_AND = "ANALYTIC_AND",
-    //ANALYTIC_OR = "ANALYTIC_OR",
-    //ANALYTIC_XOR = "ANALYTIC_XOR",
-    //ANALYTIC_XAND = "ANALYTIC_XAND",
-    ALGORITHMS["THRESHOLD_ABOVE"] = "THRESHOLD_ABOVE";
-    ALGORITHMS["THRESHOLD_BELOW"] = "THRESHOLD_BELOW";
-    ALGORITHMS["THRESHOLD_BETWEEN_IN"] = "THRESHOLD_BETWEEN_IN";
-    ALGORITHMS["THRESHOLD_BETWEEN_OUT"] = "THRESHOLD_BETWEEN_OUT";
-    ALGORITHMS["PUTVALUE"] = "PUTVALUE";
-    ALGORITHMS["AVERAGE"] = "AVERAGE";
-})(ALGORITHMS = exports.ALGORITHMS || (exports.ALGORITHMS = {}));
-exports.ALGO_DOC = {
-    "THRESHOLD_ABOVE": [{ name: "p1", type: "number", description: "the threshold value" }],
-    "THRESHOLD_BELOW": [{ name: "p1", type: "number", description: "the threshold value" }],
-    "THRESHOLD_BETWEEN_IN": [{ name: "p1", type: "number", description: "the first threshold value" },
-        { name: "p2", type: "number", description: "the second threshold value" }],
-    "THRESHOLD_BETWEEN_OUT": [{ name: "p1", type: "number", description: "the first threshold value" },
-        { name: "p2", type: "number", description: "the second threshold value" }],
-    "PUTVALUE": [{ name: "p1", type: "number", description: "the value to inject" }],
-    "AVERAGE": [],
-};
-exports.ALGO_DOC_DESCRIPTION = {
-    "THRESHOLD_ABOVE": "This algorithm returns true if the input is above the threshold set by the user",
-    "THRESHOLD_BELOW": "This algorithm returns true true if the input is below the threshold set by the user",
-    "THRESHOLD_BETWEEN_IN": "This algorithm returns true if the input is between the two thresholds set by the user",
-    "THRESHOLD_BETWEEN_OUT": "This algorithm returns true if the input is outside the two thresholds set by the user",
-    "PUTVALUE": "This algorithm injects the value set by the user",
-    "AVERAGE": "This algorithm returns the average of the inputs",
-};
 //# sourceMappingURL=constants.js.map
