@@ -41,6 +41,7 @@ if (typeof globalRoot.spinal.spinalAnalyticService === 'undefined') {
 }
 
 export {
+  AnalyticService,
   spinalAnalyticService,
   IAnalytic,
   ITrackingMethod,

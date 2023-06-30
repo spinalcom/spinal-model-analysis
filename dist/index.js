@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.algos = exports.findEndpoints = exports.findControlEndpoints = exports.ATTRIBUTE_PHONE_MESSAGE = exports.ATTRIBUTE_PHONE_NUMBER = exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = void 0;
+exports.algos = exports.findEndpoints = exports.findControlEndpoints = exports.ATTRIBUTE_PHONE_MESSAGE = exports.ATTRIBUTE_PHONE_NUMBER = exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = exports.TRACK_METHOD = exports.ANALYTIC_TYPE = exports.ANALYTIC_RESULT_TYPE = exports.ENTITY_TYPES = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticService = exports.AnalyticService = void 0;
 const AnalyticModel_1 = require("./models/AnalyticModel");
 Object.defineProperty(exports, "AnalyticModel", { enumerable: true, get: function () { return AnalyticModel_1.AnalyticModel; } });
 const TrackingMethodModel_1 = require("./models/TrackingMethodModel");
@@ -22,6 +22,7 @@ Object.defineProperty(exports, "ATTRIBUTE_PHONE_MESSAGE", { enumerable: true, ge
 const algos = require("./algorithms/algorithms");
 exports.algos = algos;
 const AnalyticService_1 = require("./services/AnalyticService");
+Object.defineProperty(exports, "AnalyticService", { enumerable: true, get: function () { return AnalyticService_1.AnalyticService; } });
 const utils_1 = require("./services/utils");
 Object.defineProperty(exports, "findControlEndpoints", { enumerable: true, get: function () { return utils_1.findControlEndpoints; } });
 Object.defineProperty(exports, "findEndpoints", { enumerable: true, get: function () { return utils_1.findEndpoints; } });

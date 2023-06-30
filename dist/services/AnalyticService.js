@@ -25,21 +25,44 @@ const utils_1 = require("./utils");
 const algo = require("../algorithms/algorithms");
 const axios_1 = require("axios");
 const qs_1 = require("qs");
+/**
+ * This class handles most of the logic for analytics. It provides methods for creating and retrieving analytics, entities, and contexts.
+ * It also provides methods for applying tracking methods to followed entities and applying algorithms to inputs.
+ *
+ * @export
+ * @class AnalyticService
+ */
 class AnalyticService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() {
+        /**
+         * The singleton instance of the Timeseries service.
+         *
+         * @private
+         * @type {SpinalServiceTimeseries}
+         * @memberof AnalyticService
+         */
         this.spinalServiceTimeseries = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
     }
+    /**
+     * Initialize private attributes with necessary information to use the the messaging service.
+     *
+     * @param {string} accountSid
+     * @param {string} authToken
+     * @param {string} fromNumber
+     * @return {*}  {void}
+     * @memberof AnalyticService
+     */
     initTwilioCredentials(accountSid, authToken, fromNumber) {
         if (!accountSid || !authToken || !fromNumber) {
             console.error('Twilio credentials not set, Messaging services will not work');
             return;
         }
-        console.log("Init connection to messaging services");
+        console.log("Init connection to messaging services...");
         this.twilioFromNumber = fromNumber;
         this.twilioAccountSid = accountSid;
         this.twilioAuthToken = authToken;
-        console.log('Done');
+        console.log('Done.');
     }
     /**
      * This method creates a new context and returns the info of the newly created context.
@@ -263,12 +286,11 @@ class AnalyticService {
     }
     /**
      * Adds a new Config node to the specified analytic within the specified context, with the specified attributes.
-     * @async
-     * @param {IConfig} configInfo - The information for the new Config node to add.
-     * @param {any[]} configAttributes - An array of objects representing the attributes to add to the Config node.
+     *
+     * @param {INodeDocumentation} configAttributes - The attributes to add to the Config node.
      * @param {string} analyticId - The ID of the analytic to which to add the Config node.
      * @param {string} contextId - The ID of the context in which to add the Config node.
-     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Config node.
+     * @return {*}  {Promise<SpinalNodeRef>}
      * @memberof AnalyticService
      */
     addConfig(configAttributes, analyticId, contextId) {
@@ -278,24 +300,15 @@ class AnalyticService {
             const configId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(configNodeInfo, configModel);
             const configNode = yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(analyticId, configId, contextId, CONSTANTS.ANALYTIC_TO_CONFIG_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
             this.addAttributesToNode(configNode, configAttributes);
-            /*for (let attribute of configAttributes) {
-              await AttributeService.addAttributeByCategoryName(
-                configNode,
-                CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS,
-                attribute.name,
-                attribute.value,
-                attribute.type,
-                ''
-              );
-            }*/
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(configId);
         });
     }
     /**
-     * Retrieves the Config node for the specified analytic.
+     * Retrieves the Config node for the specified analytic
+     *
      * @async
      * @param {string} analyticId - The ID of the analytic for which to retrieve the Config node.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the Config node, or undefined if the Config node cannot be found.
+     * @return {*}  {(Promise<SpinalNodeRef | undefined>)} A Promise that resolves to the Config node, or undefined if the Config node cannot be found.
      * @memberof AnalyticService
      */
     getConfig(analyticId) {
@@ -312,7 +325,7 @@ class AnalyticService {
      * Retrieves the Inputs node for the specified analytic.
      * @async
      * @param {string} analyticId - The ID of the analytic for which to retrieve the Inputs node.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the Inputs node, or undefined if the Inputs node cannot be found.
+     * @return {*}  {(Promise<SpinalNodeRef | undefined>)} - A Promise that resolves to the Inputs node, or undefined if the Inputs node cannot be found.
      * @memberof AnalyticService
      */
     getInputsNode(analyticId) {
@@ -329,7 +342,7 @@ class AnalyticService {
      * Retrieves the Outputs node for the specified analytic.
      * @async
      * @param {string} analyticId - The ID of the analytic for which to retrieve the Outputs node.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the Outputs node, or undefined if the Outputs node cannot be found.
+     * @returns {*} {(Promise<SpinalNodeRef | undefined>)} - A Promise that resolves to the Outputs node, or undefined if the Outputs node cannot be found.
      * @memberof AnalyticService
      */
     getOutputsNode(analyticId) {
@@ -348,10 +361,10 @@ class AnalyticService {
     /**
      * Adds a new Tracking Method node to the specified Input node within the specified context.
      * @async
-     * @param {ITrackingMethod} trackingMethodInfo - The information for the new Tracking Method node to add.
+     * @param {INodeDocumentation} trackingMethodAttributes
      * @param {string} contextId - The ID of the context in which to add the Tracking Method node.
      * @param {string} inputId - The ID of the Input node to which to add the Tracking Method node.
-     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Tracking Method node.
+     * @return {*}  {Promise<SpinalNodeRef>} - A Promise that resolves to the newly created Tracking Method node.
      * @memberof AnalyticService
      */
     addTrackingMethod(trackingMethodAttributes, contextId, inputId) {
@@ -369,12 +382,12 @@ class AnalyticService {
     }
     /**
      * Adds a new Tracking Method node to the Inputs node of the specified analytic within the specified context.
+     *
      * @async
-     * @param {ITrackingMethod} trackingMethodInfo - The information for the new Tracking Method node to add.
+     * @param {INodeDocumentation} trackingMethodAttributes - The attributes to add to the Tracking Method node.
      * @param {string} contextId - The ID of the context in which to add the Tracking Method node.
      * @param {string} analyticId - The ID of the analytic for which to add the Tracking Method node.
-     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Tracking Method node.
-     * @throws {Error} Throws an error if the Inputs node cannot be found.
+     * @return {*}  {Promise<SpinalNodeRef>} - A Promise that resolves to the newly created Tracking Method node.
      * @memberof AnalyticService
      */
     addInputTrackingMethod(trackingMethodAttributes, contextId, analyticId) {
@@ -450,44 +463,13 @@ class AnalyticService {
         });
     }
     /**
-     * Applies the Tracking Method specified for the specified analytic to the Followed Entity and returns the results.
+     * Applies the specified Tracking Method to the specified Followed Entity and returns the resulting node infos.
      * @async
-     * @param {string} analyticId - The ID of the analytic for which to apply the Tracking Method.
-     * @throws {Error} Throws an error if the Tracking Method or Followed Entity nodes cannot be found.
-     * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
-     * @memberof AnalyticService
-     */
-    applyTrackingMethodLegacy(analyticId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const trackingMethodModel = yield this.getTrackingMethod(analyticId);
-            const followedEntityModel = yield this.getFollowedEntity(analyticId);
-            if (followedEntityModel && trackingMethodModel) {
-                const trackMethod = trackingMethodModel.trackMethod.get();
-                const filterValue = trackingMethodModel.filterValue.get();
-                switch (trackMethod) {
-                    case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
-                        const endpoints = yield (0, utils_1.findEndpoints)(followedEntityModel.id.get(), filterValue);
-                        return endpoints;
-                    }
-                    case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
-                        const controlEndpoints = yield (0, utils_1.findControlEndpoints)(followedEntityModel.id.get(), filterValue);
-                        return controlEndpoints;
-                    }
-                    case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                        console.log('Ticket filter');
-                        break;
-                    default:
-                        console.log('Track method not recognized');
-                }
-            }
-        });
-    }
-    /**
-     * Applies the specified Tracking Method to the specified Followed Entity and returns the results.
-     * @async
-     * @param {SpinalNodeRef} trackingMethod - The SpinalNodeRef object representing the Tracking Method to apply.
+     * @param {SpinalNodeRef} trackingMethodNode - The SpinalNodeRef object representing the Tracking Method to apply.
      * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
-     * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
+     * @param {boolean} [includeIgnoredInputs=true] - Whether to include inputs that have been marked as "remove from analysis".
+     * @param {boolean} [includeIgnoredBindings=true] - Whether to include inputs that have been marked as "remove from binding".
+     * @return {*}  {Promise<SpinalNodeRef[] | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
     applyTrackingMethod(trackingMethodNode, followedEntity, includeIgnoredInputs = true, includeIgnoredBindings = true) {
@@ -530,12 +512,13 @@ class AnalyticService {
         });
     }
     /**
-     * Applies the specified Tracking Method to the specified Followed Entity using the specified filter value and returns the results.
+     * Applies the provided filter parameters to the specified Followed Entity using the specified filter value and returns the results.
+     * If filterValue is an empty string, it will act as if everything should be returned.
      * @async
-     * @param {string} trackMethod - The name of the Tracking Method to apply.
-     * @param {string} filterValue - The filter value to use when applying the Tracking Method.
+     * @param {string} trackMethod - The type of filter.
+     * @param {string} filterValue - The filter value to use.
      * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
-     * @returns {Promise<any>} A Promise that resolves with the results of the applied Tracking Method.
+     * @returns {*} {Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
     applyTrackingMethodWithParams(trackMethod, filterValue, followedEntity) {
@@ -654,6 +637,14 @@ class AnalyticService {
             }
         });
     }
+    /**
+     * Gets the attributes from a node.
+     *
+     * @param {string} nodeId - The ID of the node from which to retrieve the attributes.
+     * @param {string} category - The category of the attributes to retrieve.
+     * @return {*}  {Promise<any>} An object containing the attributes.
+     * @memberof AnalyticService
+     */
     getAttributesFromNode(nodeId, category) {
         return __awaiter(this, void 0, void 0, function* () {
             const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
@@ -667,7 +658,7 @@ class AnalyticService {
         });
     }
     /**
-     * Gets the real targeted entities for an analytic.
+     * Gets the targeted entities for an analytic.
      *
      * @param {string} analyticId The ID of the analytic.
      * @return {*}  {(Promise<SpinalNodeRef[]|undefined>)} An array of SpinalNodeRefs for the entities
@@ -702,7 +693,7 @@ class AnalyticService {
      * Gets the entry data models from a followed entity for an analytic.
      * @param {string} analyticId The ID of the analytic.
      * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-     * @returns {*} The entry data models for the followed entity.
+     * @returns {*} Promise<SpinalNodeRef[] | undefined> - The entry data models for the followed entity.
      * @memberof AnalyticService
      */
     getEntryDataModelsFromFollowedEntity(analyticId, followedEntity, includeIgnoredInputs = true, includeIgnoredBindings = true) {
@@ -713,7 +704,7 @@ class AnalyticService {
         });
     }
     /**
-     * Gets the data for a followed entity and applies an algorithm to it for an analytic.
+     * Gets the data for a followed entity and applies correct the algorithm to it.
      * @private
      * @param {string} analyticId The ID of the analytic.
      * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
@@ -758,7 +749,7 @@ class AnalyticService {
      * Performs an analysis on an entity for an analytic.
      * @param {string} analyticId The ID of the analytic.
      * @param {SpinalNodeRef} entity The SpinalNodeRef for the entity to analyze.
-     * @returns {*}
+     * @returns {*} {Promise<void>}
      * @memberof AnalyticService
      */
     doAnalysis(analyticId, entity) {
@@ -804,6 +795,19 @@ class AnalyticService {
             }
         });
     }
+    /**
+     * Handles the result of an algorithm that creates a ticket or an alarm.
+     *
+     * @private
+     * @param {*} result
+     * @param {string} analyticId
+     * @param {SpinalNodeRef} configNode
+     * @param {SpinalNodeRef} followedEntityNode
+     * @param {*} params
+     * @param {string} ticketType
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
     handleTicketResult(result, analyticId, configNode, followedEntityNode, params, ticketType // Alarm or Ticket
     ) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -818,6 +822,16 @@ class AnalyticService {
             (0, utils_1.addTicketAlarm)(ticketInfo, configNode, outputNode.id.get(), ticketType);
         });
     }
+    /**
+     * Handles the result of an algorithm that modifies a control point set as input.
+     *
+     * @private
+     * @param {*} result
+     * @param {SpinalNodeRef} trackingMethodNode
+     * @param {SpinalNodeRef} followedEntityNode
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
     handleModifyControlEndpointResult(result, trackingMethodNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
             const controlEndpoints = yield this.applyTrackingMethod(trackingMethodNode, followedEntityNode);
@@ -829,6 +843,16 @@ class AnalyticService {
             }
         });
     }
+    /**
+     * Handles the result of an algorithm that modifies a control point.
+     *
+     * @private
+     * @param {*} result
+     * @param {SpinalNodeRef} followedEntityNode
+     * @param {*} params
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
     handleControlEndpointResult(result, followedEntityNode, params) {
         return __awaiter(this, void 0, void 0, function* () {
             const controlEndpointNode = yield this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, params['resultName'], followedEntityNode);
@@ -838,6 +862,16 @@ class AnalyticService {
             controlEndpoint.currentValue.set(result);
         });
     }
+    /**
+     * Handles the result of an algorithm that sends an SMS.
+     *
+     * @private
+     * @param {*} result
+     * @param {SpinalNodeRef} configNode
+     * @param {SpinalNodeRef} followedEntityNode
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
     handleSMSResult(result, configNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('SMS result');
