@@ -2,6 +2,7 @@ import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-grap
 import { IAnalytic } from '../interfaces/IAnalytic';
 import { IEntity } from '../interfaces/IEntity';
 import { INodeDocumentation } from '../interfaces/IAttribute';
+import { SpinalAttribute } from 'spinal-models-documentation';
 /**
  * This class handles most of the logic for analytics. It provides methods for creating and retrieving analytics, entities, and contexts.
  * It also provides methods for applying tracking methods to followed entities and applying algorithms to inputs.
@@ -268,7 +269,7 @@ export default class AnalyticService {
      * @returns {*} {Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>;
+    applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef[] | SpinalNodeRef | SpinalAttribute | SpinalAttribute[] | undefined>;
     /**
      * Adds a link between an input and a followed entity.
      * @param {string} contextId - The id of the context where the link will be created.
@@ -323,6 +324,16 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getAttributesFromNode(nodeId: string, category: string): Promise<any>;
+    /**
+     * Gets the attribute from a node.
+     *
+     * @param {string} nodeId - The ID of the node from which to retrieve the attribute.
+     * @param {string} category - The category of the attribute to retrieve.
+     * @param {string} label - The label of the attribute to retrieve.
+     * @return {*}  {Promise<any>}  An object containing the attribute { label: value}.
+     * @memberof AnalyticService
+     */
+    getAttributeFromNode(nodeId: string, category: string, label: string): Promise<any>;
     /**
      * Gets the targeted entities for an analytic.
      *

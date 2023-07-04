@@ -7,7 +7,7 @@ class Algorithm implements IAlgorithm {
   inputTypes: string[];
   outputType: string;
   description: string;
-  requiredParams: IRequiredParameter[] | "boolean" | "number" | "string";
+  requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string';
   run: (input: any | any[], params?: any) => any;
 
   constructor(
@@ -15,7 +15,7 @@ class Algorithm implements IAlgorithm {
     description: string,
     inputTypes: string[],
     outputType: string,
-    requiredParams: IRequiredParameter[] | "boolean" | "number" | "string",
+    requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string',
     run: (input: any | any[], params?: any) => any
   ) {
     this.name = name;
@@ -26,7 +26,6 @@ class Algorithm implements IAlgorithm {
     this.run = run;
   }
 }
-
 
 export const PUTVALUE = new Algorithm(
   'PUTVALUE',
@@ -120,7 +119,9 @@ export const AVERAGE = new Algorithm(
   (input: [number[]], params: any): number => {
     const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
 
-    return flattenedArray.reduce((acc, current) => acc + current, 0) / input.length;
+    return (
+      flattenedArray.reduce((acc, current) => acc + current, 0) / input.length
+    );
   }
 );
 
@@ -154,10 +155,8 @@ export const NOT = new Algorithm(
   [],
   (input: boolean[], params: any): boolean => {
     return !input.includes(true);
-  } 
+  }
 );
-
-
 
 export const DIFFERENCE_THRESHOLD = new Algorithm(
   'DIFFERENCE_THRESHOLD',
@@ -175,10 +174,62 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
   }
 );
 
+export const INTEGRAL_BOOLEAN = new Algorithm(
+  'INTEGRAL_BOOLEAN',
+  'This algorithm calculates the integral of timeseries.',
+  ['object'],
+  'number',
+  [
+    {
+      name: 'p1',
+      type: 'number',
+      description:
+        'intervalTime, please copy paste the timeseries interval time',
+    },
+    {
+      name: 'p2',
+      type: 'string',
+      description:
+        'Ratio || Percentage   (write one of the two, Ratio will be used by default)',
+    },
+  ],
+  (input: { date: number; value: number }[][], params: any): number => {
+    const percentageResult = params['p2'] === 'Percentage';
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    const invertBool = (bool) => (bool ? 0 : 1);
+    dataInput.unshift({
+      date: dataInput[dataInput.length - 1].date - params['p1'],
+      value: invertBool(dataInput[0].value),
+    });
+    console.log(' input : ', dataInput);
+    // Ensure input is sorted by time
+    dataInput.sort((a, b) => a.date - b.date);
 
+    let integral = 0;
 
+    for (let i = 1; i < dataInput.length; i++) {
+      // Calculate the difference in time
+      const deltaTime = dataInput[i].date - dataInput[i - 1].date;
 
+      // Calculate the average value between two points
+      const avgValue = (dataInput[i].value + dataInput[i - 1].value) / 2;
 
+      // Add the area of the trapezoid to the total integral
+      integral += avgValue * deltaTime;
+    }
+
+    if (!percentageResult)
+      return (
+        integral / (dataInput[dataInput.length - 1].date - dataInput[0].date)
+      );
+    else
+      return (
+        (integral /
+          (dataInput[dataInput.length - 1].date - dataInput[0].date)) *
+        100
+      );
+  }
+);
 
 /*
 

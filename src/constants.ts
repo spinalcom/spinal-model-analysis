@@ -95,7 +95,7 @@ export enum ANALYTIC_RESULT_TYPE {
 export enum TRACK_METHOD {
     ENDPOINT_NAME_FILTER = "endpointFilter",
     CONTROL_ENDPOINT_NAME_FILTER = "controlEndpointFilter",
-    TICKET_NAME_FILTER = "ticketFilter"
+    ATTRIBUTE_NAME_FILTER = "attributeFilter",
 }
 
 export enum ENTITY_TYPES {

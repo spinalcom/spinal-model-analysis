@@ -33,6 +33,7 @@ import {
   getAlgorithmParameters,
   formatTrackingMethodsToList,
 } from './utils';
+import { SpinalAttribute } from 'spinal-models-documentation';
 import * as algo from '../algorithms/algorithms';
 import axios from 'axios';
 import {stringify} from 'qs'
@@ -666,8 +667,7 @@ export default class AnalyticService {
             if (controlEndpoint) inputs.push(controlEndpoint);
             break;
           }
-          case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-            console.log('Ticket filter');
+          case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:
             break;
           default:
             console.log(
@@ -694,7 +694,7 @@ export default class AnalyticService {
     trackMethod: string,
     filterValue: string,
     followedEntity: SpinalNodeRef
-  ) : Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>{
+  ) : Promise<SpinalNodeRef[] | SpinalNodeRef | SpinalAttribute |SpinalAttribute[] | undefined>{
     if (followedEntity) {
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
@@ -715,8 +715,23 @@ export default class AnalyticService {
           );
           return controlEndpoints;
         }
-        case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-          console.log('Ticket filter');
+        case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
+          console.log('Attribute filter');
+          const node = SpinalGraphService.getRealNode(followedEntity.id.get());
+          if (filterValue === ''){
+            const attributes = await attributeService.getAllAttributes(node)
+            return attributes;
+          }
+          else {
+            const [first,second] = filterValue.split(';');
+
+            const foundAttribute = await attributeService.findOneAttributeInCategory(node,first,second);
+            console.log(foundAttribute);
+            if(foundAttribute === -1 ) return undefined;
+            return foundAttribute
+            
+          }
+        }
           break;
         default:
           console.log('Track method not recognized');
@@ -870,6 +885,32 @@ export default class AnalyticService {
   }
 
   /**
+   * Gets the attribute from a node.
+   *
+   * @param {string} nodeId - The ID of the node from which to retrieve the attribute.
+   * @param {string} category - The category of the attribute to retrieve.
+   * @param {string} label - The label of the attribute to retrieve.
+   * @return {*}  {Promise<any>}  An object containing the attribute { label: value}.
+   * @memberof AnalyticService
+   */
+  public async getAttributeFromNode(
+    nodeId: string,
+    category: string,
+    label: string
+  ): Promise<any> {
+    const node = SpinalGraphService.getRealNode(nodeId);
+    const parameters = await attributeService.getAttributesByCategory(
+      node,
+      category
+    );
+    for (const param of parameters) {
+      const obj = param.get();
+      if (obj.label === label) return { [obj.label]: obj.value};
+    }
+    return undefined;
+  }
+
+  /**
    * Gets the targeted entities for an analytic.
    *
    * @param {string} analyticId The ID of the analytic.
@@ -890,10 +931,14 @@ export default class AnalyticService {
         // we can continue as planned
         return [followedEntity];
       } else {
-        const isGroup: boolean = followedEntity.type.get().includes('group');
+        const isGroup: boolean = followedEntity.type.get().includes('group') || followedEntity.type.get().includes('Group');
+
         const relationNameToTargets = isGroup
           ? CONSTANTS.GROUP_RELATION_PREFIX + entityType
           : 'has' + entityType.charAt(0).toUpperCase() + entityType.slice(1);
+
+        console.log('Followed entity is a', followedEntity.type.get(), ' but the analytic is under a ', entityType, ' entity.');
+        console.log('Trying to find the correct entities with the deducted relation name: ', relationNameToTargets);
         const entities = await SpinalGraphService.getChildren(
           followedEntity.id.get(),
           [relationNameToTargets]
@@ -967,8 +1012,11 @@ export default class AnalyticService {
           const end = Date.now();
           const start = end - trackingParams['trackingIntervalTime'];
           const data = await spinalTs.getFromIntervalTime(start, end);
-          const dataValues = data.map((el) => el.value);
-          input.push(dataValues);
+
+          //add fictive data copying last value to currentTime.
+          data.push({date : end, value: data[data.length - 1].value});
+          //const dataValues = data.map((el) => el.value);
+          input.push(data);
         }
       }
       const algorithm_name = params['algorithm'];

@@ -14,13 +14,13 @@ export declare const ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasEntity";
 export declare const ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = "hasTrackingMethod";
 export declare const GROUP_RELATION_PREFIX = "groupHas";
 export declare const TARGET_NODE_TYPES: Readonly<{
-    Building: "geographicBuilding";
-    Floor: "geographicFloor";
-    Room: "geographicRoom";
-    Equipment: "BIMObject";
-    "Floor Group": "geographicFloorGroup";
-    "Room Group": "geographicRoomGroup";
-    "Equipment Group": "BIMObjectGroup";
+    Building: string;
+    Floor: string;
+    Room: string;
+    Equipment: string;
+    "Floor Group": string;
+    "Room Group": string;
+    "Equipment Group": string;
     Other: undefined;
 }>;
 export declare const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
@@ -53,7 +53,7 @@ export declare enum ANALYTIC_RESULT_TYPE {
 export declare enum TRACK_METHOD {
     ENDPOINT_NAME_FILTER = "endpointFilter",
     CONTROL_ENDPOINT_NAME_FILTER = "controlEndpointFilter",
-    TICKET_NAME_FILTER = "ticketFilter"
+    ATTRIBUTE_NAME_FILTER = "attributeFilter"
 }
 export declare enum ENTITY_TYPES {
     BUILDING = "geographicBuilding",

@@ -81,7 +81,7 @@ var TRACK_METHOD;
 (function (TRACK_METHOD) {
     TRACK_METHOD["ENDPOINT_NAME_FILTER"] = "endpointFilter";
     TRACK_METHOD["CONTROL_ENDPOINT_NAME_FILTER"] = "controlEndpointFilter";
-    TRACK_METHOD["TICKET_NAME_FILTER"] = "ticketFilter";
+    TRACK_METHOD["ATTRIBUTE_NAME_FILTER"] = "attributeFilter";
 })(TRACK_METHOD = exports.TRACK_METHOD || (exports.TRACK_METHOD = {}));
 var ENTITY_TYPES;
 (function (ENTITY_TYPES) {

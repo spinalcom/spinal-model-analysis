@@ -500,8 +500,7 @@ class AnalyticService {
                                 inputs.push(controlEndpoint);
                             break;
                         }
-                        case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                            console.log('Ticket filter');
+                        case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:
                             break;
                         default:
                             console.log('Track method not recognized: ', trackingMethod.trackingMethod);
@@ -537,8 +536,23 @@ class AnalyticService {
                         const controlEndpoints = yield (0, utils_1.findControlEndpoint)(followedEntity.id.get(), filterValue);
                         return controlEndpoints;
                     }
-                    case CONSTANTS.TRACK_METHOD.TICKET_NAME_FILTER:
-                        console.log('Ticket filter');
+                    case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:
+                        {
+                            console.log('Attribute filter');
+                            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
+                            if (filterValue === '') {
+                                const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAllAttributes(node);
+                                return attributes;
+                            }
+                            else {
+                                const [first, second] = filterValue.split(';');
+                                const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, first, second);
+                                console.log(foundAttribute);
+                                if (foundAttribute === -1)
+                                    return undefined;
+                                return foundAttribute;
+                            }
+                        }
                         break;
                     default:
                         console.log('Track method not recognized');
@@ -658,6 +672,27 @@ class AnalyticService {
         });
     }
     /**
+     * Gets the attribute from a node.
+     *
+     * @param {string} nodeId - The ID of the node from which to retrieve the attribute.
+     * @param {string} category - The category of the attribute to retrieve.
+     * @param {string} label - The label of the attribute to retrieve.
+     * @return {*}  {Promise<any>}  An object containing the attribute { label: value}.
+     * @memberof AnalyticService
+     */
+    getAttributeFromNode(nodeId, category, label) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+            const parameters = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, category);
+            for (const param of parameters) {
+                const obj = param.get();
+                if (obj.label === label)
+                    return { [obj.label]: obj.value };
+            }
+            return undefined;
+        });
+    }
+    /**
      * Gets the targeted entities for an analytic.
      *
      * @param {string} analyticId The ID of the analytic.
@@ -679,10 +714,12 @@ class AnalyticService {
                     return [followedEntity];
                 }
                 else {
-                    const isGroup = followedEntity.type.get().includes('group');
+                    const isGroup = followedEntity.type.get().includes('group') || followedEntity.type.get().includes('Group');
                     const relationNameToTargets = isGroup
                         ? CONSTANTS.GROUP_RELATION_PREFIX + entityType
                         : 'has' + entityType.charAt(0).toUpperCase() + entityType.slice(1);
+                    console.log('Followed entity is a', followedEntity.type.get(), ' but the analytic is under a ', entityType, ' entity.');
+                    console.log('Trying to find the correct entities with the deducted relation name: ', relationNameToTargets);
                     const entities = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relationNameToTargets]);
                     return entities;
                 }
@@ -732,8 +769,10 @@ class AnalyticService {
                         const end = Date.now();
                         const start = end - trackingParams['trackingIntervalTime'];
                         const data = yield spinalTs.getFromIntervalTime(start, end);
-                        const dataValues = data.map((el) => el.value);
-                        input.push(dataValues);
+                        //add fictive data copying last value to currentTime.
+                        data.push({ date: end, value: data[data.length - 1].value });
+                        //const dataValues = data.map((el) => el.value);
+                        input.push(data);
                     }
                 }
                 const algorithm_name = params['algorithm'];
