@@ -24,6 +24,7 @@ import {
   SpinalServiceTimeseries,
 } from 'spinal-model-timeseries';
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
+
 import {
   findEndpoints,
   findControlEndpoints,
@@ -32,6 +33,8 @@ import {
   addTicketAlarm,
   getAlgorithmParameters,
   formatTrackingMethodsToList,
+  findAllCategoriesAndAttributes,
+  getValueModelFromEntry,
 } from './utils';
 import { SpinalAttribute } from 'spinal-models-documentation';
 import * as algo from '../algorithms/algorithms';
@@ -633,13 +636,13 @@ export default class AnalyticService {
     followedEntity: SpinalNodeRef,
     includeIgnoredInputs = true,
     includeIgnoredBindings = true
-  ): Promise<SpinalNodeRef[] | undefined> {
+  ): Promise<(SpinalNodeRef | SpinalAttribute)[] | undefined> {
     if (followedEntity && trackingMethodNode) {
       const params = await this.getAttributesFromNode(
         trackingMethodNode.id.get(),
         CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
       );
-      const inputs: SpinalNodeRef[] = [];
+      const inputs: (SpinalNodeRef | SpinalAttribute)[] = [];
       const trackingMethods = formatTrackingMethodsToList(params); // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
       for (const trackingMethod of trackingMethods) {
         if (!includeIgnoredInputs && trackingMethod.removeFromAnalysis) {
@@ -667,8 +670,14 @@ export default class AnalyticService {
             if (controlEndpoint) inputs.push(controlEndpoint);
             break;
           }
-          case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:
+          case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:{
+            console.log('Attribute filter');
+            const node = SpinalGraphService.getRealNode(followedEntity.id.get());
+            const [first,second] = trackingMethod.filterValue.split(':');
+            const foundAttribute = await attributeService.findOneAttributeInCategory(node,first,second);
+            if(foundAttribute != -1 ) inputs.push(foundAttribute)
             break;
+          }
           default:
             console.log(
               'Track method not recognized: ',
@@ -699,7 +708,7 @@ export default class AnalyticService {
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
           if (filterValue === '')
-            return await findEndpoints(followedEntity.id.get(), '');
+            return await findEndpoints(followedEntity.id.get(), []);
           const endpoints = await findEndpoint(
             followedEntity.id.get(),
             filterValue
@@ -708,7 +717,7 @@ export default class AnalyticService {
         }
         case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
           if (filterValue === '')
-            return await findControlEndpoints(followedEntity.id.get(), '');
+            return await findControlEndpoints(followedEntity.id.get(), filterValue);
           const controlEndpoints = await findControlEndpoint(
             followedEntity.id.get(),
             filterValue
@@ -719,12 +728,11 @@ export default class AnalyticService {
           console.log('Attribute filter');
           const node = SpinalGraphService.getRealNode(followedEntity.id.get());
           if (filterValue === ''){
-            const attributes = await attributeService.getAllAttributes(node)
-            return attributes;
+            const result = await findAllCategoriesAndAttributes(followedEntity.id.get())
+            return result;
           }
           else {
-            const [first,second] = filterValue.split(';');
-
+            const [first,second] = filterValue.split(':');
             const foundAttribute = await attributeService.findOneAttributeInCategory(node,first,second);
             console.log(foundAttribute);
             if(foundAttribute === -1 ) return undefined;
@@ -732,7 +740,6 @@ export default class AnalyticService {
             
           }
         }
-          break;
         default:
           console.log('Track method not recognized');
       }
@@ -960,7 +967,7 @@ export default class AnalyticService {
     followedEntity: SpinalNodeRef,
     includeIgnoredInputs = true,
     includeIgnoredBindings = true
-  ): Promise<SpinalNodeRef[] | undefined> {
+  ): Promise<(SpinalNodeRef|SpinalAttribute)[] | undefined> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     if (trackingMethod)
       return this.applyTrackingMethod(
@@ -970,6 +977,8 @@ export default class AnalyticService {
         includeIgnoredBindings
       );
   }
+
+
 
   /**
    * Gets the data for a followed entity and applies correct the algorithm to it.
@@ -1000,10 +1009,8 @@ export default class AnalyticService {
       const input: any[] = [];
       for (const entryDataModel of entryDataModels) {
         if (trackingParams['trackingIntervalTime'] == 0) {
-          const currentValue = (
-            await entryDataModel.element.load()
-          ).currentValue.get();
-          input.push(currentValue);
+          const currentValue = await getValueModelFromEntry(entryDataModel);
+          input.push(currentValue.get());
         } else {
           const spinalTs =
             await this.spinalServiceTimeseries.getOrCreateTimeSeries(

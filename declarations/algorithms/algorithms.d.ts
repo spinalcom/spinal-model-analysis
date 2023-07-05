@@ -10,6 +10,8 @@ declare class Algorithm implements IAlgorithm {
     constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: any) => any);
 }
 export declare const PUTVALUE: Algorithm;
+export declare const COPY: Algorithm;
+export declare const DIVIDE: Algorithm;
 export declare const THRESHOLD_ABOVE: Algorithm;
 export declare const THRESHOLD_BELOW: Algorithm;
 export declare const THRESHOLD_BETWEEN_IN: Algorithm;

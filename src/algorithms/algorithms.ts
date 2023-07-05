@@ -38,6 +38,30 @@ export const PUTVALUE = new Algorithm(
   }
 );
 
+export const COPY = new Algorithm(
+  'COPY',
+  'This algorithm returns the value of first input',
+  ['number'],
+  'number',
+  [],
+  (input: number[], params: any): number => {
+    return input[0];
+  }
+
+);
+
+export const DIVIDE = new Algorithm(
+  'DIVIDE',
+  'This algorithm returns the result of the division of the first input by the second input',
+  ['number'],
+  'number',
+  [],
+  (input: number[], params: any): number => {
+    return input[0] / input[1];
+  }
+);
+
+
 export const THRESHOLD_ABOVE = new Algorithm(
   'THRESHOLD_ABOVE',
   'This algorithm returns true if the input is above the threshold set by the user',

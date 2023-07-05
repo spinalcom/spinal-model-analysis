@@ -500,8 +500,15 @@ class AnalyticService {
                                 inputs.push(controlEndpoint);
                             break;
                         }
-                        case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:
+                        case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
+                            console.log('Attribute filter');
+                            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
+                            const [first, second] = trackingMethod.filterValue.split(':');
+                            const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, first, second);
+                            if (foundAttribute != -1)
+                                inputs.push(foundAttribute);
                             break;
+                        }
                         default:
                             console.log('Track method not recognized: ', trackingMethod.trackingMethod);
                     }
@@ -526,34 +533,32 @@ class AnalyticService {
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
                         if (filterValue === '')
-                            return yield (0, utils_1.findEndpoints)(followedEntity.id.get(), '');
+                            return yield (0, utils_1.findEndpoints)(followedEntity.id.get(), []);
                         const endpoints = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), filterValue);
                         return endpoints;
                     }
                     case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
                         if (filterValue === '')
-                            return yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), '');
+                            return yield (0, utils_1.findControlEndpoints)(followedEntity.id.get(), filterValue);
                         const controlEndpoints = yield (0, utils_1.findControlEndpoint)(followedEntity.id.get(), filterValue);
                         return controlEndpoints;
                     }
-                    case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:
-                        {
-                            console.log('Attribute filter');
-                            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
-                            if (filterValue === '') {
-                                const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAllAttributes(node);
-                                return attributes;
-                            }
-                            else {
-                                const [first, second] = filterValue.split(';');
-                                const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, first, second);
-                                console.log(foundAttribute);
-                                if (foundAttribute === -1)
-                                    return undefined;
-                                return foundAttribute;
-                            }
+                    case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
+                        console.log('Attribute filter');
+                        const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
+                        if (filterValue === '') {
+                            const result = yield (0, utils_1.findAllCategoriesAndAttributes)(followedEntity.id.get());
+                            return result;
                         }
-                        break;
+                        else {
+                            const [first, second] = filterValue.split(':');
+                            const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, first, second);
+                            console.log(foundAttribute);
+                            if (foundAttribute === -1)
+                                return undefined;
+                            return foundAttribute;
+                        }
+                    }
                     default:
                         console.log('Track method not recognized');
                 }
@@ -761,8 +766,8 @@ class AnalyticService {
                 const input = [];
                 for (const entryDataModel of entryDataModels) {
                     if (trackingParams['trackingIntervalTime'] == 0) {
-                        const currentValue = (yield entryDataModel.element.load()).currentValue.get();
-                        input.push(currentValue);
+                        const currentValue = yield (0, utils_1.getValueModelFromEntry)(entryDataModel);
+                        input.push(currentValue.get());
                     }
                     else {
                         const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());

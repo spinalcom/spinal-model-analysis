@@ -24,7 +24,7 @@ import {
 
 import * as algos from './algorithms/algorithms';
 import { AnalyticService } from './services/AnalyticService';
-import { findControlEndpoints, findEndpoints } from './services/utils';
+import { findControlEndpoints, findEndpoints, getValueModelFromEntry } from './services/utils';
 
 const globalRoot: any = typeof window === 'undefined' ? global : window;
 
@@ -64,6 +64,7 @@ export {
   ATTRIBUTE_PHONE_MESSAGE,
   findControlEndpoints,
   findEndpoints,
+  getValueModelFromEntry,
   algos
 };
 

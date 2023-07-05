@@ -29,7 +29,7 @@ import { serviceTicketPersonalized, spinalServiceTicket } from "spinal-service-t
 import { InputDataEndpointDataType, InputDataEndpointType, SpinalBmsEndpoint} from "spinal-model-bmsnetwork";
 import { InputDataEndpoint } from "../models/InputData/InputDataModel/InputDataEndpoint";
 import * as CONSTANTS from "../constants";
-
+import { SpinalAttribute } from 'spinal-models-documentation';
 
 
 /**
@@ -79,15 +79,18 @@ export async function getTicketLocalizationParameters(config : SpinalNodeRef) : 
  * @param {string} filterNameValue
  * @return {*}  {Promise<SpinalNodeRef[]>}
  */
-export async function findEndpoints(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef[]> {
-    const endpoints = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
-    const filteredEndpoints : SpinalNodeRef[] = [];
-    for (const endpoint of endpoints) {
-        if (endpoint.name.get().includes(filterNameValue)) {
-            filteredEndpoints.push(endpoint);
+export async function findEndpoints(followedEntityId: string, acc : SpinalNodeRef[]) : Promise<SpinalNodeRef[]> {
+    const children = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint","hasBmsDevice","hasBmsEndpointGroup","hasEndPoint"]);
+    if(children.length == 0) return acc;
+    for (const child of children) {
+        if(child.type.get() === 'BmsEndpoint'){
+            acc.push(child);
+        }
+        else{
+            acc = acc.concat(await findEndpoints(child.id.get(), acc));
         }
     }
-    return filteredEndpoints;
+    return acc; 
 }
 
 /**
@@ -121,11 +124,17 @@ export async function findControlEndpoints(followedEntityId: string, filterNameV
  * @return {*}  {Promise<SpinalNodeRef|undefined>}
  */
 export async function findEndpoint(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef|undefined> {
-    const endpoints = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
-    const endpoint = endpoints.find((endpoint) => {
-        return endpoint.name.get()===filterNameValue;
-    });
-    return endpoint;
+    const children = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint","hasBmsDevice","hasBmsEndpointGroup","hasEndPoint"]);
+    if(children.length == 0) return undefined;
+    for (const child of children) {
+        if(child.type.get() === 'BmsEndpoint' && child.name.get() === filterNameValue){
+            return child;
+        }
+        else{
+            return await findEndpoint(child.id.get(), filterNameValue);
+        }
+    }
+    return undefined; 
 }
 
 /**
@@ -148,7 +157,27 @@ export async function findControlEndpoint(followedEntityId: string, filterNameVa
     return undefined;
 }
 
+export async function findAllCategoriesAndAttributes(followedEntityId: string) : Promise<any> {
+    const node = SpinalGraphService.getRealNode(followedEntityId);
+    const res: string[] = [];
+    const categories = await attributeService.getCategory(node);
+    for (const category of categories) {
+        const attributes = await attributeService.getAttributesByCategory(node, category);
+        for (const attribute of attributes) {
+            const obj = attribute.get();
+            res.push(`${category.nameCat}:${obj.label}`)
+        }
+    }
+    return res;
+}
 
+export async function getValueModelFromEntry(entryDataModel : SpinalNodeRef | SpinalAttribute) : Promise<any>{
+    if(!(entryDataModel instanceof SpinalAttribute)){
+      const element = await entryDataModel.element.load();
+      return element.currentValue;
+    }
+    return entryDataModel.value;
+  }
 
 export function formatTrackingMethodsToList(obj) : any[]{
     const result:any = [];

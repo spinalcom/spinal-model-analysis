@@ -258,7 +258,7 @@ export default class AnalyticService {
      * @return {*}  {Promise<SpinalNodeRef[] | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethod(trackingMethodNode: SpinalNodeRef, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<SpinalNodeRef[] | undefined>;
+    applyTrackingMethod(trackingMethodNode: SpinalNodeRef, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<(SpinalNodeRef | SpinalAttribute)[] | undefined>;
     /**
      * Applies the provided filter parameters to the specified Followed Entity using the specified filter value and returns the results.
      * If filterValue is an empty string, it will act as if everything should be returned.
@@ -349,7 +349,7 @@ export default class AnalyticService {
      * @returns {*} Promise<SpinalNodeRef[] | undefined> - The entry data models for the followed entity.
      * @memberof AnalyticService
      */
-    getEntryDataModelsFromFollowedEntity(analyticId: string, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<SpinalNodeRef[] | undefined>;
+    getEntryDataModelsFromFollowedEntity(analyticId: string, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<(SpinalNodeRef | SpinalAttribute)[] | undefined>;
     /**
      * Gets the data for a followed entity and applies correct the algorithm to it.
      * @private

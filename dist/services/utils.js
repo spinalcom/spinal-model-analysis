@@ -33,13 +33,14 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.findControlEndpoint = exports.findEndpoint = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findControlEndpoint = exports.findEndpoint = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
 const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
 const InputDataEndpoint_1 = require("../models/InputData/InputDataModel/InputDataEndpoint");
 const CONSTANTS = require("../constants");
+const spinal_models_documentation_1 = require("spinal-models-documentation");
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
  *
@@ -89,16 +90,20 @@ exports.getTicketLocalizationParameters = getTicketLocalizationParameters;
  * @param {string} filterNameValue
  * @return {*}  {Promise<SpinalNodeRef[]>}
  */
-function findEndpoints(followedEntityId, filterNameValue) {
+function findEndpoints(followedEntityId, acc) {
     return __awaiter(this, void 0, void 0, function* () {
-        const endpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
-        const filteredEndpoints = [];
-        for (const endpoint of endpoints) {
-            if (endpoint.name.get().includes(filterNameValue)) {
-                filteredEndpoints.push(endpoint);
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint", "hasBmsDevice", "hasBmsEndpointGroup", "hasEndPoint"]);
+        if (children.length == 0)
+            return acc;
+        for (const child of children) {
+            if (child.type.get() === 'BmsEndpoint') {
+                acc.push(child);
+            }
+            else {
+                acc = acc.concat(yield findEndpoints(child.id.get(), acc));
             }
         }
-        return filteredEndpoints;
+        return acc;
     });
 }
 exports.findEndpoints = findEndpoints;
@@ -136,11 +141,18 @@ exports.findControlEndpoints = findControlEndpoints;
  */
 function findEndpoint(followedEntityId, filterNameValue) {
     return __awaiter(this, void 0, void 0, function* () {
-        const endpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint"]);
-        const endpoint = endpoints.find((endpoint) => {
-            return endpoint.name.get() === filterNameValue;
-        });
-        return endpoint;
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint", "hasBmsDevice", "hasBmsEndpointGroup", "hasEndPoint"]);
+        if (children.length == 0)
+            return undefined;
+        for (const child of children) {
+            if (child.type.get() === 'BmsEndpoint' && child.name.get() === filterNameValue) {
+                return child;
+            }
+            else {
+                return yield findEndpoint(child.id.get(), filterNameValue);
+            }
+        }
+        return undefined;
     });
 }
 exports.findEndpoint = findEndpoint;
@@ -167,6 +179,32 @@ function findControlEndpoint(followedEntityId, filterNameValue) {
     });
 }
 exports.findControlEndpoint = findControlEndpoint;
+function findAllCategoriesAndAttributes(followedEntityId) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntityId);
+        const res = [];
+        const categories = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getCategory(node);
+        for (const category of categories) {
+            const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, category);
+            for (const attribute of attributes) {
+                const obj = attribute.get();
+                res.push(`${category.nameCat}:${obj.label}`);
+            }
+        }
+        return res;
+    });
+}
+exports.findAllCategoriesAndAttributes = findAllCategoriesAndAttributes;
+function getValueModelFromEntry(entryDataModel) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (!(entryDataModel instanceof spinal_models_documentation_1.SpinalAttribute)) {
+            const element = yield entryDataModel.element.load();
+            return element.currentValue;
+        }
+        return entryDataModel.value;
+    });
+}
+exports.getValueModelFromEntry = getValueModelFromEntry;
 function formatTrackingMethodsToList(obj) {
     const result = [];
     const keys = Object.keys(obj);
