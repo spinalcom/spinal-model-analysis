@@ -708,7 +708,7 @@ export default class AnalyticService {
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
           if (filterValue === '')
-            return await findEndpoints(followedEntity.id.get(), []);
+            return await findEndpoints(followedEntity.id.get());
           const endpoints = await findEndpoint(
             followedEntity.id.get(),
             filterValue

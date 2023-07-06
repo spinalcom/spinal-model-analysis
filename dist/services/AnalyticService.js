@@ -533,7 +533,7 @@ class AnalyticService {
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
                         if (filterValue === '')
-                            return yield (0, utils_1.findEndpoints)(followedEntity.id.get(), []);
+                            return yield (0, utils_1.findEndpoints)(followedEntity.id.get());
                         const endpoints = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), filterValue);
                         return endpoints;
                     }

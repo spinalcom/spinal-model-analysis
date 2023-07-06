@@ -86,24 +86,23 @@ exports.getTicketLocalizationParameters = getTicketLocalizationParameters;
  * Applies a name filter to find the endpoints connected to the entity
  *
  * @export
- * @param {string} followedEntityId
+ * @param {string} nodeId
  * @param {string} filterNameValue
  * @return {*}  {Promise<SpinalNodeRef[]>}
  */
-function findEndpoints(followedEntityId, acc) {
+function findEndpoints(nodeId) {
     return __awaiter(this, void 0, void 0, function* () {
-        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint", "hasBmsDevice", "hasBmsEndpointGroup", "hasEndPoint"]);
-        if (children.length == 0)
-            return acc;
+        let res = [];
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, ["hasBmsEndpoint", "hasBmsDevice", "hasBmsEndpointGroup", "hasEndPoint"]);
         for (const child of children) {
             if (child.type.get() === 'BmsEndpoint') {
-                acc.push(child);
+                res.push(child);
             }
             else {
-                acc = acc.concat(yield findEndpoints(child.id.get(), acc));
+                res = res.concat(yield findEndpoints(child.id.get()));
             }
         }
-        return acc;
+        return res;
     });
 }
 exports.findEndpoints = findEndpoints;
@@ -141,18 +140,11 @@ exports.findControlEndpoints = findControlEndpoints;
  */
 function findEndpoint(followedEntityId, filterNameValue) {
     return __awaiter(this, void 0, void 0, function* () {
-        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint", "hasBmsDevice", "hasBmsEndpointGroup", "hasEndPoint"]);
-        if (children.length == 0)
-            return undefined;
-        for (const child of children) {
-            if (child.type.get() === 'BmsEndpoint' && child.name.get() === filterNameValue) {
-                return child;
-            }
-            else {
-                return yield findEndpoint(child.id.get(), filterNameValue);
-            }
-        }
-        return undefined;
+        const endpoints = yield findEndpoints(followedEntityId);
+        const foundEndpoint = endpoints.find((endpoint) => {
+            return endpoint.name.get() === filterNameValue;
+        });
+        return foundEndpoint;
     });
 }
 exports.findEndpoint = findEndpoint;

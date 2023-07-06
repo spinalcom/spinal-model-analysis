@@ -21,11 +21,11 @@ export declare function getTicketLocalizationParameters(config: SpinalNodeRef): 
  * Applies a name filter to find the endpoints connected to the entity
  *
  * @export
- * @param {string} followedEntityId
+ * @param {string} nodeId
  * @param {string} filterNameValue
  * @return {*}  {Promise<SpinalNodeRef[]>}
  */
-export declare function findEndpoints(followedEntityId: string, acc: SpinalNodeRef[]): Promise<SpinalNodeRef[]>;
+export declare function findEndpoints(nodeId: string): Promise<SpinalNodeRef[]>;
 /**
  * Applies a name filter to find the ControlEndpoints connected to the entity
  *

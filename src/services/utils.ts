@@ -75,22 +75,22 @@ export async function getTicketLocalizationParameters(config : SpinalNodeRef) : 
  * Applies a name filter to find the endpoints connected to the entity
  *
  * @export
- * @param {string} followedEntityId
+ * @param {string} nodeId
  * @param {string} filterNameValue
  * @return {*}  {Promise<SpinalNodeRef[]>}
  */
-export async function findEndpoints(followedEntityId: string, acc : SpinalNodeRef[]) : Promise<SpinalNodeRef[]> {
-    const children = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint","hasBmsDevice","hasBmsEndpointGroup","hasEndPoint"]);
-    if(children.length == 0) return acc;
+export async function findEndpoints(nodeId: string) : Promise<SpinalNodeRef[]> {
+    let res: SpinalNodeRef[] = [];
+    const children = await SpinalGraphService.getChildren(nodeId, ["hasBmsEndpoint","hasBmsDevice","hasBmsEndpointGroup","hasEndPoint"]);
     for (const child of children) {
         if(child.type.get() === 'BmsEndpoint'){
-            acc.push(child);
+            res.push(child);
         }
         else{
-            acc = acc.concat(await findEndpoints(child.id.get(), acc));
+            res = res.concat(await findEndpoints(child.id.get()));
         }
     }
-    return acc; 
+    return res; 
 }
 
 /**
@@ -124,17 +124,11 @@ export async function findControlEndpoints(followedEntityId: string, filterNameV
  * @return {*}  {Promise<SpinalNodeRef|undefined>}
  */
 export async function findEndpoint(followedEntityId: string, filterNameValue: string) : Promise<SpinalNodeRef|undefined> {
-    const children = await SpinalGraphService.getChildren(followedEntityId, ["hasBmsEndpoint","hasBmsDevice","hasBmsEndpointGroup","hasEndPoint"]);
-    if(children.length == 0) return undefined;
-    for (const child of children) {
-        if(child.type.get() === 'BmsEndpoint' && child.name.get() === filterNameValue){
-            return child;
-        }
-        else{
-            return await findEndpoint(child.id.get(), filterNameValue);
-        }
-    }
-    return undefined; 
+    const endpoints = await findEndpoints(followedEntityId);
+    const foundEndpoint = endpoints.find((endpoint) => {
+        return endpoint.name.get()===filterNameValue;
+    });
+    return foundEndpoint;
 }
 
 /**
