@@ -77,6 +77,7 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getContext(contextName: string): SpinalNodeRef | undefined;
+    getContextIdOfAnalytic(analyticId: string): string | undefined;
     /**
      * This method creates a new entity and returns the info of the newly created entity.
      *

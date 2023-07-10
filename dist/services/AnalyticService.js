@@ -108,6 +108,14 @@ class AnalyticService {
             return undefined;
         return contexts.find((context) => context.name.get() === contextName);
     }
+    getContextIdOfAnalytic(analyticId) {
+        const contexts = this.getContexts();
+        if (!contexts)
+            return undefined;
+        const analyticNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(analyticId);
+        const contextId = analyticNode.getContextIds()[0];
+        return contextId;
+    }
     ////////////////////////////////////////////////////
     /////////////////// ENTITY /////////////////////////
     ////////////////////////////////////////////////////
@@ -860,10 +868,13 @@ class AnalyticService {
             const outputNode = yield this.getOutputsNode(analyticId);
             if (!outputNode)
                 return;
+            const analyticContextId = this.getContextIdOfAnalytic(analyticId);
+            if (!analyticContextId)
+                return;
             const ticketInfo = {
                 name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
             };
-            (0, utils_1.addTicketAlarm)(ticketInfo, configNode, outputNode.id.get(), ticketType);
+            (0, utils_1.addTicketAlarm)(ticketInfo, configNode, analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
         });
     }
     /**

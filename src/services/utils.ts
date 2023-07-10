@@ -25,7 +25,7 @@
 
 import { SpinalGraphService, SpinalNodeRef, SPINAL_RELATION_PTR_LST_TYPE, SpinalNode } from "spinal-env-viewer-graph-service";
 import { attributeService } from "spinal-env-viewer-plugin-documentation-service";
-import { serviceTicketPersonalized, spinalServiceTicket } from "spinal-service-ticket";
+import { serviceTicketPersonalized, spinalServiceTicket, ALARM_RELATION_NAME ,TICKET_RELATION_TYPE,TICKET_RELATION_NAME} from "spinal-service-ticket";
 import { InputDataEndpointDataType, InputDataEndpointType, SpinalBmsEndpoint} from "spinal-model-bmsnetwork";
 import { InputDataEndpoint } from "../models/InputData/InputDataModel/InputDataEndpoint";
 import * as CONSTANTS from "../constants";
@@ -250,14 +250,14 @@ async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId:
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, nodeId : string, ticketType: string){
+export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, analyticContextId:string,outputNodeId : string, entityNodeId :string, ticketType: string){
     const localizationInfo = await getTicketLocalizationParameters(configInfo);
     const contextId : string = localizationInfo["ticketContextId"];
     const processId : string = localizationInfo["ticketProcessId"];
     const context = getTicketContext(contextId);
     const process = await getTicketProcess(context.info.id.get(), processId);
 
-    const alreadyDeclared = await alarmAlreadyDeclared(nodeId,contextId,processId,ticketInfos.name);
+    const alreadyDeclared = await alarmAlreadyDeclared(entityNodeId,contextId,processId,ticketInfos.name);
 
     
     if (alreadyDeclared){
@@ -286,34 +286,45 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
     else {
         console.log("create ticket "  + ticketInfos.name);        
         if (process) {
-            const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), nodeId, ticketType);
-            if (typeof ticketId === "string"){
-                const declaredTicketNode = SpinalGraphService.getRealNode(ticketId);
-                await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
-                const endpoint = new InputDataEndpoint("Occurence number",
-                                                    1,
-                                                    "",
-                                                    InputDataEndpointDataType.Integer,
-                                                    InputDataEndpointType.Alarm
-                );
+            try {
+                const ticketId = await spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), entityNodeId, ticketType);
+                if (ticketId instanceof Error) return;
+                if(ticketType == 'Alarm') {
+                    SpinalGraphService.addChildInContext(outputNodeId, ticketId,analyticContextId, ALARM_RELATION_NAME, TICKET_RELATION_TYPE);
+                }
+                else {
+                    SpinalGraphService.addChildInContext(outputNodeId, ticketId,analyticContextId, TICKET_RELATION_NAME, TICKET_RELATION_TYPE);
+                }
 
-                const res = new SpinalBmsEndpoint(
-                    endpoint.name,
-                    endpoint.path,
-                    endpoint.currentValue,
-                    endpoint.unit,
-                    InputDataEndpointDataType[endpoint.dataType],
-                    InputDataEndpointType[endpoint.type],
-                    endpoint.id,
-                  );
+                if (typeof ticketId === "string"){
+                    const declaredTicketNode = SpinalGraphService.getRealNode(ticketId);
+                    await attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                    const endpoint = new InputDataEndpoint("Occurence number",
+                                                        1,
+                                                        "",
+                                                        InputDataEndpointDataType.Integer,
+                                                        InputDataEndpointType.Alarm
+                    );
 
-                const childId = SpinalGraphService.createNode({type: SpinalBmsEndpoint.nodeTypeName,
-                    name: endpoint.name}, res);
-                SpinalGraphService.addChild(ticketId,childId,SpinalBmsEndpoint.relationName,SPINAL_RELATION_PTR_LST_TYPE)
-                
-            }
+                    const res = new SpinalBmsEndpoint(
+                        endpoint.name,
+                        endpoint.path,
+                        endpoint.currentValue,
+                        endpoint.unit,
+                        InputDataEndpointDataType[endpoint.dataType],
+                        InputDataEndpointType[endpoint.type],
+                        endpoint.id,
+                    );
+
+                    const childId = SpinalGraphService.createNode({type: SpinalBmsEndpoint.nodeTypeName,
+                        name: endpoint.name}, res);
+                    SpinalGraphService.addChild(ticketId,childId,SpinalBmsEndpoint.relationName,SPINAL_RELATION_PTR_LST_TYPE)
+                    
+                }
+            } catch (error) { console.log("Ticket creation failed")}
 
         }
+        
     }
     
 
@@ -321,7 +332,7 @@ export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRe
 
 async function updateEndpointOccurenceNumber(ticketNode :SpinalNode<any>, newValue : number){
     const endpoints = await ticketNode.getChildren(
-        "hasBmsEndpoint"
+        "hasEndpoint"
       );
 
     endpoints.map(async (endpoint) => {

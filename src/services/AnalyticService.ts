@@ -167,6 +167,15 @@ export default class AnalyticService {
     return contexts.find((context) => context.name.get() === contextName);
   }
 
+  public getContextIdOfAnalytic(analyticId: string): string | undefined {
+    const contexts = this.getContexts();
+    if (!contexts) return undefined;
+    const analyticNode = SpinalGraphService.getRealNode(analyticId);
+
+    const contextId = analyticNode.getContextIds()[0];
+    return contextId;
+  }
+
   ////////////////////////////////////////////////////
   /////////////////// ENTITY /////////////////////////
   ////////////////////////////////////////////////////
@@ -1151,11 +1160,14 @@ export default class AnalyticService {
     const outputNode = await this.getOutputsNode(analyticId);
     if (!outputNode) return;
 
+    const analyticContextId = this.getContextIdOfAnalytic(analyticId);
+    if (!analyticContextId) return;
+
     const ticketInfo = {
       name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
     };
 
-    addTicketAlarm(ticketInfo, configNode, outputNode.id.get(), ticketType);
+    addTicketAlarm(ticketInfo, configNode,analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
   }
 
   /**

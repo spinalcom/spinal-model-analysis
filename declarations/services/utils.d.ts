@@ -64,4 +64,4 @@ export declare function formatTrackingMethodsToList(obj: any): any[];
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-export declare function addTicketAlarm(ticketInfos: any, configInfo: SpinalNodeRef, nodeId: string, ticketType: string): Promise<void>;
+export declare function addTicketAlarm(ticketInfos: any, configInfo: SpinalNodeRef, analyticContextId: string, outputNodeId: string, entityNodeId: string, ticketType: string): Promise<void>;
