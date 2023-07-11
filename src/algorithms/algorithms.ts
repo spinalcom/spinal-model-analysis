@@ -61,6 +61,16 @@ export const DIVIDE = new Algorithm(
   }
 );
 
+export const DIVIDE_BY = new Algorithm(
+  'DIVIDE_BY',
+  'This algorithm returns the result of the division of the first input by the value set by the user (p1)',
+  ['number'],
+  'number',
+  [{ name: 'p1', type: 'number', description: 'the value to divide by' }],
+  (input: number[], params: any): number => {
+    return input[0] / params['p1'];
+  }
+);
 
 export const THRESHOLD_ABOVE = new Algorithm(
   'THRESHOLD_ABOVE',
