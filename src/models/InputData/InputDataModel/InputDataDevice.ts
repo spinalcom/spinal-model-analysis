@@ -22,7 +22,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-import { genUID } from '../../../algorithms/genUID';
+import { genUID } from '../genUID';
 import { InputDataEndpoint } from './InputDataEndpoint';
 import { InputDataEndpointGroup } from './InputDataEndpointGroup';
 import {
@@ -57,10 +57,10 @@ export class InputDataDevice implements idDevice {
    * @memberof InputDataDevice
    */
   constructor(
-      name: string = 'default device name',
-      type: string = 'default device type',
+      name = 'default device name',
+      type = 'default device type',
       id: string = genUID('InputDataDevice'),
-      path: string = 'default device path',
+      path = 'default device path',
       ) {
     this.nodeTypeName = SpinalBmsDevice.nodeTypeName;
     this.id = id;

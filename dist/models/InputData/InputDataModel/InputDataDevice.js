@@ -24,7 +24,7 @@
  */
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.InputDataDevice = void 0;
-const genUID_1 = require("../../../algorithms/genUID");
+const genUID_1 = require("../genUID");
 const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
 /**
  * @property {string} id

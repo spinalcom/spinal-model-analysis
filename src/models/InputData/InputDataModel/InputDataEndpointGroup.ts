@@ -27,7 +27,7 @@ import {
   SpinalBmsEndpointGroup,
 } from 'spinal-model-bmsnetwork';
 
-import { genUID } from '../../../algorithms/genUID';
+import { genUID } from '../genUID';
 
 import { InputDataEndpoint } from './InputDataEndpoint';
 
@@ -59,10 +59,10 @@ export class InputDataEndpointGroup implements idEndpointGroup {
    * @memberof InputDataEndpointGroup
    */
   constructor(
-    name: string = 'default EndpointGroup name',
-    type: string = 'default EndpointGroup type',
+    name = 'default EndpointGroup name',
+    type = 'default EndpointGroup type',
     id: string = genUID('InputDataEndpointGroup'),
-    path: string = 'default EndpointGroup path',
+    path = 'default EndpointGroup path',
     ) {
     this.nodeTypeName = SpinalBmsEndpointGroup.nodeTypeName;
     this.id = id;

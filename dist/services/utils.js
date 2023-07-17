@@ -41,6 +41,8 @@ const spinal_model_bmsnetwork_1 = require("spinal-model-bmsnetwork");
 const InputDataEndpoint_1 = require("../models/InputData/InputDataModel/InputDataEndpoint");
 const CONSTANTS = require("../constants");
 const spinal_models_documentation_1 = require("spinal-models-documentation");
+const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
+const serviceTimeseries = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
  *
@@ -286,7 +288,7 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
             const declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(alreadyDeclared.id);
             if (declaredTicketNode.info.stepId.get() == firstStep) {
                 const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
-                if (attr != -1) {
+                if (attr != -1) { // found the attribute
                     const value = attr.value.get();
                     const str = value.toString();
                     const newValueInt = parseInt(str) + 1;
@@ -294,7 +296,7 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
                     yield updateEndpointOccurenceNumber(declaredTicketNode, newValueInt);
                 }
             }
-            else {
+            else { // move the ticket to the first step and reset the occurrence number
                 yield spinal_service_ticket_1.serviceTicketPersonalized.moveTicket(declaredTicketNode.info.id.get(), declaredTicketNode.info.stepId.get(), firstStep, contextId);
                 yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
                 yield updateEndpointOccurenceNumber(declaredTicketNode, 1);
@@ -322,6 +324,8 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
                         const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName,
                             name: endpoint.name }, res);
                         spinal_env_viewer_graph_service_1.SpinalGraphService.addChild(ticketId, childId, spinal_model_bmsnetwork_1.SpinalBmsEndpoint.relationName, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+                        yield serviceTimeseries.getOrCreateTimeSeries(childId);
+                        serviceTimeseries.pushFromEndpoint(childId, 1);
                     }
                 }
                 catch (error) {
@@ -334,9 +338,10 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
 exports.addTicketAlarm = addTicketAlarm;
 function updateEndpointOccurenceNumber(ticketNode, newValue) {
     return __awaiter(this, void 0, void 0, function* () {
-        const endpoints = yield ticketNode.getChildren("hasEndpoint");
+        const endpoints = yield ticketNode.getChildren("hasBmsEndpoint");
         endpoints.map((endpoint) => __awaiter(this, void 0, void 0, function* () {
             if (endpoint.info.name.get() == "Occurence number") {
+                serviceTimeseries.pushFromEndpoint(endpoint.info.id.get(), newValue);
                 const element = yield endpoint.element.load();
                 element.currentValue.set(newValue);
             }

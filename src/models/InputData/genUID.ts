@@ -27,7 +27,7 @@ function s4(): string {
 }
 
 function genUID(constructor: string): string {
-  const res: string = `${constructor}-${s4() + s4()}-${s4()}-${s4()}-${s4()}-${
+  const res = `${constructor}-${s4() + s4()}-${s4()}-${s4()}-${s4()}-${
       s4() + s4() + s4()}-${Date.now().toString(16)}`;
 
   return res;

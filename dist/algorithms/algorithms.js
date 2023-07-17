@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -19,6 +19,9 @@ exports.COPY = new Algorithm('COPY', 'This algorithm returns the value of first 
 });
 exports.DIVIDE = new Algorithm('DIVIDE', 'This algorithm returns the result of the division of the first input by the second input', ['number'], 'number', [], (input, params) => {
     return input[0] / input[1];
+});
+exports.DIVIDE_BY = new Algorithm('DIVIDE_BY', 'This algorithm returns the result of the division of the first input by the value set by the user (p1)', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to divide by' }], (input, params) => {
+    return input[0] / params['p1'];
 });
 exports.THRESHOLD_ABOVE = new Algorithm('THRESHOLD_ABOVE', 'This algorithm returns true if the input is above the threshold set by the user', ['number'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
     const treshold = params['p1'];
@@ -124,37 +127,12 @@ exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm cal
             (dataInput[dataInput.length - 1].date - dataInput[0].date)) *
             100);
 });
-/*
-
-export function WEIGHTED_AVERAGE(values: number[], weights: number[]) {
-    if (values.length !== weights.length) {
-        throw new Error("values and weights must have the same length");
-    }
-    const sum = values.reduce((acc, current, index) => acc + current * weights[index], 0);
-    const weightSum = weights.reduce((acc, current) => acc + current, 0);
-    return sum / weightSum;
-};
-
-
-export function MEDIAN (values: number[]): number {
-    const mid = Math.floor(values.length / 2),
-      nums = [...values].sort((a, b) => a - b);
-    return values.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
-};
-
-export function ANALYTIC_AND(values: boolean[]){
-    return !values.includes(false);
-};
-
-export function ANALYTIC_OR(values : boolean[]){
-    return values.includes(true);
-};
-
-export function ANALYTIC_XOR(values: boolean[]) {
-    return values.reduce((acc, current) => acc !== current, false);
-};
-
-export function ANALYTIC_XAND(values: boolean[]) {
-    return !values.reduce((acc, current) => acc !== current, true);
-};*/
+exports.STANDARD_DEVIATION = new Algorithm('STANDARD_DEVIATION', 'This algorithm returns the standard deviation of the inputs', ['number'], 'number', [], (input, params) => {
+    const n = input.length;
+    const mean = input.reduce((a, b) => a + b) / n;
+    return Math.sqrt(input.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+});
+exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if the first input is equal to the parameter', ['number', 'string'], 'boolean', [{ name: 'p1', type: 'number', description: 'the value to compare to' }], (input, params) => {
+    return input[0] === params['p1'];
+});
 //# sourceMappingURL=algorithms.js.map

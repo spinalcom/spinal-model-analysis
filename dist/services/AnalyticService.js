@@ -265,6 +265,7 @@ class AnalyticService {
             const inputsInfo = {
                 name: 'Inputs',
                 description: '',
+                type: CONSTANTS.INPUTS_TYPE,
             };
             const inputsModel = new InputsModel_1.InputsModel(inputsInfo);
             const inputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(inputsInfo, inputsModel);
@@ -285,6 +286,7 @@ class AnalyticService {
             const outputsInfo = {
                 name: 'Outputs',
                 description: '',
+                type: CONSTANTS.OUTPUTS_TYPE
             };
             const outputsModel = new OutputsModel_1.OutputsModel(outputsInfo);
             const outputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(outputsInfo, outputsModel);

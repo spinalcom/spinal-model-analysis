@@ -265,36 +265,26 @@ export const INTEGRAL_BOOLEAN = new Algorithm(
   }
 );
 
-/*
+export const STANDARD_DEVIATION = new Algorithm(
+  'STANDARD_DEVIATION',
+  'This algorithm returns the standard deviation of the inputs',
+  ['number'],
+  'number',
+  [],
+  (input: number[], params: any): number => {
+    const n = input.length;
+    const mean = input.reduce((a, b) => a + b) / n;
+    return Math.sqrt(input.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+  }
+);
 
-export function WEIGHTED_AVERAGE(values: number[], weights: number[]) {
-    if (values.length !== weights.length) {
-        throw new Error("values and weights must have the same length");
-    }
-    const sum = values.reduce((acc, current, index) => acc + current * weights[index], 0);
-    const weightSum = weights.reduce((acc, current) => acc + current, 0);
-    return sum / weightSum;
-};
-
-
-export function MEDIAN (values: number[]): number {
-    const mid = Math.floor(values.length / 2),
-      nums = [...values].sort((a, b) => a - b);
-    return values.length % 2 !== 0 ? nums[mid] : (nums[mid - 1] + nums[mid]) / 2;
-};
-
-export function ANALYTIC_AND(values: boolean[]){
-    return !values.includes(false);
-};
-
-export function ANALYTIC_OR(values : boolean[]){
-    return values.includes(true);
-};
-
-export function ANALYTIC_XOR(values: boolean[]) {
-    return values.reduce((acc, current) => acc !== current, false);
-};
-
-export function ANALYTIC_XAND(values: boolean[]) {
-    return !values.reduce((acc, current) => acc !== current, true);
-};*/
+export const EQUAL_TO = new Algorithm(
+  'EQUAL_TO',
+  'This algorithm returns true if the first input is equal to the parameter',
+  ['number','string'],
+  'boolean',
+  [{ name: 'p1', type: 'number', description: 'the value to compare to' }],
+  (input: any[], params: any): boolean => {
+    return input[0] === params['p1'];
+  }
+);

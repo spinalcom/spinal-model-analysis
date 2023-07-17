@@ -12,6 +12,7 @@ declare class Algorithm implements IAlgorithm {
 export declare const PUTVALUE: Algorithm;
 export declare const COPY: Algorithm;
 export declare const DIVIDE: Algorithm;
+export declare const DIVIDE_BY: Algorithm;
 export declare const THRESHOLD_ABOVE: Algorithm;
 export declare const THRESHOLD_BELOW: Algorithm;
 export declare const THRESHOLD_BETWEEN_IN: Algorithm;
@@ -22,4 +23,6 @@ export declare const OR: Algorithm;
 export declare const NOT: Algorithm;
 export declare const DIFFERENCE_THRESHOLD: Algorithm;
 export declare const INTEGRAL_BOOLEAN: Algorithm;
+export declare const STANDARD_DEVIATION: Algorithm;
+export declare const EQUAL_TO: Algorithm;
 export {};

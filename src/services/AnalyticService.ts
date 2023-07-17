@@ -372,6 +372,7 @@ export default class AnalyticService {
     const inputsInfo: IInputs = {
       name: 'Inputs',
       description: '',
+      type: CONSTANTS.INPUTS_TYPE,
     };
     const inputsModel = new InputsModel(inputsInfo);
     const inputsId = SpinalGraphService.createNode(inputsInfo, inputsModel);
@@ -400,6 +401,7 @@ export default class AnalyticService {
     const outputsInfo: IOutputs = {
       name: 'Outputs',
       description: '',
+      type: CONSTANTS.OUTPUTS_TYPE
     };
     const outputsModel = new OutputsModel(outputsInfo);
     const outputsId = SpinalGraphService.createNode(outputsInfo, outputsModel);
@@ -1167,7 +1169,7 @@ export default class AnalyticService {
       name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
     };
 
-    addTicketAlarm(ticketInfo, configNode,analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
+    addTicketAlarm(ticketInfo, configNode, analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
   }
 
   /**
