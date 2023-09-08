@@ -28,8 +28,25 @@ export declare const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket
 export declare const CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
 export declare const CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
 export declare const CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
+export declare const CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = "Trigger parameters";
+export declare const CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = "IO dependencies";
+export declare const CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = "Analytic parameters";
+export declare const CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING = "Algorithm index mapping";
 export declare const ATTRIBUTE_PHONE_NUMBER = "Phone number";
 export declare const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
+export declare const ATTRIBUTE_TRACKING_METHOD = "Tracking method";
+export declare const ATTRIBUTE_FILTER_VALUE = "Filter value";
+export declare const ATTRIBUTE_TIMESERIES = "Timeseries intervalTime";
+export declare const ATTRIBUTE_SEPARATOR = "_";
+export declare const ATTRIBUTE_VALUE_SEPARATOR = ",";
+export declare const ATTRIBUTE_RESULT_TYPE = "Result type";
+export declare const ATTRIBUTE_RESULT_NAME = "Result name";
+export declare const ATTRIBUTE_ANALYTIC_STATUS = "Status";
+export declare const ATTRIBUTE_ANALYTIC_DESCRIPTION = "Description";
+export declare const ATTRIBUTE_TRIGGER_AT_START = "Trigger at start";
+export declare const ATTRIBUTE_TICKET_CONTEXT_ID = "Ticket context id";
+export declare const ATTRIBUTE_TICKET_PROCESS_ID = "Ticket category id";
+export declare const ATTRIBUTE_ALARM_PRIORITY = "Alarm priority";
 /**
  * The different types of results that an analytic can lead to.
  *
@@ -46,7 +63,6 @@ export declare const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
 export declare enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
-    MODIFY_CONTROL_ENDPOINT = "modifyControlEndpoint",
     ALARM = "alarm",
     SMS = "sms"
 }
@@ -54,6 +70,15 @@ export declare enum TRACK_METHOD {
     ENDPOINT_NAME_FILTER = "endpointFilter",
     CONTROL_ENDPOINT_NAME_FILTER = "controlEndpointFilter",
     ATTRIBUTE_NAME_FILTER = "attributeFilter"
+}
+export declare enum TRIGGER_TYPE {
+    CHANGE_OF_VALUE = "changeOfValue",
+    CHANGE_OF_VALUE_WITH_THRESHOLD = "changeOfValueWithThreshold",
+    INTERVAL_TIME = "intervalTime"
+}
+export declare enum ANALYTIC_STATUS {
+    ACTIVE = "Active",
+    INACTIVE = "Inactive"
 }
 export declare enum ENTITY_TYPES {
     BUILDING = "geographicBuilding",

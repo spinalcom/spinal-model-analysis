@@ -31,7 +31,6 @@ import {
   findControlEndpoint,
   findEndpoint,
   addTicketAlarm,
-  getAlgorithmParameters,
   formatTrackingMethodsToList,
   findAllCategoriesAndAttributes,
   getValueModelFromEntry,
@@ -631,75 +630,6 @@ export default class AnalyticService {
     await this.removeTrackingMethod(inputs.id.get(), trackingMethodId);
   }
 
-  
-  /** 
-   * Applies the specified Tracking Method to the specified Followed Entity and returns the resulting node infos.
-   * @async
-   * @param {SpinalNodeRef} trackingMethodNode - The SpinalNodeRef object representing the Tracking Method to apply.
-   * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
-   * @param {boolean} [includeIgnoredInputs=true] - Whether to include inputs that have been marked as "remove from analysis".
-   * @param {boolean} [includeIgnoredBindings=true] - Whether to include inputs that have been marked as "remove from binding".
-   * @return {*}  {Promise<SpinalNodeRef[] | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
-   * @memberof AnalyticService
-   */
-  public async applyTrackingMethod(
-    trackingMethodNode: SpinalNodeRef,
-    followedEntity: SpinalNodeRef,
-    includeIgnoredInputs = true,
-    includeIgnoredBindings = true
-  ): Promise<(SpinalNodeRef | SpinalAttribute)[] | undefined> {
-    if (followedEntity && trackingMethodNode) {
-      const params = await this.getAttributesFromNode(
-        trackingMethodNode.id.get(),
-        CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
-      );
-      const inputs: (SpinalNodeRef | SpinalAttribute)[] = [];
-      const trackingMethods = formatTrackingMethodsToList(params); // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
-      for (const trackingMethod of trackingMethods) {
-        if (!includeIgnoredInputs && trackingMethod.removeFromAnalysis) {
-          console.log('Remove from analysis : ', trackingMethod.filterValue);
-          continue;
-        }
-        if (!includeIgnoredBindings && trackingMethod.removeFromBinding) {
-          console.log('Remove from binding : ', trackingMethod.filterValue);
-          continue;
-        }
-        switch (trackingMethod.trackingMethod) {
-          case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
-            const endpoint = await findEndpoint(
-              followedEntity.id.get(),
-              trackingMethod.filterValue
-            );
-            if (endpoint) inputs.push(endpoint);
-            break;
-          }
-          case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
-            const controlEndpoint = await findControlEndpoint(
-              followedEntity.id.get(),
-              trackingMethod.filterValue
-            );
-            if (controlEndpoint) inputs.push(controlEndpoint);
-            break;
-          }
-          case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER:{
-            console.log('Attribute filter');
-            const node = SpinalGraphService.getRealNode(followedEntity.id.get());
-            const [first,second] = trackingMethod.filterValue.split(':');
-            const foundAttribute = await attributeService.findOneAttributeInCategory(node,first,second);
-            if(foundAttribute != -1 ) inputs.push(foundAttribute)
-            break;
-          }
-          default:
-            console.log(
-              'Track method not recognized: ',
-              trackingMethod.trackingMethod
-            );
-        }
-      }
-      return inputs;
-    }
-  }
-
   /**
    * Applies the provided filter parameters to the specified Followed Entity using the specified filter value and returns the results.
    * If filterValue is an empty string, it will act as if everything should be returned.
@@ -756,6 +686,9 @@ export default class AnalyticService {
       }
     }
   }
+
+
+
 
   ////////////////////////////////////////////////////
   //////////////// FOLLOWED ENTITY ///////////////////
@@ -928,6 +861,22 @@ export default class AnalyticService {
     return undefined;
   }
 
+  public async getAllCategoriesAndAttributesFromNode(nodeId: string,){
+    const node = SpinalGraphService.getRealNode(nodeId);
+    const res = {};
+    const categories = await attributeService.getCategory(node);
+    for (const cat of categories) {
+      const categoryName = cat.nameCat
+      res[categoryName] = {};
+      const attributes = await attributeService.getAttributesByCategory(node,categoryName);
+      for(const attribute of attributes){
+        const obj = attribute.get();
+        res[categoryName][obj.label] = obj.value;
+      }
+    }
+    return res;
+  }
+
   /**
    * Gets the targeted entities for an analytic.
    *
@@ -966,89 +915,125 @@ export default class AnalyticService {
     }
   }
 
-  /**
-   * Gets the entry data models from a followed entity for an analytic.
-   * @param {string} analyticId The ID of the analytic.
-   * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-   * @returns {*} Promise<SpinalNodeRef[] | undefined> - The entry data models for the followed entity.
-   * @memberof AnalyticService
-   */
-  public async getEntryDataModelsFromFollowedEntity(
+  public async getEntryDataModelByInputIndex(
     analyticId: string,
     followedEntity: SpinalNodeRef,
-    includeIgnoredInputs = true,
-    includeIgnoredBindings = true
-  ): Promise<(SpinalNodeRef|SpinalAttribute)[] | undefined> {
+    inputIndex: string
+  ) : Promise<SpinalNodeRef|SpinalAttribute | undefined> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
-    if (trackingMethod)
-      return this.applyTrackingMethod(
-        trackingMethod,
-        followedEntity,
-        includeIgnoredInputs,
-        includeIgnoredBindings
+    if (trackingMethod){
+      const inputParams = await this.getAttributesFromNode(
+      trackingMethod.id.get(),
+      inputIndex
       );
+      
+      switch (inputParams[CONSTANTS.ATTRIBUTE_TRACKING_METHOD]) {
+        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
+          const endpoint = await findEndpoint(
+            followedEntity.id.get(),
+            inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE]
+          );
+          return endpoint;
+        }
+        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
+          const controlEndpoint = await findControlEndpoint(
+            followedEntity.id.get(),
+            inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE]
+          );
+          return controlEndpoint;
+        }
+        case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
+          const node = SpinalGraphService.getRealNode(followedEntity.id.get());
+          const [first,second] = inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE].split(':');
+          const foundAttribute = await attributeService.findOneAttributeInCategory(node,first,second);
+          if(foundAttribute === -1 ) return undefined;
+          return foundAttribute
+        }
+        default:
+          console.log('Track method not recognized');
+      
+    }
+    }
   }
 
-
-
-  /**
-   * Gets the data for a followed entity and applies correct the algorithm to it.
-   * @private
-   * @param {string} analyticId The ID of the analytic.
-   * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-   * @returns {*}
-   * @memberof AnalyticService
-   */
-  private async getDataAndApplyAlgorithm(
+  public async getFormattedInputDataByIndex(
     analyticId: string,
-    followedEntity: SpinalNodeRef
-  ): Promise<void> {
+    followedEntity: SpinalNodeRef,
+    inputIndex: string
+  ) : Promise<any []> {
+    console.log("getFormattedInputDataByIndex :",inputIndex)
+    const input : any[] = [];
+    const entryDataModel = await this.getEntryDataModelByInputIndex(analyticId,followedEntity,inputIndex);
+    if(!entryDataModel) return input;
     const trackingMethod = await this.getTrackingMethod(analyticId);
-    const config = await this.getConfig(analyticId);
-    if (!trackingMethod || !config) return;
-    const entryDataModels = await this.applyTrackingMethod(
-      trackingMethod,
-      followedEntity,
-      false
+    if(!trackingMethod) return input;
+    const trackingParams = await this.getAttributesFromNode(
+      trackingMethod.id.get(),
+      inputIndex
     );
-    if (entryDataModels) {
-      const params = await getAlgorithmParameters(config);
-      const trackingParams = await this.getAttributesFromNode(
-        trackingMethod.id.get(),
-        CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS
-      );
-      const input: any[] = [];
-      for (const entryDataModel of entryDataModels) {
-        if (trackingParams['trackingIntervalTime'] == 0) {
-          const currentValue = await getValueModelFromEntry(entryDataModel);
-          input.push(currentValue.get());
-        } else {
-          const spinalTs =
-            await this.spinalServiceTimeseries.getOrCreateTimeSeries(
-              entryDataModel.id.get()
-            );
-          const end = Date.now();
-          const start = end - trackingParams['trackingIntervalTime'];
-          const data = await spinalTs.getFromIntervalTime(start, end);
 
-          //add fictive data copying last value to currentTime.
-          data.push({date : end, value: data[data.length - 1].value});
-          //const dataValues = data.map((el) => el.value);
-          input.push(data);
-        }
-      }
-      const algorithm_name = params['algorithm'];
-      const result = algo[algorithm_name].run(input, params);
-      console.log('Result:', result);
-      if (typeof result === 'undefined') return;
-      this.applyResult(
-        result,
-        analyticId,
-        config,
-        followedEntity,
-        trackingMethod
-      );
+    console.log("trackingParams",trackingParams)
+    if ( !trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] || trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+        const currentValue = await getValueModelFromEntry(entryDataModel);
+        input.push(currentValue.get());
+        
+    } else {
+      const spinalTs =
+        await this.spinalServiceTimeseries.getOrCreateTimeSeries(
+          entryDataModel.id.get()
+        );
+      const end = Date.now();
+      const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+      const data = await spinalTs.getFromIntervalTime(start, end);
+
+      //add fictive data copying last value to currentTime.
+      data.push({date : end, value: data[data.length - 1].value});
+      //const dataValues = data.map((el) => el.value);
+      input.push(data);
     }
+    return input;
+  }
+
+  
+
+
+
+  private filterAlgorithmParametersAttributesByIndex(algoParams :any , indexName : string){
+    const result = {};
+      for (const key in algoParams) {
+          if (key.startsWith(indexName)) {
+              const newKey = key.replace(indexName + CONSTANTS.ATTRIBUTE_SEPARATOR, "");
+              result[newKey] = algoParams[key];
+          }
+      }
+
+      return result;
+
+  }
+
+  private async recExecuteAlgorithm(analyticId :string ,entity: SpinalNodeRef, algoIndexName : string ,ioDependencies :any , algoIndexMapping: any,algoParams :any ) :Promise<any> {
+    const inputs: any[] =[]
+    const myDependencies = ioDependencies[algoIndexName].split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR);
+    console.log("myDependencies",myDependencies);
+
+    for (const dependency of myDependencies){
+      // if dependency is an algorithm then rec call with that algorithm
+      if(dependency.startsWith('A')){
+        // save the result of the algorithm in the inputs array
+        const res  = await this.recExecuteAlgorithm(analyticId,entity,dependency,ioDependencies,algoIndexMapping,algoParams);
+        inputs.push(res);
+      }
+      else {
+        // if dependency is an input then get the value of the input
+        const inputData = await this.getFormattedInputDataByIndex(analyticId,entity,dependency);
+        inputs.push(inputData);
+      }
+    }
+    // after the inputs are ready we can execute the algorithm
+    const algorithm_name = algoIndexMapping[algoIndexName];
+    const algorithmParameters = this.filterAlgorithmParametersAttributesByIndex(algoParams,algoIndexName);
+    const result = algo[algorithm_name].run(inputs, algorithmParameters);
+    return result;
   }
 
   /**
@@ -1059,13 +1044,23 @@ export default class AnalyticService {
    * @memberof AnalyticService
    */
   public async doAnalysis(analyticId: string, entity: SpinalNodeRef) : Promise<void> {
-    const entryDataModels = this.getEntryDataModelsFromFollowedEntity(
-      analyticId,
-      entity
-    );
-    if (!entryDataModels) return;
-    this.getDataAndApplyAlgorithm(analyticId, entity);
+    //Get the io dependencies of the analytic
+    const configNode = await this.getConfig(analyticId);
+    if(!configNode) return;
+    const ioDependencies = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES);
+    const algoIndexMapping = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING);
+    const algoParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
+    //console.log("ioDependencies",ioDependencies);
+    //console.log("algoIndexMapping",algoIndexMapping);
+    //console.log("algoParams",algoParams);
+
+    const R = ioDependencies['R'];
+    const result = await this.recExecuteAlgorithm(analyticId,entity,R,ioDependencies,algoIndexMapping,algoParams);
+    console.log("result",result);
+    this.applyResult(result,analyticId,configNode,entity);
+    
   }
+
 
   ///////////////////////////////////////////////////
   ///////////////// RESULT HANDLING /////////////////
@@ -1086,14 +1081,13 @@ export default class AnalyticService {
     analyticId: string,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef,
-    trackingMethodNode: SpinalNodeRef
   ): Promise<void> {
     const params = await this.getAttributesFromNode(
       configNode.id.get(),
       CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS
     );
 
-    switch (params['resultType']) {
+    switch (params[CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
         await this.handleTicketResult(
           result,
@@ -1102,13 +1096,6 @@ export default class AnalyticService {
           followedEntityNode,
           params,
           'Ticket'
-        );
-        break;
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
-        await this.handleModifyControlEndpointResult(
-          result,
-          trackingMethodNode,
-          followedEntityNode
         );
         break;
       case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
@@ -1166,37 +1153,10 @@ export default class AnalyticService {
     if (!analyticContextId) return;
 
     const ticketInfo = {
-      name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
+      name: `${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} : ${followedEntityNode.name.get()}`,
     };
 
     addTicketAlarm(ticketInfo, configNode, analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
-  }
-
-  /**
-   * Handles the result of an algorithm that modifies a control point set as input.
-   *
-   * @private
-   * @param {*} result
-   * @param {SpinalNodeRef} trackingMethodNode
-   * @param {SpinalNodeRef} followedEntityNode
-   * @return {*}  {Promise<void>}
-   * @memberof AnalyticService
-   */
-  private async handleModifyControlEndpointResult(
-    result: any,
-    trackingMethodNode: SpinalNodeRef,
-    followedEntityNode: SpinalNodeRef
-  ): Promise<void> {
-    const controlEndpoints = await this.applyTrackingMethod(
-      trackingMethodNode,
-      followedEntityNode
-    );
-    if (!controlEndpoints) return;
-
-    for (const controlEndpointEntry of controlEndpoints) {
-      const controlEndpoint = await controlEndpointEntry.element.load();
-      controlEndpoint.currentValue.set(result);
-    }
   }
 
   /**
@@ -1214,12 +1174,13 @@ export default class AnalyticService {
     followedEntityNode: SpinalNodeRef,
     params: any
   ): Promise<void> {
-    const controlEndpointNode = await this.applyTrackingMethodWithParams(
-      CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER,
-      params['resultName'],
-      followedEntityNode
+
+    const controlEndpointNode = await findControlEndpoint(
+      followedEntityNode.id.get(),
+      params[CONSTANTS.ATTRIBUTE_RESULT_NAME]
     );
-    if (!controlEndpointNode || Array.isArray(controlEndpointNode)) return;
+
+    if (!controlEndpointNode) return;
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
   }

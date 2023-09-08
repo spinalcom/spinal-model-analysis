@@ -255,8 +255,8 @@ async function  alarmAlreadyDeclared(nodeId:string,contextId: string, processId:
  */
 export async function addTicketAlarm(ticketInfos :any ,configInfo : SpinalNodeRef, analyticContextId:string,outputNodeId : string, entityNodeId :string, ticketType: string){
     const localizationInfo = await getTicketLocalizationParameters(configInfo);
-    const contextId : string = localizationInfo["ticketContextId"];
-    const processId : string = localizationInfo["ticketProcessId"];
+    const contextId : string = localizationInfo[CONSTANTS.ATTRIBUTE_TICKET_CONTEXT_ID];
+    const processId : string = localizationInfo[CONSTANTS.ATTRIBUTE_TICKET_PROCESS_ID];
     const context = getTicketContext(contextId);
     const process = await getTicketProcess(context.info.id.get(), processId);
 
@@ -341,11 +341,14 @@ async function updateEndpointOccurenceNumber(ticketNode :SpinalNode<any>, newVal
     const endpoints = await ticketNode.getChildren(
         "hasBmsEndpoint"
       );
-
+    
+    console.log("update endpoint occurence number :", endpoints);
     endpoints.map(async (endpoint) => {
+      // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+      // @ts-ignore
+      SpinalGraphService._addNode(endpoint);
         if(endpoint.info.name.get() == "Occurence number"){
             serviceTimeseries.pushFromEndpoint(endpoint.info.id.get(), newValue);
-
             const element = await endpoint.element.load();
             element.currentValue.set(newValue);
         }

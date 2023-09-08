@@ -250,17 +250,6 @@ export default class AnalyticService {
      */
     removeInputTrackingMethod(analyticId: string, trackingMethodId: string): Promise<void>;
     /**
-     * Applies the specified Tracking Method to the specified Followed Entity and returns the resulting node infos.
-     * @async
-     * @param {SpinalNodeRef} trackingMethodNode - The SpinalNodeRef object representing the Tracking Method to apply.
-     * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
-     * @param {boolean} [includeIgnoredInputs=true] - Whether to include inputs that have been marked as "remove from analysis".
-     * @param {boolean} [includeIgnoredBindings=true] - Whether to include inputs that have been marked as "remove from binding".
-     * @return {*}  {Promise<SpinalNodeRef[] | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
-     * @memberof AnalyticService
-     */
-    applyTrackingMethod(trackingMethodNode: SpinalNodeRef, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<(SpinalNodeRef | SpinalAttribute)[] | undefined>;
-    /**
      * Applies the provided filter parameters to the specified Followed Entity using the specified filter value and returns the results.
      * If filterValue is an empty string, it will act as if everything should be returned.
      * @async
@@ -335,6 +324,7 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getAttributeFromNode(nodeId: string, category: string, label: string): Promise<any>;
+    getAllCategoriesAndAttributesFromNode(nodeId: string): Promise<{}>;
     /**
      * Gets the targeted entities for an analytic.
      *
@@ -343,23 +333,10 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
-    /**
-     * Gets the entry data models from a followed entity for an analytic.
-     * @param {string} analyticId The ID of the analytic.
-     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-     * @returns {*} Promise<SpinalNodeRef[] | undefined> - The entry data models for the followed entity.
-     * @memberof AnalyticService
-     */
-    getEntryDataModelsFromFollowedEntity(analyticId: string, followedEntity: SpinalNodeRef, includeIgnoredInputs?: boolean, includeIgnoredBindings?: boolean): Promise<(SpinalNodeRef | SpinalAttribute)[] | undefined>;
-    /**
-     * Gets the data for a followed entity and applies correct the algorithm to it.
-     * @private
-     * @param {string} analyticId The ID of the analytic.
-     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-     * @returns {*}
-     * @memberof AnalyticService
-     */
-    private getDataAndApplyAlgorithm;
+    getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
+    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<any[]>;
+    private filterAlgorithmParametersAttributesByIndex;
+    private recExecuteAlgorithm;
     /**
      * Performs an analysis on an entity for an analytic.
      * @param {string} analyticId The ID of the analytic.
@@ -379,7 +356,7 @@ export default class AnalyticService {
      * @return {*}
      * @memberof AnalyticService
      */
-    applyResult(result: any, analyticId: string, configNode: SpinalNodeRef, followedEntityNode: SpinalNodeRef, trackingMethodNode: SpinalNodeRef): Promise<void>;
+    applyResult(result: any, analyticId: string, configNode: SpinalNodeRef, followedEntityNode: SpinalNodeRef): Promise<void>;
     /**
      * Handles the result of an algorithm that creates a ticket or an alarm.
      *
@@ -394,17 +371,6 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     private handleTicketResult;
-    /**
-     * Handles the result of an algorithm that modifies a control point set as input.
-     *
-     * @private
-     * @param {*} result
-     * @param {SpinalNodeRef} trackingMethodNode
-     * @param {SpinalNodeRef} followedEntityNode
-     * @return {*}  {Promise<void>}
-     * @memberof AnalyticService
-     */
-    private handleModifyControlEndpointResult;
     /**
      * Handles the result of an algorithm that modifies a control point.
      *

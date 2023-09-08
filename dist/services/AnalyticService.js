@@ -473,61 +473,6 @@ class AnalyticService {
         });
     }
     /**
-     * Applies the specified Tracking Method to the specified Followed Entity and returns the resulting node infos.
-     * @async
-     * @param {SpinalNodeRef} trackingMethodNode - The SpinalNodeRef object representing the Tracking Method to apply.
-     * @param {SpinalNodeRef} followedEntity - The SpinalNodeRef object representing the Followed Entity to which the Tracking Method should be applied.
-     * @param {boolean} [includeIgnoredInputs=true] - Whether to include inputs that have been marked as "remove from analysis".
-     * @param {boolean} [includeIgnoredBindings=true] - Whether to include inputs that have been marked as "remove from binding".
-     * @return {*}  {Promise<SpinalNodeRef[] | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
-     * @memberof AnalyticService
-     */
-    applyTrackingMethod(trackingMethodNode, followedEntity, includeIgnoredInputs = true, includeIgnoredBindings = true) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (followedEntity && trackingMethodNode) {
-                const params = yield this.getAttributesFromNode(trackingMethodNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-                const inputs = [];
-                const trackingMethods = (0, utils_1.formatTrackingMethodsToList)(params); // [{trackingMethod: 'xxxxx', filterValue: 'xxxx'},{...}]
-                for (const trackingMethod of trackingMethods) {
-                    if (!includeIgnoredInputs && trackingMethod.removeFromAnalysis) {
-                        console.log('Remove from analysis : ', trackingMethod.filterValue);
-                        continue;
-                    }
-                    if (!includeIgnoredBindings && trackingMethod.removeFromBinding) {
-                        console.log('Remove from binding : ', trackingMethod.filterValue);
-                        continue;
-                    }
-                    switch (trackingMethod.trackingMethod) {
-                        case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
-                            const endpoint = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), trackingMethod.filterValue);
-                            if (endpoint)
-                                inputs.push(endpoint);
-                            break;
-                        }
-                        case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
-                            const controlEndpoint = yield (0, utils_1.findControlEndpoint)(followedEntity.id.get(), trackingMethod.filterValue);
-                            if (controlEndpoint)
-                                inputs.push(controlEndpoint);
-                            break;
-                        }
-                        case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
-                            console.log('Attribute filter');
-                            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
-                            const [first, second] = trackingMethod.filterValue.split(':');
-                            const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, first, second);
-                            if (foundAttribute != -1)
-                                inputs.push(foundAttribute);
-                            break;
-                        }
-                        default:
-                            console.log('Track method not recognized: ', trackingMethod.trackingMethod);
-                    }
-                }
-                return inputs;
-            }
-        });
-    }
-    /**
      * Applies the provided filter parameters to the specified Followed Entity using the specified filter value and returns the results.
      * If filterValue is an empty string, it will act as if everything should be returned.
      * @async
@@ -707,6 +652,23 @@ class AnalyticService {
             return undefined;
         });
     }
+    getAllCategoriesAndAttributesFromNode(nodeId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+            const res = {};
+            const categories = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getCategory(node);
+            for (const cat of categories) {
+                const categoryName = cat.nameCat;
+                res[categoryName] = {};
+                const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, categoryName);
+                for (const attribute of attributes) {
+                    const obj = attribute.get();
+                    res[categoryName][obj.label] = obj.value;
+                }
+            }
+            return res;
+        });
+    }
     /**
      * Gets the targeted entities for an analytic.
      *
@@ -741,62 +703,96 @@ class AnalyticService {
             }
         });
     }
-    /**
-     * Gets the entry data models from a followed entity for an analytic.
-     * @param {string} analyticId The ID of the analytic.
-     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-     * @returns {*} Promise<SpinalNodeRef[] | undefined> - The entry data models for the followed entity.
-     * @memberof AnalyticService
-     */
-    getEntryDataModelsFromFollowedEntity(analyticId, followedEntity, includeIgnoredInputs = true, includeIgnoredBindings = true) {
+    getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex) {
         return __awaiter(this, void 0, void 0, function* () {
             const trackingMethod = yield this.getTrackingMethod(analyticId);
-            if (trackingMethod)
-                return this.applyTrackingMethod(trackingMethod, followedEntity, includeIgnoredInputs, includeIgnoredBindings);
+            if (trackingMethod) {
+                const inputParams = yield this.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
+                switch (inputParams[CONSTANTS.ATTRIBUTE_TRACKING_METHOD]) {
+                    case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
+                        const endpoint = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE]);
+                        return endpoint;
+                    }
+                    case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
+                        const controlEndpoint = yield (0, utils_1.findControlEndpoint)(followedEntity.id.get(), inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE]);
+                        return controlEndpoint;
+                    }
+                    case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
+                        const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
+                        const [first, second] = inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE].split(':');
+                        const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, first, second);
+                        if (foundAttribute === -1)
+                            return undefined;
+                        return foundAttribute;
+                    }
+                    default:
+                        console.log('Track method not recognized');
+                }
+            }
         });
     }
-    /**
-     * Gets the data for a followed entity and applies correct the algorithm to it.
-     * @private
-     * @param {string} analyticId The ID of the analytic.
-     * @param {SpinalNodeRef} followedEntity The SpinalNodeRef for the entity being tracked.
-     * @returns {*}
-     * @memberof AnalyticService
-     */
-    getDataAndApplyAlgorithm(analyticId, followedEntity) {
+    getFormattedInputDataByIndex(analyticId, followedEntity, inputIndex) {
         return __awaiter(this, void 0, void 0, function* () {
+            console.log("getFormattedInputDataByIndex :", inputIndex);
+            const input = [];
+            const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex);
+            if (!entryDataModel)
+                return input;
             const trackingMethod = yield this.getTrackingMethod(analyticId);
-            const config = yield this.getConfig(analyticId);
-            if (!trackingMethod || !config)
-                return;
-            const entryDataModels = yield this.applyTrackingMethod(trackingMethod, followedEntity, false);
-            if (entryDataModels) {
-                const params = yield (0, utils_1.getAlgorithmParameters)(config);
-                const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS);
-                const input = [];
-                for (const entryDataModel of entryDataModels) {
-                    if (trackingParams['trackingIntervalTime'] == 0) {
-                        const currentValue = yield (0, utils_1.getValueModelFromEntry)(entryDataModel);
-                        input.push(currentValue.get());
-                    }
-                    else {
-                        const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
-                        const end = Date.now();
-                        const start = end - trackingParams['trackingIntervalTime'];
-                        const data = yield spinalTs.getFromIntervalTime(start, end);
-                        //add fictive data copying last value to currentTime.
-                        data.push({ date: end, value: data[data.length - 1].value });
-                        //const dataValues = data.map((el) => el.value);
-                        input.push(data);
-                    }
-                }
-                const algorithm_name = params['algorithm'];
-                const result = algo[algorithm_name].run(input, params);
-                console.log('Result:', result);
-                if (typeof result === 'undefined')
-                    return;
-                this.applyResult(result, analyticId, config, followedEntity, trackingMethod);
+            if (!trackingMethod)
+                return input;
+            const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
+            console.log("trackingParams", trackingParams);
+            if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] || trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+                const currentValue = yield (0, utils_1.getValueModelFromEntry)(entryDataModel);
+                input.push(currentValue.get());
             }
+            else {
+                const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+                const end = Date.now();
+                const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+                const data = yield spinalTs.getFromIntervalTime(start, end);
+                //add fictive data copying last value to currentTime.
+                data.push({ date: end, value: data[data.length - 1].value });
+                //const dataValues = data.map((el) => el.value);
+                input.push(data);
+            }
+            return input;
+        });
+    }
+    filterAlgorithmParametersAttributesByIndex(algoParams, indexName) {
+        const result = {};
+        for (const key in algoParams) {
+            if (key.startsWith(indexName)) {
+                const newKey = key.replace(indexName + CONSTANTS.ATTRIBUTE_SEPARATOR, "");
+                result[newKey] = algoParams[key];
+            }
+        }
+        return result;
+    }
+    recExecuteAlgorithm(analyticId, entity, algoIndexName, ioDependencies, algoIndexMapping, algoParams) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputs = [];
+            const myDependencies = ioDependencies[algoIndexName].split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR);
+            console.log("myDependencies", myDependencies);
+            for (const dependency of myDependencies) {
+                // if dependency is an algorithm then rec call with that algorithm
+                if (dependency.startsWith('A')) {
+                    // save the result of the algorithm in the inputs array
+                    const res = yield this.recExecuteAlgorithm(analyticId, entity, dependency, ioDependencies, algoIndexMapping, algoParams);
+                    inputs.push(res);
+                }
+                else {
+                    // if dependency is an input then get the value of the input
+                    const inputData = yield this.getFormattedInputDataByIndex(analyticId, entity, dependency);
+                    inputs.push(inputData);
+                }
+            }
+            // after the inputs are ready we can execute the algorithm
+            const algorithm_name = algoIndexMapping[algoIndexName];
+            const algorithmParameters = this.filterAlgorithmParametersAttributesByIndex(algoParams, algoIndexName);
+            const result = algo[algorithm_name].run(inputs, algorithmParameters);
+            return result;
         });
     }
     /**
@@ -808,10 +804,20 @@ class AnalyticService {
      */
     doAnalysis(analyticId, entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            const entryDataModels = this.getEntryDataModelsFromFollowedEntity(analyticId, entity);
-            if (!entryDataModels)
+            //Get the io dependencies of the analytic
+            const configNode = yield this.getConfig(analyticId);
+            if (!configNode)
                 return;
-            this.getDataAndApplyAlgorithm(analyticId, entity);
+            const ioDependencies = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES);
+            const algoIndexMapping = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING);
+            const algoParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
+            //console.log("ioDependencies",ioDependencies);
+            //console.log("algoIndexMapping",algoIndexMapping);
+            //console.log("algoParams",algoParams);
+            const R = ioDependencies['R'];
+            const result = yield this.recExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams);
+            console.log("result", result);
+            this.applyResult(result, analyticId, configNode, entity);
         });
     }
     ///////////////////////////////////////////////////
@@ -828,15 +834,12 @@ class AnalyticService {
      * @return {*}
      * @memberof AnalyticService
      */
-    applyResult(result, analyticId, configNode, followedEntityNode, trackingMethodNode) {
+    applyResult(result, analyticId, configNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
             const params = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
-            switch (params['resultType']) {
+            switch (params[CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
                     yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Ticket');
-                    break;
-                case CONSTANTS.ANALYTIC_RESULT_TYPE.MODIFY_CONTROL_ENDPOINT:
-                    yield this.handleModifyControlEndpointResult(result, trackingMethodNode, followedEntityNode);
                     break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
                     yield this.handleControlEndpointResult(result, followedEntityNode, params);
@@ -874,30 +877,9 @@ class AnalyticService {
             if (!analyticContextId)
                 return;
             const ticketInfo = {
-                name: `${params['resultName']} : ${followedEntityNode.name.get()}`,
+                name: `${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} : ${followedEntityNode.name.get()}`,
             };
             (0, utils_1.addTicketAlarm)(ticketInfo, configNode, analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
-        });
-    }
-    /**
-     * Handles the result of an algorithm that modifies a control point set as input.
-     *
-     * @private
-     * @param {*} result
-     * @param {SpinalNodeRef} trackingMethodNode
-     * @param {SpinalNodeRef} followedEntityNode
-     * @return {*}  {Promise<void>}
-     * @memberof AnalyticService
-     */
-    handleModifyControlEndpointResult(result, trackingMethodNode, followedEntityNode) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const controlEndpoints = yield this.applyTrackingMethod(trackingMethodNode, followedEntityNode);
-            if (!controlEndpoints)
-                return;
-            for (const controlEndpointEntry of controlEndpoints) {
-                const controlEndpoint = yield controlEndpointEntry.element.load();
-                controlEndpoint.currentValue.set(result);
-            }
         });
     }
     /**
@@ -912,8 +894,8 @@ class AnalyticService {
      */
     handleControlEndpointResult(result, followedEntityNode, params) {
         return __awaiter(this, void 0, void 0, function* () {
-            const controlEndpointNode = yield this.applyTrackingMethodWithParams(CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER, params['resultName'], followedEntityNode);
-            if (!controlEndpointNode || Array.isArray(controlEndpointNode))
+            const controlEndpointNode = yield (0, utils_1.findControlEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME]);
+            if (!controlEndpointNode)
                 return;
             const controlEndpoint = yield controlEndpointNode.element.load();
             controlEndpoint.currentValue.set(result);
