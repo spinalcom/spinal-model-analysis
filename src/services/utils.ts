@@ -349,7 +349,8 @@ async function updateEndpointOccurenceNumber(ticketNode :SpinalNode<any>, newVal
       SpinalGraphService._addNode(endpoint);
         if(endpoint.info.name.get() == "Occurence number"){
             serviceTimeseries.pushFromEndpoint(endpoint.info.id.get(), newValue);
-            const element = await endpoint.element.load();
+            
+            const element = await endpoint.element?.load();
             element.currentValue.set(newValue);
         }
     })

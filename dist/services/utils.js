@@ -341,12 +341,13 @@ function updateEndpointOccurenceNumber(ticketNode, newValue) {
         const endpoints = yield ticketNode.getChildren("hasBmsEndpoint");
         console.log("update endpoint occurence number :", endpoints);
         endpoints.map((endpoint) => __awaiter(this, void 0, void 0, function* () {
+            var _a;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(endpoint);
             if (endpoint.info.name.get() == "Occurence number") {
                 serviceTimeseries.pushFromEndpoint(endpoint.info.id.get(), newValue);
-                const element = yield endpoint.element.load();
+                const element = yield ((_a = endpoint.element) === null || _a === void 0 ? void 0 : _a.load());
                 element.currentValue.set(newValue);
             }
         }));

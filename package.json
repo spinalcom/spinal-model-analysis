@@ -6,7 +6,7 @@
   "types": "declarations/index.d.ts",
   "scripts": {
     "build": "rm -fr dist declarations && tsc",
-    "docs": "typedoc --out ./docs ./src",
+    "docs": "typedoc --out ./docs/code ./src",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
