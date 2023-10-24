@@ -70,27 +70,34 @@ export const CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = "Analytic parameters";
 export const CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING = "Algorithm index mapping";
 
 
-export const ATTRIBUTE_PHONE_NUMBER = "Phone number";
-export const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
-export const ATTRIBUTE_TRACKING_METHOD= "Tracking method"
-export const ATTRIBUTE_FILTER_VALUE = "Filter value";
-export const ATTRIBUTE_TIMESERIES= "Timeseries intervalTime"
-
 export const ATTRIBUTE_SEPARATOR="_"
 export const ATTRIBUTE_VALUE_SEPARATOR=","
 
+export const ATTRIBUTE_TRACKING_METHOD= "Tracking method"
+export const ATTRIBUTE_FILTER_VALUE = "Filter value";
+export const ATTRIBUTE_TIMESERIES= "Timeseries intervalTime"
+export const ATTRIBUTE_SEARCH_DEPTH = "Search depth";
+export const ATTRIBUTE_STRICT_DEPTH = "Strict depth";
+export const ATTRIBUTE_SEARCH_RELATIONS = "Search relations";
+
+
+
 export const ATTRIBUTE_RESULT_TYPE = "Result type";
 export const ATTRIBUTE_RESULT_NAME = "Result name";
-
-export const ATTRIBUTE_ANALYTIC_STATUS = "Status";
-export const ATTRIBUTE_ANALYTIC_DESCRIPTION = "Description";
-
-export const ATTRIBUTE_TRIGGER_AT_START = "Trigger at start";
+export const ATTRIBUTE_PHONE_NUMBER = "Phone number";
+export const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
 export const ATTRIBUTE_TICKET_CONTEXT_ID = "Ticket context id";
 export const ATTRIBUTE_TICKET_PROCESS_ID = "Ticket category id";
 export const ATTRIBUTE_ALARM_PRIORITY = "Alarm priority";
 
+export const ATTRIBUTE_ANALYTIC_STATUS = "Status";
+export const ATTRIBUTE_ANALYTIC_DESCRIPTION = "Description";
+export const ATTRIBUTE_TRIGGER_AT_START = "Trigger at start";
 
+
+export const ENDPOINT_RELATIONS = ['hasBmsEndpoint','hasBmsDevice','hasBmsEndpointGroup','hasEndPoint']
+export const CONTROL_ENDPOINT_RELATIONS = ['hasControlPoints','hasBmsEndpoint']
+export const ENDPOINT_NODE_TYPE = 'BmsEndpoint'
 
 
 
@@ -111,7 +118,8 @@ export enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
     ALARM = "alarm",
-    SMS = "sms"
+    SMS = "sms",
+    LOG = "log"
 
 }
 

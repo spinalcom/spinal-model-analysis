@@ -108,7 +108,6 @@ exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm cal
         date: dataInput[dataInput.length - 1].date - params['p1'],
         value: invertBool(dataInput[0].value),
     });
-    console.log(' input : ', dataInput);
     // Ensure input is sorted by time
     dataInput.sort((a, b) => a.date - b.date);
     let integral = 0;

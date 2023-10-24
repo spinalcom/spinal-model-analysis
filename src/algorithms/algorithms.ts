@@ -208,6 +208,7 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
   }
 );
 
+
 export const INTEGRAL_BOOLEAN = new Algorithm(
   'INTEGRAL_BOOLEAN',
   'This algorithm calculates the integral of timeseries.',
@@ -235,7 +236,6 @@ export const INTEGRAL_BOOLEAN = new Algorithm(
       date: dataInput[dataInput.length - 1].date - params['p1'],
       value: invertBool(dataInput[0].value),
     });
-    console.log(' input : ', dataInput);
     // Ensure input is sorted by time
     dataInput.sort((a, b) => a.date - b.date);
 

@@ -250,8 +250,7 @@ export default class AnalyticService {
      */
     removeInputTrackingMethod(analyticId: string, trackingMethodId: string): Promise<void>;
     /**
-     * Applies the provided filter parameters to the specified Followed Entity using the specified filter value and returns the results.
-     * If filterValue is an empty string, it will act as if everything should be returned.
+     *
      * @async
      * @param {string} trackMethod - The type of filter.
      * @param {string} filterValue - The filter value to use.
@@ -259,7 +258,7 @@ export default class AnalyticService {
      * @returns {*} {Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethodWithParams(trackMethod: string, filterValue: string, followedEntity: SpinalNodeRef): Promise<SpinalNodeRef[] | SpinalNodeRef | SpinalAttribute | SpinalAttribute[] | undefined>;
+    applyTrackingMethodWithParams(followedEntity: SpinalNodeRef, trackMethod: string, filterValue: string, depth: number, strictDepth: boolean, authorizedRelations: string[]): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
     /**
      * Adds a link between an input and a followed entity.
      * @param {string} contextId - The id of the context where the link will be created.
@@ -333,8 +332,10 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
+    getWorkingFollowedEntitiesWithParam(followedEntity: SpinalNodeRef, entityType: string): Promise<SpinalNodeRef[]>;
     getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
     getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<any[]>;
+    findExecutionOrder(dependencies: any): string[] | null;
     private filterAlgorithmParametersAttributesByIndex;
     private recExecuteAlgorithm;
     /**
@@ -352,7 +353,6 @@ export default class AnalyticService {
      * @param {string} analyticId The ID of the analytic.
      * @param {SpinalNodeRef} configNode The SpinalNodeRef of the configuration of the analytic.
      * @param {SpinalNodeRef} followedEntityNode The SpinalNodeRef of the entity.
-     * @param {SpinalNodeRef} trackingMethodNode The SpinalNodeRef of the tracking method.
      * @return {*}
      * @memberof AnalyticService
      */

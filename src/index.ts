@@ -28,6 +28,9 @@ import {
   ATTRIBUTE_TRACKING_METHOD,
   ATTRIBUTE_FILTER_VALUE,
   ATTRIBUTE_TIMESERIES,
+  ATTRIBUTE_SEARCH_DEPTH,
+  ATTRIBUTE_STRICT_DEPTH,
+  ATTRIBUTE_SEARCH_RELATIONS,
   ATTRIBUTE_SEPARATOR,
   ATTRIBUTE_VALUE_SEPARATOR,
   ATTRIBUTE_RESULT_NAME,
@@ -44,7 +47,7 @@ import {
 
 import * as algos from './algorithms/algorithms';
 import { AnalyticService } from './services/AnalyticService';
-import { findControlEndpoints, findEndpoints, getValueModelFromEntry } from './services/utils';
+import { getValueModelFromEntry , getChoiceRelationsWithDepth, getAvailableData } from './services/utils';
 
 const globalRoot: any = typeof window === 'undefined' ? global : window;
 
@@ -90,6 +93,9 @@ export {
   ATTRIBUTE_TRACKING_METHOD,
   ATTRIBUTE_FILTER_VALUE,
   ATTRIBUTE_TIMESERIES,
+  ATTRIBUTE_SEARCH_DEPTH,
+  ATTRIBUTE_STRICT_DEPTH,
+  ATTRIBUTE_SEARCH_RELATIONS,
   ATTRIBUTE_SEPARATOR,
   ATTRIBUTE_RESULT_NAME,
   ATTRIBUTE_RESULT_TYPE,
@@ -100,9 +106,9 @@ export {
   ATTRIBUTE_TICKET_PROCESS_ID,
   ATTRIBUTE_ALARM_PRIORITY,
   ATTRIBUTE_VALUE_SEPARATOR,
-  findControlEndpoints,
-  findEndpoints,
   getValueModelFromEntry,
+  getChoiceRelationsWithDepth,
+  getAvailableData,
   algos,
   ANALYTIC_STATUS
 };

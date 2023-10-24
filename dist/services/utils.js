@@ -33,7 +33,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findControlEndpoint = exports.findEndpoint = exports.findControlEndpoints = exports.findEndpoints = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
@@ -84,95 +84,189 @@ function getTicketLocalizationParameters(config) {
     });
 }
 exports.getTicketLocalizationParameters = getTicketLocalizationParameters;
-/**
- * Applies a name filter to find the endpoints connected to the entity
- *
- * @export
- * @param {string} nodeId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef[]>}
- */
-function findEndpoints(nodeId) {
+function getRelationsWithDepth(nodeId, depth) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const relations = spinal_env_viewer_graph_service_1.SpinalGraphService.getRelationNames(nodeId);
+        if (depth <= 0)
+            return relations;
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId);
+        for (const child of children) {
+            const childRelations = yield getRelationsWithDepth(child.id.get(), depth - 1);
+            for (const childRelation of childRelations) {
+                if (!relations.includes(childRelation))
+                    relations.push(childRelation);
+            }
+        }
+        return relations;
+    });
+}
+exports.getRelationsWithDepth = getRelationsWithDepth;
+function getChoiceRelationsWithDepth(nodeId, depth) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const relations = yield getRelationsWithDepth(nodeId, depth);
+        const usefullRelations = relations.filter(relation => {
+            return !CONSTANTS.ENDPOINT_RELATIONS.includes(relation) &&
+                !CONSTANTS.CONTROL_ENDPOINT_RELATIONS.includes(relation);
+        });
+        return usefullRelations;
+    });
+}
+exports.getChoiceRelationsWithDepth = getChoiceRelationsWithDepth;
+function getAvailableData(trackMethod, nodeId, filterValue, depth, stricDepth, authorizedRelations) {
+    return __awaiter(this, void 0, void 0, function* () {
+        switch (trackMethod) {
+            case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
+                const data = yield findEndpoints(nodeId, filterValue, depth, stricDepth, authorizedRelations, CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+                return data.map(endpoint => endpoint.name.get());
+            }
+            case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
+                const data = yield findEndpoints(nodeId, filterValue, depth, stricDepth, authorizedRelations, CONSTANTS.CONTROL_ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+                return data.map(endpoint => endpoint.name.get());
+            }
+            case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
+                const [category, attribute] = filterValue.split(':');
+                const data = yield findAttributes(nodeId, category, attribute, depth, stricDepth, authorizedRelations);
+                return data;
+            }
+            default: {
+                console.log("Get available data not implemented yet for this tracking method");
+                return [];
+            }
+        }
+    });
+}
+exports.getAvailableData = getAvailableData;
+function findNodes(nodeId, authorizedRelations, nodeType) {
     return __awaiter(this, void 0, void 0, function* () {
         let res = [];
-        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, ["hasBmsEndpoint", "hasBmsDevice", "hasBmsEndpointGroup", "hasEndPoint"]);
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, authorizedRelations);
         for (const child of children) {
-            if (child.type.get() === 'BmsEndpoint') {
+            if (child.type.get() === nodeType) {
                 res.push(child);
             }
             else {
-                res = res.concat(yield findEndpoints(child.id.get()));
+                res = res.concat(yield findNodes(child.id.get(), authorizedRelations, nodeType));
             }
         }
         return res;
     });
 }
-exports.findEndpoints = findEndpoints;
-/**
- * Applies a name filter to find the ControlEndpoints connected to the entity
- *
- * @export
- * @param {string} followedEntityId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef[]>}
- */
-function findControlEndpoints(followedEntityId, filterNameValue) {
+exports.findNodes = findNodes;
+function findSpecificNode(nodeId, filterNameValue, trackedRelations, nodeType) {
     return __awaiter(this, void 0, void 0, function* () {
-        const bmsEndpointGroups = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasControlPoints"]);
-        const filteredEndpoints = [];
-        for (const bmsEndpointGroup of bmsEndpointGroups) {
-            const bmsEndpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(bmsEndpointGroup.id.get(), ["hasBmsEndpoint"]);
-            for (const bmsEndpoint of bmsEndpoints) {
-                if (bmsEndpoint.name.get().includes(filterNameValue)) {
-                    filteredEndpoints.push(bmsEndpoint);
-                }
-            }
+        const endpoints = yield findNodes(nodeId, trackedRelations, nodeType);
+        return endpoints.find(endpoint => endpoint.name.get() === filterNameValue);
+    });
+}
+function findMatchingNodes(nodeId, filterNameValue, trackedRelations, nodeType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const endpoints = yield findNodes(nodeId, trackedRelations, nodeType);
+        return endpoints.filter(endpoint => endpoint.name.get().includes(filterNameValue));
+    });
+}
+function findEndpoint(nodeId, filterNameValue, depth, strictDepth, authorizedRelations, trackedRelations, nodeType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (depth < 0)
+            return undefined;
+        // we dont look further
+        if (depth == 0) {
+            return yield findSpecificNode(nodeId, filterNameValue, trackedRelations, nodeType);
         }
-        return filteredEndpoints;
-    });
-}
-exports.findControlEndpoints = findControlEndpoints;
-/**
- * Applies a name filter to find the endpoint connected to the entity
- *
- * @export
- * @param {string} followedEntityId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef|undefined>}
- */
-function findEndpoint(followedEntityId, filterNameValue) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const endpoints = yield findEndpoints(followedEntityId);
-        const foundEndpoint = endpoints.find((endpoint) => {
-            return endpoint.name.get() === filterNameValue;
-        });
-        return foundEndpoint;
-    });
-}
-exports.findEndpoint = findEndpoint;
-/**
- * Applies a name filter to find the ControlEndpoint connected to the entity
- *
- * @export
- * @param {string} followedEntityId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef|undefined>}
- */
-function findControlEndpoint(followedEntityId, filterNameValue) {
-    return __awaiter(this, void 0, void 0, function* () {
-        const bmsEndpointGroups = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntityId, ["hasControlPoints"]);
-        for (const bmsEndpointGroup of bmsEndpointGroups) {
-            const bmsEndpoints = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(bmsEndpointGroup.id.get(), ["hasBmsEndpoint"]);
-            const foundBmsEndpoint = bmsEndpoints.find((endpoint) => {
-                return endpoint.name.get() === filterNameValue;
-            });
-            if (foundBmsEndpoint)
-                return foundBmsEndpoint;
+        // depth > 0
+        if (!strictDepth) {
+            const foundEndpoint = yield findSpecificNode(nodeId, filterNameValue, trackedRelations, nodeType);
+            if (foundEndpoint)
+                return foundEndpoint;
+        }
+        const allRelations = spinal_env_viewer_graph_service_1.SpinalGraphService.getRelationNames(nodeId);
+        const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+        if (checkedRelations.length === 0)
+            return undefined;
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, checkedRelations);
+        for (const child of children) {
+            const endpoint = yield findEndpoint(child.id.get(), filterNameValue, depth - 1, strictDepth, authorizedRelations, trackedRelations, nodeType);
+            if (endpoint)
+                return endpoint;
         }
         return undefined;
     });
 }
-exports.findControlEndpoint = findControlEndpoint;
+exports.findEndpoint = findEndpoint;
+function findEndpoints(nodeId, filterNameValue, depth, strictDepth, authorizedRelations, trackedRelations, nodeType) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (depth == 0) {
+            return yield findMatchingNodes(nodeId, filterNameValue, trackedRelations, nodeType);
+        }
+        let results = [];
+        if (!strictDepth) {
+            results = results.concat(yield findMatchingNodes(nodeId, filterNameValue, trackedRelations, nodeType));
+        }
+        if (depth <= 0)
+            return results;
+        const allRelations = spinal_env_viewer_graph_service_1.SpinalGraphService.getRelationNames(nodeId);
+        const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+        if (checkedRelations.length === 0)
+            return results;
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, checkedRelations);
+        for (const child of children) {
+            results = results.concat(yield findEndpoints(child.id.get(), filterNameValue, depth - 1, strictDepth, authorizedRelations, trackedRelations, nodeType));
+        }
+        return results;
+    });
+}
+exports.findEndpoints = findEndpoints;
+function findAttribute(nodeId, categoryName, attributeName, depth, strictDepth, authorizedRelations) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (depth < 0)
+            return -1;
+        const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+        // we dont look further
+        if (depth == 0) {
+            return yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, categoryName, attributeName);
+        }
+        // depth > 0
+        if (!strictDepth) {
+            const foundAttribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, categoryName, attributeName);
+            if (foundAttribute != -1)
+                return foundAttribute;
+        }
+        const allRelations = spinal_env_viewer_graph_service_1.SpinalGraphService.getRelationNames(nodeId);
+        const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+        if (checkedRelations.length === 0)
+            return -1;
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, checkedRelations);
+        for (const child of children) {
+            const attribute = yield findAttribute(child.id.get(), categoryName, attributeName, depth - 1, strictDepth, authorizedRelations);
+            if (attribute != -1)
+                return attribute;
+        }
+        return -1;
+    });
+}
+exports.findAttribute = findAttribute;
+function findAttributes(nodeId, categoryName, attributeName, depth, strictDepth, authorizedRelations) {
+    return __awaiter(this, void 0, void 0, function* () {
+        if (depth == 0) {
+            return yield findAllCategoriesAndAttributes(nodeId);
+        }
+        let results = [];
+        if (!strictDepth) {
+            results = results.concat(yield findAllCategoriesAndAttributes(nodeId));
+        }
+        if (depth <= 0)
+            return results;
+        const allRelations = spinal_env_viewer_graph_service_1.SpinalGraphService.getRelationNames(nodeId);
+        const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+        if (checkedRelations.length === 0)
+            return results;
+        const children = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(nodeId, checkedRelations);
+        for (const child of children) {
+            results = results.concat(yield findAttributes(child.id.get(), categoryName, attributeName, depth - 1, strictDepth, authorizedRelations));
+        }
+        return results;
+    });
+}
+exports.findAttributes = findAttributes;
 function findAllCategoriesAndAttributes(followedEntityId) {
     return __awaiter(this, void 0, void 0, function* () {
         const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntityId);
@@ -208,7 +302,7 @@ function formatTrackingMethodsToList(obj) {
             trackingMethod: obj[`trackingMethod${i}`],
             filterValue: obj[`filterValue${i}`],
             removeFromAnalysis: obj[`removeFromAnalysis${i}`],
-            removeFromBinding: obj[`removeFromBinding${i}`]
+            removeFromBinding: obj[`removeFromBinding${i}`],
         };
         result.push(item);
     }
@@ -223,7 +317,7 @@ exports.formatTrackingMethodsToList = formatTrackingMethodsToList;
  * @return {*}
  */
 function getTicketContext(contextId) {
-    const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType("SpinalSystemServiceTicket");
+    const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType('SpinalSystemServiceTicket');
     const context = contexts.find((ctx) => {
         return ctx.info.id.get() == contextId;
     });
@@ -258,9 +352,10 @@ function alarmAlreadyDeclared(nodeId, contextId, processId, ticketName) {
     return __awaiter(this, void 0, void 0, function* () {
         //SpinalNode
         const tickets = yield spinal_service_ticket_1.spinalServiceTicket.getAlarmsFromNode(nodeId);
-        console.log(tickets);
         const found = tickets.find((ticket) => {
-            return contextId == ticket.contextId && processId == ticket.processId && ticket.name == ticketName;
+            return (contextId == ticket.contextId &&
+                processId == ticket.processId &&
+                ticket.name == ticketName);
         });
         return found;
     });
@@ -284,27 +379,29 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
         if (alreadyDeclared) {
             //just update the ticket
             const firstStep = yield spinal_service_ticket_1.serviceTicketPersonalized.getFirstStep(processId, contextId);
-            console.log("update ticket " + ticketInfos.name);
+            console.log('update ticket ' + ticketInfos.name);
             const declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(alreadyDeclared.id);
             if (declaredTicketNode.info.stepId.get() == firstStep) {
-                const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, "default", "Occurrence number");
-                if (attr != -1) { // found the attribute
+                const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(declaredTicketNode, 'default', 'Occurrence number');
+                if (attr != -1) {
+                    // found the attribute
                     const value = attr.value.get();
                     const str = value.toString();
                     const newValueInt = parseInt(str) + 1;
-                    yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: newValueInt.toString() });
+                    yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, 'default', 'Occurrence number', { value: newValueInt.toString() });
                     yield updateEndpointOccurenceNumber(declaredTicketNode, newValueInt);
                 }
             }
-            else { // move the ticket to the first step and reset the occurrence number
+            else {
+                // move the ticket to the first step and reset the occurrence number
                 yield spinal_service_ticket_1.serviceTicketPersonalized.moveTicket(declaredTicketNode.info.id.get(), declaredTicketNode.info.stepId.get(), firstStep, contextId);
-                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
+                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, 'default', 'Occurrence number', { value: '1' });
                 yield updateEndpointOccurenceNumber(declaredTicketNode, 1);
                 console.log(`${ticketInfos.name} has been re-triggered and moved back to the first step`);
             }
         }
         else {
-            console.log("create ticket " + ticketInfos.name);
+            console.log('create ticket ' + ticketInfos.name);
             if (process) {
                 try {
                     const ticketId = yield spinal_service_ticket_1.spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), entityNodeId, ticketType);
@@ -316,20 +413,19 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
                     else {
                         spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(outputNodeId, ticketId, analyticContextId, spinal_service_ticket_1.TICKET_RELATION_NAME, spinal_service_ticket_1.TICKET_RELATION_TYPE);
                     }
-                    if (typeof ticketId === "string") {
+                    if (typeof ticketId === 'string') {
                         const declaredTicketNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(ticketId);
-                        yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, "default", "Occurrence number", { value: "1" });
-                        const endpoint = new InputDataEndpoint_1.InputDataEndpoint("Occurence number", 1, "", spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Alarm);
+                        yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(declaredTicketNode, 'default', 'Occurrence number', { value: '1' });
+                        const endpoint = new InputDataEndpoint_1.InputDataEndpoint('Occurence number', 1, '', spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Alarm);
                         const res = new spinal_model_bmsnetwork_1.SpinalBmsEndpoint(endpoint.name, endpoint.path, endpoint.currentValue, endpoint.unit, spinal_model_bmsnetwork_1.InputDataEndpointDataType[endpoint.dataType], spinal_model_bmsnetwork_1.InputDataEndpointType[endpoint.type], endpoint.id);
-                        const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName,
-                            name: endpoint.name }, res);
+                        const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName, name: endpoint.name }, res);
                         spinal_env_viewer_graph_service_1.SpinalGraphService.addChild(ticketId, childId, spinal_model_bmsnetwork_1.SpinalBmsEndpoint.relationName, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
                         yield serviceTimeseries.getOrCreateTimeSeries(childId);
                         serviceTimeseries.pushFromEndpoint(childId, 1);
                     }
                 }
                 catch (error) {
-                    console.log("Ticket creation failed");
+                    console.log('Ticket creation failed');
                 }
             }
         }
@@ -338,14 +434,13 @@ function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId
 exports.addTicketAlarm = addTicketAlarm;
 function updateEndpointOccurenceNumber(ticketNode, newValue) {
     return __awaiter(this, void 0, void 0, function* () {
-        const endpoints = yield ticketNode.getChildren("hasBmsEndpoint");
-        console.log("update endpoint occurence number :", endpoints);
+        const endpoints = yield ticketNode.getChildren('hasBmsEndpoint');
         endpoints.map((endpoint) => __awaiter(this, void 0, void 0, function* () {
             var _a;
             // eslint-disable-next-line @typescript-eslint/ban-ts-comment
             // @ts-ignore
             spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(endpoint);
-            if (endpoint.info.name.get() == "Occurence number") {
+            if (endpoint.info.name.get() == 'Occurence number') {
                 serviceTimeseries.pushFromEndpoint(endpoint.info.id.get(), newValue);
                 const element = yield ((_a = endpoint.element) === null || _a === void 0 ? void 0 : _a.load());
                 element.currentValue.set(newValue);

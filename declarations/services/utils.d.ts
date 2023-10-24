@@ -1,4 +1,5 @@
-import { SpinalNodeRef } from "spinal-env-viewer-graph-service";
+import { SpinalNodeRef } from 'spinal-env-viewer-graph-service';
+import * as CONSTANTS from '../constants';
 import { SpinalAttribute } from 'spinal-models-documentation';
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
@@ -17,43 +18,15 @@ export declare function getAlgorithmParameters(config: SpinalNodeRef): Promise<a
  * @return {*}
  */
 export declare function getTicketLocalizationParameters(config: SpinalNodeRef): Promise<any>;
-/**
- * Applies a name filter to find the endpoints connected to the entity
- *
- * @export
- * @param {string} nodeId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef[]>}
- */
-export declare function findEndpoints(nodeId: string): Promise<SpinalNodeRef[]>;
-/**
- * Applies a name filter to find the ControlEndpoints connected to the entity
- *
- * @export
- * @param {string} followedEntityId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef[]>}
- */
-export declare function findControlEndpoints(followedEntityId: string, filterNameValue: string): Promise<SpinalNodeRef[]>;
-/**
- * Applies a name filter to find the endpoint connected to the entity
- *
- * @export
- * @param {string} followedEntityId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef|undefined>}
- */
-export declare function findEndpoint(followedEntityId: string, filterNameValue: string): Promise<SpinalNodeRef | undefined>;
-/**
- * Applies a name filter to find the ControlEndpoint connected to the entity
- *
- * @export
- * @param {string} followedEntityId
- * @param {string} filterNameValue
- * @return {*}  {Promise<SpinalNodeRef|undefined>}
- */
-export declare function findControlEndpoint(followedEntityId: string, filterNameValue: string): Promise<SpinalNodeRef | undefined>;
-export declare function findAllCategoriesAndAttributes(followedEntityId: string): Promise<any>;
+export declare function getRelationsWithDepth(nodeId: string, depth: number): Promise<string[]>;
+export declare function getChoiceRelationsWithDepth(nodeId: string, depth: number): Promise<string[]>;
+export declare function getAvailableData(trackMethod: CONSTANTS.TRACK_METHOD, nodeId: string, filterValue: string, depth: number, stricDepth: boolean, authorizedRelations: string[]): Promise<string[]>;
+export declare function findNodes(nodeId: string, authorizedRelations: string[], nodeType: string): Promise<SpinalNodeRef[]>;
+export declare function findEndpoint(nodeId: string, filterNameValue: string, depth: number, strictDepth: boolean, authorizedRelations: string[], trackedRelations: string[], nodeType: string): Promise<SpinalNodeRef | undefined>;
+export declare function findEndpoints(nodeId: string, filterNameValue: string, depth: number, strictDepth: boolean, authorizedRelations: string[], trackedRelations: string[], nodeType: string): Promise<SpinalNodeRef[]>;
+export declare function findAttribute(nodeId: string, categoryName: string, attributeName: string, depth: number, strictDepth: boolean, authorizedRelations: string[]): Promise<SpinalAttribute | -1>;
+export declare function findAttributes(nodeId: string, categoryName: string, attributeName: string, depth: number, strictDepth: boolean, authorizedRelations: string[]): Promise<string[]>;
+export declare function findAllCategoriesAndAttributes(followedEntityId: string): Promise<string[]>;
 export declare function getValueModelFromEntry(entryDataModel: SpinalNodeRef | SpinalAttribute): Promise<any>;
 export declare function formatTrackingMethodsToList(obj: any): any[];
 /**
