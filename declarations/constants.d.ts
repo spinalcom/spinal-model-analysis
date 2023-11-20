@@ -81,7 +81,8 @@ export declare enum TRACK_METHOD {
 export declare enum TRIGGER_TYPE {
     CHANGE_OF_VALUE = "changeOfValue",
     CHANGE_OF_VALUE_WITH_THRESHOLD = "changeOfValueWithThreshold",
-    INTERVAL_TIME = "intervalTime"
+    INTERVAL_TIME = "intervalTime",
+    CRON = "cron"
 }
 export declare enum ANALYTIC_STATUS {
     ACTIVE = "Active",

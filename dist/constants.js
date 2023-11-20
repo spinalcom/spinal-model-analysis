@@ -113,6 +113,7 @@ var TRIGGER_TYPE;
     TRIGGER_TYPE["CHANGE_OF_VALUE"] = "changeOfValue";
     TRIGGER_TYPE["CHANGE_OF_VALUE_WITH_THRESHOLD"] = "changeOfValueWithThreshold";
     TRIGGER_TYPE["INTERVAL_TIME"] = "intervalTime";
+    TRIGGER_TYPE["CRON"] = "cron";
 })(TRIGGER_TYPE = exports.TRIGGER_TYPE || (exports.TRIGGER_TYPE = {}));
 var ANALYTIC_STATUS;
 (function (ANALYTIC_STATUS) {

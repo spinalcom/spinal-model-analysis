@@ -49,6 +49,7 @@ const utils_1 = require("./services/utils");
 Object.defineProperty(exports, "getValueModelFromEntry", { enumerable: true, get: function () { return utils_1.getValueModelFromEntry; } });
 Object.defineProperty(exports, "getChoiceRelationsWithDepth", { enumerable: true, get: function () { return utils_1.getChoiceRelationsWithDepth; } });
 Object.defineProperty(exports, "getAvailableData", { enumerable: true, get: function () { return utils_1.getAvailableData; } });
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalRoot = typeof window === 'undefined' ? global : window;
 const spinalAnalyticService = new AnalyticService_1.AnalyticService();
 exports.spinalAnalyticService = spinalAnalyticService;

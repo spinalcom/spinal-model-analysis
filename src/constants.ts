@@ -132,7 +132,8 @@ export enum TRACK_METHOD {
 export enum TRIGGER_TYPE {
     CHANGE_OF_VALUE = "changeOfValue",
     CHANGE_OF_VALUE_WITH_THRESHOLD = "changeOfValueWithThreshold",
-    INTERVAL_TIME = "intervalTime"
+    INTERVAL_TIME = "intervalTime",
+    CRON = "cron"
 }
 
 export enum ANALYTIC_STATUS {

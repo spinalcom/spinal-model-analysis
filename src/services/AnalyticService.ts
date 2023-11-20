@@ -23,16 +23,15 @@ import AttributeService, { attributeService} from 'spinal-env-viewer-plugin-docu
 import {
   SpinalServiceTimeseries,
 } from 'spinal-model-timeseries';
-import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 
 import {
   findEndpoint,
   findAttribute,
   addTicketAlarm,
-  findAllCategoriesAndAttributes,
   getValueModelFromEntry,
-  //findEndpointStrictDepth,
+  safeDeleteNode,
 } from './utils';
+import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import { SpinalAttribute } from 'spinal-models-documentation';
 import * as algo from '../algorithms/algorithms';
 import axios from 'axios';
@@ -491,6 +490,24 @@ export default class AnalyticService {
     ]);
     if (nodes.length === 0) return undefined;
     return SpinalGraphService.getInfo(nodes[0].id.get());
+  }
+
+  public async deleteInputsNode(analyticId: string): Promise<void> {
+    const inputsNode = await this.getInputsNode(analyticId);
+    if (inputsNode) await safeDeleteNode(inputsNode.id.get(),false);
+  }
+
+  public async deleteOutputsNode(analyticId:string,shouldDeleteChildren=false): Promise<void> {
+    const outputsNode = await this.getOutputsNode(analyticId);
+    if(outputsNode) await safeDeleteNode(outputsNode.id.get(),shouldDeleteChildren);
+  }
+
+  public async deleteAnalytic(analyticId: string,shouldDeleteChildren = false): Promise<void> {
+    const inputsNode = await this.getInputsNode(analyticId);
+    const outputsNode = await this.getOutputsNode(analyticId);
+    if (inputsNode) await safeDeleteNode(inputsNode.id.get());
+    if (outputsNode) await safeDeleteNode(outputsNode.id.get(),shouldDeleteChildren);
+    await safeDeleteNode(analyticId);
   }
 
   ////////////////////////////////////////////////////
@@ -1221,6 +1238,7 @@ export default class AnalyticService {
     if (!controlEndpointNode) return;
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
+    //this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
   }
 
   /**

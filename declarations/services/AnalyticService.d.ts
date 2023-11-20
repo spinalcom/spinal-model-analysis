@@ -193,6 +193,9 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getOutputsNode(analyticId: string): Promise<SpinalNodeRef | undefined>;
+    deleteInputsNode(analyticId: string): Promise<void>;
+    deleteOutputsNode(analyticId: string, shouldDeleteChildren?: boolean): Promise<void>;
+    deleteAnalytic(analyticId: string, shouldDeleteChildren?: boolean): Promise<void>;
     /**
      * Adds a new Tracking Method node to the specified Input node within the specified context.
      * @async

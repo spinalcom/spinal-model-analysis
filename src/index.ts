@@ -2,9 +2,7 @@ import { IAnalytic } from './interfaces/IAnalytic';
 import { IEntity } from './interfaces/IEntity';
 import { ITrackingMethod } from './interfaces/ITrackingMethod';
 import { IConfig } from './interfaces/IConfig';
-import { ConfigModel } from './models/ConfigModel';
 import { AnalyticModel } from './models/AnalyticModel';
-import { EntityModel } from './models/EntityModel';
 import { TrackingMethodModel } from './models/TrackingMethodModel';
 import {
   ANALYTIC_RESULT_TYPE,
@@ -49,6 +47,7 @@ import * as algos from './algorithms/algorithms';
 import { AnalyticService } from './services/AnalyticService';
 import { getValueModelFromEntry , getChoiceRelationsWithDepth, getAvailableData } from './services/utils';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalRoot: any = typeof window === 'undefined' ? global : window;
 
 const spinalAnalyticService = new AnalyticService();

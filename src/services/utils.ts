@@ -27,6 +27,7 @@ import {
   SpinalGraphService,
   SpinalNodeRef,
   SPINAL_RELATION_PTR_LST_TYPE,
+  SPINAL_RELATION_LST_PTR_TYPE,
   SpinalNode,
 } from 'spinal-env-viewer-graph-service';
 import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
@@ -142,11 +143,7 @@ export async function getAvailableData(trackMethod : CONSTANTS.TRACK_METHOD, nod
 
 
   }
-
-    
 }
-
-
 
 export async function findNodes(nodeId: string, authorizedRelations: string[], nodeType: string): Promise<SpinalNodeRef[]> {
     let res: SpinalNodeRef[] = [];
@@ -625,4 +622,33 @@ async function updateEndpointOccurenceNumber(
       element.currentValue.set(newValue);
     }
   });
+}
+
+
+
+
+async function removeChild(parentNode: SpinalNode<any>, childNode: SpinalNode<any>, relation : string) : Promise<void>{
+  try {
+    await parentNode.removeChild(childNode, relation, SPINAL_RELATION_PTR_LST_TYPE);
+  } catch (e) {
+    try {
+      await parentNode.removeChild(childNode, relation, SPINAL_RELATION_LST_PTR_TYPE);
+    } catch (e) {
+      console.log(e);
+    }
+  }
+}
+
+
+export async function safeDeleteNode(nodeId: string,shouldDeleteChildren = false) : Promise<void>{
+  const realNode = SpinalGraphService.getRealNode(nodeId);
+  const relations = realNode.getRelationNames();
+  for(const relation of relations) {
+    const children = await realNode.getChildren(relation);
+    for(const child of children) {
+      await removeChild(realNode,child,relation);
+      if(shouldDeleteChildren) await child.removeFromGraph();
+    }
+  }
+  await realNode.removeFromGraph();
 }

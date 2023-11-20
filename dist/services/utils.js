@@ -33,7 +33,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.safeDeleteNode = exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
@@ -448,4 +448,35 @@ function updateEndpointOccurenceNumber(ticketNode, newValue) {
         }));
     });
 }
+function removeChild(parentNode, childNode, relation) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            yield parentNode.removeChild(childNode, relation, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+        }
+        catch (e) {
+            try {
+                yield parentNode.removeChild(childNode, relation, spinal_env_viewer_graph_service_1.SPINAL_RELATION_LST_PTR_TYPE);
+            }
+            catch (e) {
+                console.log(e);
+            }
+        }
+    });
+}
+function safeDeleteNode(nodeId, shouldDeleteChildren = false) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
+        const relations = realNode.getRelationNames();
+        for (const relation of relations) {
+            const children = yield realNode.getChildren(relation);
+            for (const child of children) {
+                yield removeChild(realNode, child, relation);
+                if (shouldDeleteChildren)
+                    yield child.removeFromGraph();
+            }
+        }
+        yield realNode.removeFromGraph();
+    });
+}
+exports.safeDeleteNode = safeDeleteNode;
 //# sourceMappingURL=utils.js.map

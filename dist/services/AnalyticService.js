@@ -20,8 +20,8 @@ const TrackingMethodModel_1 = require("../models/TrackingMethodModel");
 const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
-const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
 const utils_1 = require("./utils");
+const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
 const algo = require("../algorithms/algorithms");
 const axios_1 = require("axios");
 const qs_1 = require("qs");
@@ -363,6 +363,31 @@ class AnalyticService {
             if (nodes.length === 0)
                 return undefined;
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
+        });
+    }
+    deleteInputsNode(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputsNode = yield this.getInputsNode(analyticId);
+            if (inputsNode)
+                yield (0, utils_1.safeDeleteNode)(inputsNode.id.get(), false);
+        });
+    }
+    deleteOutputsNode(analyticId, shouldDeleteChildren = false) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const outputsNode = yield this.getOutputsNode(analyticId);
+            if (outputsNode)
+                yield (0, utils_1.safeDeleteNode)(outputsNode.id.get(), shouldDeleteChildren);
+        });
+    }
+    deleteAnalytic(analyticId, shouldDeleteChildren = false) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputsNode = yield this.getInputsNode(analyticId);
+            const outputsNode = yield this.getOutputsNode(analyticId);
+            if (inputsNode)
+                yield (0, utils_1.safeDeleteNode)(inputsNode.id.get());
+            if (outputsNode)
+                yield (0, utils_1.safeDeleteNode)(outputsNode.id.get(), shouldDeleteChildren);
+            yield (0, utils_1.safeDeleteNode)(analyticId);
         });
     }
     ////////////////////////////////////////////////////
@@ -920,6 +945,7 @@ class AnalyticService {
                 return;
             const controlEndpoint = yield controlEndpointNode.element.load();
             controlEndpoint.currentValue.set(result);
+            //this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
         });
     }
     /**
