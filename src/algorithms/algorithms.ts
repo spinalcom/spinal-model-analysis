@@ -288,3 +288,14 @@ export const EQUAL_TO = new Algorithm(
     return input[0] === params['p1'];
   }
 );
+
+export const IS_EMPTY = new Algorithm(
+  'IS_EMPTY',
+  'This algorithm returns true if the input is an empty list',
+  ['number','string'],
+  'boolean',
+  [],
+  (input: any[], params: any): boolean => {
+    return input.length === 0;
+  }
+);

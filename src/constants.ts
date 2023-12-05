@@ -149,6 +149,7 @@ export enum ENTITY_TYPES {
     FLOOR_GROUP = "geographicFloorGroup",
     ROOM_GROUP = "geographicRoomGroup",
     EQUIPMENT_GROUP = "BIMObjectGroup",
+    ORGAN= "MonitoringServiceOrgan",
     OTHER = "other"
 }
 

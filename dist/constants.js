@@ -129,6 +129,7 @@ var ENTITY_TYPES;
     ENTITY_TYPES["FLOOR_GROUP"] = "geographicFloorGroup";
     ENTITY_TYPES["ROOM_GROUP"] = "geographicRoomGroup";
     ENTITY_TYPES["EQUIPMENT_GROUP"] = "BIMObjectGroup";
+    ENTITY_TYPES["ORGAN"] = "MonitoringServiceOrgan";
     ENTITY_TYPES["OTHER"] = "other";
 })(ENTITY_TYPES = exports.ENTITY_TYPES || (exports.ENTITY_TYPES = {}));
 //# sourceMappingURL=constants.js.map

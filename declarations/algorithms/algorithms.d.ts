@@ -25,4 +25,5 @@ export declare const DIFFERENCE_THRESHOLD: Algorithm;
 export declare const INTEGRAL_BOOLEAN: Algorithm;
 export declare const STANDARD_DEVIATION: Algorithm;
 export declare const EQUAL_TO: Algorithm;
+export declare const IS_EMPTY: Algorithm;
 export {};
