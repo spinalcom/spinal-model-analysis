@@ -386,6 +386,17 @@ export default class AnalyticService {
      */
     private handleControlEndpointResult;
     /**
+     * Handles the result of an algorithm that modifies an Endpoint.
+     *
+     * @private
+     * @param {*} result
+     * @param {SpinalNodeRef} followedEntityNode
+     * @param {*} params
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
+    private handleEndpointResult;
+    /**
      * Handles the result of an algorithm that sends an SMS.
      *
      * @private

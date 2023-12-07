@@ -69,6 +69,7 @@ export declare const ENDPOINT_NODE_TYPE = "BmsEndpoint";
 export declare enum ANALYTIC_RESULT_TYPE {
     TICKET = "ticket",
     CONTROL_ENDPOINT = "controlEndpoint",
+    ENDPOINT = "endpoint",
     ALARM = "alarm",
     SMS = "sms",
     LOG = "log"

@@ -26,4 +26,5 @@ export declare const INTEGRAL_BOOLEAN: Algorithm;
 export declare const STANDARD_DEVIATION: Algorithm;
 export declare const EQUAL_TO: Algorithm;
 export declare const IS_EMPTY: Algorithm;
+export declare const CONV_BOOLEAN_TO_NUMBER: Algorithm;
 export {};

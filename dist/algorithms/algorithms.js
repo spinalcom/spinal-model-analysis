@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -135,6 +135,10 @@ exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if the
     return input[0] === params['p1'];
 });
 exports.IS_EMPTY = new Algorithm('IS_EMPTY', 'This algorithm returns true if the input is an empty list', ['number', 'string'], 'boolean', [], (input, params) => {
-    return input.length === 0;
+    const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
+    return flattenedArray.length === 0;
+});
+exports.CONV_BOOLEAN_TO_NUMBER = new Algorithm('CONV_BOOLEAN_TO_NUMBER', 'This algorithm converts a boolean to a number', ['boolean'], 'number', [], (input, params) => {
+    return input[0] ? 1 : 0;
 });
 //# sourceMappingURL=algorithms.js.map

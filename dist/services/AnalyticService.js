@@ -58,7 +58,7 @@ class AnalyticService {
             console.error('Twilio credentials not set, Messaging services will not work');
             return;
         }
-        console.log("Init connection to messaging services...");
+        console.log('Init connection to messaging services...');
         this.twilioFromNumber = fromNumber;
         this.twilioAccountSid = accountSid;
         this.twilioAuthToken = authToken;
@@ -286,7 +286,7 @@ class AnalyticService {
             const outputsInfo = {
                 name: 'Outputs',
                 description: '',
-                type: CONSTANTS.OUTPUTS_TYPE
+                type: CONSTANTS.OUTPUTS_TYPE,
             };
             const outputsModel = new OutputsModel_1.OutputsModel(outputsInfo);
             const outputsId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(outputsInfo, outputsModel);
@@ -702,14 +702,20 @@ class AnalyticService {
                     // we can continue as planned
                     return [followedEntity];
                 }
-                else {
-                    const isGroup = followedEntity.type.get().includes('group') || followedEntity.type.get().includes('Group');
-                    const relationNameToTargets = isGroup
-                        ? CONSTANTS.GROUP_RELATION_PREFIX + entityType
-                        : 'has' + entityType.charAt(0).toUpperCase() + entityType.slice(1);
-                    const entities = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relationNameToTargets]);
-                    return entities;
+                if (followedEntity.type.get().includes('group') ||
+                    followedEntity.type.get().includes('Group')) {
+                    console.log('Anchor entity is a group, trying to find the correct entities with the relation name: ', CONSTANTS.GROUP_RELATION_PREFIX + entityType);
+                    return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [
+                        CONSTANTS.GROUP_RELATION_PREFIX + entityType,
+                    ]);
                 }
+                if (followedEntity.type.get().includes('context') ||
+                    followedEntity.type.get().includes('Context')) {
+                    console.log('Anchor entity is a context, trying to find the correct entities');
+                    return yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContextByType(followedEntity.id.get(), followedEntity.id.get(), entityType);
+                }
+                console.log('Failed to deduct the correct entities from the anchor entity');
+                return [];
             }
         });
     }
@@ -719,16 +725,20 @@ class AnalyticService {
                 // we can continue as planned
                 return [followedEntity];
             }
-            else {
-                const isGroup = followedEntity.type.get().includes('group') || followedEntity.type.get().includes('Group');
-                const relationNameToTargets = isGroup
-                    ? CONSTANTS.GROUP_RELATION_PREFIX + entityType
-                    : 'has' + entityType.charAt(0).toUpperCase() + entityType.slice(1);
-                console.log('Followed entity is a', followedEntity.type.get(), ' but the analytic is under a ', entityType, ' entity.');
-                console.log('Trying to find the correct entities with the deducted relation name: ', relationNameToTargets);
-                const entities = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relationNameToTargets]);
-                return entities;
+            if (followedEntity.type.get().includes('group') ||
+                followedEntity.type.get().includes('Group')) {
+                console.log('Anchor entity is a group, trying to find the correct entities with the relation name: ', CONSTANTS.GROUP_RELATION_PREFIX + entityType);
+                return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [
+                    CONSTANTS.GROUP_RELATION_PREFIX + entityType,
+                ]);
             }
+            if (followedEntity.type.get().includes('context') ||
+                followedEntity.type.get().includes('Context')) {
+                console.log('Anchor entity is a context, trying to find the correct entities');
+                return yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContextByType(followedEntity.id.get(), followedEntity.id.get(), entityType);
+            }
+            console.log('Failed to deduct the correct entities from the anchor entity');
+            return [];
         });
     }
     getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex) {
@@ -750,7 +760,8 @@ class AnalyticService {
             if (!trackingMethod)
                 return input;
             const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
-            if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] || trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+            if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
+                trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
                 const currentValue = yield (0, utils_1.getValueModelFromEntry)(entryDataModel);
                 input.push(currentValue.get());
             }
@@ -760,7 +771,9 @@ class AnalyticService {
                 const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
                 const data = yield spinalTs.getFromIntervalTime(start, end);
                 //add fictive data copying last value to currentTime.
-                data.push({ date: end, value: data[data.length - 1].value });
+                if (data.length != 0) {
+                    data.push({ date: end, value: data[data.length - 1].value });
+                }
                 //const dataValues = data.map((el) => el.value);
                 input.push(data);
             }
@@ -800,13 +813,13 @@ class AnalyticService {
                 return null; // Circular dependency detected
             }
         }
-        return stack.filter(x => x.startsWith('A'));
+        return stack.filter((x) => x.startsWith('A'));
     }
     filterAlgorithmParametersAttributesByIndex(algoParams, indexName) {
         const result = {};
         for (const key in algoParams) {
             if (key.startsWith(indexName)) {
-                const newKey = key.replace(indexName + CONSTANTS.ATTRIBUTE_SEPARATOR, "");
+                const newKey = key.replace(indexName + CONSTANTS.ATTRIBUTE_SEPARATOR, '');
                 result[newKey] = algoParams[key];
             }
         }
@@ -886,6 +899,9 @@ class AnalyticService {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
                     yield this.handleControlEndpointResult(result, followedEntityNode, params);
                     break;
+                case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
+                    yield this.handleEndpointResult(result, followedEntityNode, params);
+                    break;
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
                     yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Alarm');
                     break;
@@ -895,6 +911,8 @@ class AnalyticService {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
                     console.log(`LOG : ${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} \t|\t Result : ${result}`);
                     break;
+                default:
+                    console.log('Result type not recognized');
             }
         });
     }
@@ -945,7 +963,27 @@ class AnalyticService {
                 return;
             const controlEndpoint = yield controlEndpointNode.element.load();
             controlEndpoint.currentValue.set(result);
-            //this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
+            this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
+        });
+    }
+    /**
+     * Handles the result of an algorithm that modifies an Endpoint.
+     *
+     * @private
+     * @param {*} result
+     * @param {SpinalNodeRef} followedEntityNode
+     * @param {*} params
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
+    handleEndpointResult(result, followedEntityNode, params) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const controlEndpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+            if (!controlEndpointNode)
+                return;
+            const controlEndpoint = yield controlEndpointNode.element.load();
+            controlEndpoint.currentValue.set(result);
+            this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
         });
     }
     /**
@@ -961,27 +999,32 @@ class AnalyticService {
     handleSMSResult(result, configNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('SMS result');
-            if (!this.twilioAccountSid || !this.twilioAuthToken || !this.twilioFromNumber || !result)
+            if (!this.twilioAccountSid ||
+                !this.twilioAuthToken ||
+                !this.twilioFromNumber ||
+                !result)
                 return;
             const twilioParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS);
             const toNumber = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER];
             const message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
             const url = `https://api.twilio.com/2010-04-01/Accounts/${this.twilioAccountSid}/Messages.json`;
-            const entityName = followedEntityNode.name.get().replace(/[0-9]/g, "*");
+            const entityName = followedEntityNode.name
+                .get()
+                .replace(/[0-9]/g, '*');
             const data = {
                 Body: `Analytic on ${entityName} triggered with the following message : ${message}`,
                 From: this.twilioFromNumber,
-                To: toNumber
+                To: toNumber,
             };
             const config = {
                 method: 'POST',
                 headers: { 'content-type': 'application/x-www-form-urlencoded' },
                 auth: {
                     username: this.twilioAccountSid,
-                    password: this.twilioAuthToken
+                    password: this.twilioAuthToken,
                 },
                 data: (0, qs_1.stringify)(data),
-                url
+                url,
             };
             const axiosResult = yield (0, axios_1.default)(config);
             console.log({ status: axiosResult.status, data: axiosResult.data });
