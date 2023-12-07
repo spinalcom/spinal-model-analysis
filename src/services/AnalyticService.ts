@@ -1226,7 +1226,8 @@ export default class AnalyticService {
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
   ): Promise<void> {
-    if (!result) return;
+
+    if (result === undefined) return;
     const params = await this.getAttributesFromNode(
       configNode.id.get(),
       CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS

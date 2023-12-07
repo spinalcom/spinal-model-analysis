@@ -889,7 +889,7 @@ class AnalyticService {
      */
     applyResult(result, analyticId, configNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
-            if (!result)
+            if (result === undefined)
                 return;
             const params = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
             switch (params[CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
