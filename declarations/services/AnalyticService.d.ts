@@ -348,7 +348,14 @@ export default class AnalyticService {
      * @returns {*} {Promise<void>}
      * @memberof AnalyticService
      */
-    doAnalysis(analyticId: string, entity: SpinalNodeRef): Promise<void>;
+    doAnalysisOnEntity(analyticId: string, entity: SpinalNodeRef): Promise<void>;
+    /**
+     * Performs an analysis on all entities for an analytic.
+     * @param {string} analyticId The ID of the analytic.
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
+    doAnalysis(analyticId: string): Promise<void>;
     /**
      * Applies the result of an algorithm.
      *

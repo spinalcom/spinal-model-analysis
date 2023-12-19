@@ -1175,7 +1175,7 @@ export default class AnalyticService {
    * @returns {*} {Promise<void>}
    * @memberof AnalyticService
    */
-  public async doAnalysis(
+  public async doAnalysisOnEntity(
     analyticId: string,
     entity: SpinalNodeRef
   ): Promise<void> {
@@ -1206,6 +1206,21 @@ export default class AnalyticService {
     );
     this.applyResult(result, analyticId, configNode, entity);
   }
+
+  /**
+   * Performs an analysis on all entities for an analytic.
+   * @param {string} analyticId The ID of the analytic.
+   * @return {*}  {Promise<void>} 
+   * @memberof AnalyticService
+   */
+  public async doAnalysis(analyticId: string): Promise<void> {
+    const entities = await this.getWorkingFollowedEntities(analyticId);
+    if (!entities) return;
+    for (const entity of entities) {
+      await this.doAnalysisOnEntity(analyticId, entity);
+    }
+  }
+
 
   ///////////////////////////////////////////////////
   ///////////////// RESULT HANDLING /////////////////

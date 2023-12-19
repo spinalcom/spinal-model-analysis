@@ -860,7 +860,7 @@ class AnalyticService {
      * @returns {*} {Promise<void>}
      * @memberof AnalyticService
      */
-    doAnalysis(analyticId, entity) {
+    doAnalysisOnEntity(analyticId, entity) {
         return __awaiter(this, void 0, void 0, function* () {
             //Get the io dependencies of the analytic
             const configNode = yield this.getConfig(analyticId);
@@ -872,6 +872,22 @@ class AnalyticService {
             const R = ioDependencies['R'];
             const result = yield this.recExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams);
             this.applyResult(result, analyticId, configNode, entity);
+        });
+    }
+    /**
+     * Performs an analysis on all entities for an analytic.
+     * @param {string} analyticId The ID of the analytic.
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
+    doAnalysis(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const entities = yield this.getWorkingFollowedEntities(analyticId);
+            if (!entities)
+                return;
+            for (const entity of entities) {
+                yield this.doAnalysisOnEntity(analyticId, entity);
+            }
         });
     }
     ///////////////////////////////////////////////////
