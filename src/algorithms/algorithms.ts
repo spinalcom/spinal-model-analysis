@@ -311,3 +311,53 @@ export const CONV_BOOLEAN_TO_NUMBER = new Algorithm(
     return input[0] ? 1 : 0;
   }
 );
+
+export const CONV_NUMBER_TO_BOOLEAN = new Algorithm(
+  'CONV_NUMBER_TO_BOOLEAN',
+  'This algorithm converts a number to a boolean (0 is false, everything else is true)',
+  ['number'],
+  'boolean',
+  [],
+  (input: [number[]], params: any): boolean => {
+    const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
+    return flattenedArray[0] !== 0;
+  }
+);
+
+
+export const CURRENT_EPOCH_TIME = new Algorithm(
+  'CURRENT_EPOCH_TIME',
+  'This algorithm returns the current epoch time',
+  [],
+  'number',
+  [],
+  (input: any[], params: any): number => {
+    return Date.now();
+  }
+);
+
+export const SUBTRACT = new Algorithm(
+  'SUBTRACT',
+  'This algorithm returns the result of the subtraction of the first input by the second input',
+  ['number'],
+  'number',
+  [],
+  (input: number[], params: any): number => {
+    return input[0] - input[1];
+  }
+);
+
+export const SUBTRACT_BY = new Algorithm(
+  'SUBTRACT_BY',
+  'This algorithm returns the result of the subtraction of the first input by the value set by the user (p1)',
+  ['number'],
+  'number',
+  [{ name: 'p1', type: 'number', description: 'the value to subtract by' }],
+  (input: number[], params: any): number => {
+    return input[0] - params['p1'];
+  }
+);
+
+
+
+

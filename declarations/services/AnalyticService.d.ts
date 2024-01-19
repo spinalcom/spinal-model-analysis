@@ -1,6 +1,7 @@
 import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
 import { IAnalytic } from '../interfaces/IAnalytic';
 import { IEntity } from '../interfaces/IEntity';
+import { IResult } from '../interfaces/IAnalyticResult';
 import { INodeDocumentation } from '../interfaces/IAttribute';
 import { SpinalAttribute } from 'spinal-models-documentation';
 /**
@@ -348,14 +349,14 @@ export default class AnalyticService {
      * @returns {*} {Promise<void>}
      * @memberof AnalyticService
      */
-    doAnalysisOnEntity(analyticId: string, entity: SpinalNodeRef): Promise<void>;
+    doAnalysisOnEntity(analyticId: string, entity: SpinalNodeRef): Promise<IResult>;
     /**
      * Performs an analysis on all entities for an analytic.
      * @param {string} analyticId The ID of the analytic.
      * @return {*}  {Promise<void>}
      * @memberof AnalyticService
      */
-    doAnalysis(analyticId: string): Promise<void>;
+    doAnalysis(analyticId: string): Promise<IResult[]>;
     /**
      * Applies the result of an algorithm.
      *
@@ -366,7 +367,7 @@ export default class AnalyticService {
      * @return {*}
      * @memberof AnalyticService
      */
-    applyResult(result: any, analyticId: string, configNode: SpinalNodeRef, followedEntityNode: SpinalNodeRef): Promise<void>;
+    applyResult(result: any, analyticId: string, configNode: SpinalNodeRef, followedEntityNode: SpinalNodeRef): Promise<IResult>;
     /**
      * Handles the result of an algorithm that creates a ticket or an alarm.
      *
@@ -414,5 +415,7 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     private handleSMSResult;
+    private handleGChatMessageResult;
+    private handleGChatOrganCardResult;
 }
 export { AnalyticService };

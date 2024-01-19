@@ -4,6 +4,7 @@ import { ITrackingMethod } from './interfaces/ITrackingMethod';
 import { IConfig } from './interfaces/IConfig';
 import { AnalyticModel } from './models/AnalyticModel';
 import { TrackingMethodModel } from './models/TrackingMethodModel';
+import { isResultSuccess,isGChatMessageResult,isGChatOrganCardResult } from './interfaces/IAnalyticResult';
 import {
   ANALYTIC_RESULT_TYPE,
   ANALYTIC_TYPE,
@@ -21,6 +22,9 @@ import {
   CATEGORY_ATTRIBUTE_IO_DEPENDENCIES,
   CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS,
   CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING,
+  CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS,
+  ATTRIBUTE_GCHAT_SPACE,
+  ATTRIBUTE_GCHAT_MESSAGE,
   ATTRIBUTE_PHONE_NUMBER,
   ATTRIBUTE_PHONE_MESSAGE,
   ATTRIBUTE_TRACKING_METHOD,
@@ -87,6 +91,9 @@ export {
   CATEGORY_ATTRIBUTE_IO_DEPENDENCIES,
   CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS,
   CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING,
+  CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS,
+  ATTRIBUTE_GCHAT_MESSAGE,
+  ATTRIBUTE_GCHAT_SPACE,
   ATTRIBUTE_PHONE_NUMBER,
   ATTRIBUTE_PHONE_MESSAGE,
   ATTRIBUTE_TRACKING_METHOD,
@@ -108,6 +115,9 @@ export {
   getValueModelFromEntry,
   getChoiceRelationsWithDepth,
   getAvailableData,
+  isResultSuccess,
+  isGChatMessageResult,
+  isGChatOrganCardResult,
   algos,
   ANALYTIC_STATUS
 };

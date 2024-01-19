@@ -168,9 +168,6 @@ async function findMatchingNodes(nodeId:string,filterNameValue:string, trackedRe
   return endpoints.filter(endpoint => endpoint.name.get().includes(filterNameValue));
 }
 
-
-
-
 export async function findEndpoint(
   nodeId: string,
   filterNameValue: string,

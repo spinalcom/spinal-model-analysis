@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -140,5 +140,18 @@ exports.IS_EMPTY = new Algorithm('IS_EMPTY', 'This algorithm returns true if the
 });
 exports.CONV_BOOLEAN_TO_NUMBER = new Algorithm('CONV_BOOLEAN_TO_NUMBER', 'This algorithm converts a boolean to a number', ['boolean'], 'number', [], (input, params) => {
     return input[0] ? 1 : 0;
+});
+exports.CONV_NUMBER_TO_BOOLEAN = new Algorithm('CONV_NUMBER_TO_BOOLEAN', 'This algorithm converts a number to a boolean (0 is false, everything else is true)', ['number'], 'boolean', [], (input, params) => {
+    const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
+    return flattenedArray[0] !== 0;
+});
+exports.CURRENT_EPOCH_TIME = new Algorithm('CURRENT_EPOCH_TIME', 'This algorithm returns the current epoch time', [], 'number', [], (input, params) => {
+    return Date.now();
+});
+exports.SUBTRACT = new Algorithm('SUBTRACT', 'This algorithm returns the result of the subtraction of the first input by the second input', ['number'], 'number', [], (input, params) => {
+    return input[0] - input[1];
+});
+exports.SUBTRACT_BY = new Algorithm('SUBTRACT_BY', 'This algorithm returns the result of the subtraction of the first input by the value set by the user (p1)', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to subtract by' }], (input, params) => {
+    return input[0] - params['p1'];
 });
 //# sourceMappingURL=algorithms.js.map

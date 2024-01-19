@@ -13,7 +13,13 @@ import { IAnalytic } from '../interfaces/IAnalytic';
 import { EntityModel } from '../models/EntityModel';
 import { IEntity } from '../interfaces/IEntity';
 import { TrackingMethodModel } from '../models/TrackingMethodModel';
-
+import {
+  IGChatMessageResult,
+  IResult,
+  IGChatOrganCardResult,
+  IGChatCard,
+  IResultResponse,
+} from '../interfaces/IAnalyticResult';
 import { IInputs } from '../interfaces/IInputs';
 import { InputsModel } from '../models/InputsModel';
 import { IOutputs } from '../interfaces/IOutputs';
@@ -54,7 +60,6 @@ export default class AnalyticService {
    */
   private spinalServiceTimeseries: SpinalServiceTimeseries =
     SingletonServiceTimeseries.getInstance();
-
   /**
    * The Twilio phone number to use for sending SMS messages.
    *
@@ -79,6 +84,8 @@ export default class AnalyticService {
    * @memberof AnalyticService
    */
   private twilioAuthToken: string | undefined;
+
+  //private googleChatService: GoogleChatService;
 
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
@@ -1165,6 +1172,7 @@ export default class AnalyticService {
       algoIndexName
     );
     const result = algo[algorithm_name].run(inputs, algorithmParameters);
+    //console.log('result :', result);
     return result;
   }
 
@@ -1178,10 +1186,11 @@ export default class AnalyticService {
   public async doAnalysisOnEntity(
     analyticId: string,
     entity: SpinalNodeRef
-  ): Promise<void> {
+  ): Promise<IResult> {
     //Get the io dependencies of the analytic
     const configNode = await this.getConfig(analyticId);
-    if (!configNode) return;
+    if (!configNode) return { success: false, error: 'No config node found' };
+
     const ioDependencies = await this.getAttributesFromNode(
       configNode.id.get(),
       CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES
@@ -1204,23 +1213,25 @@ export default class AnalyticService {
       algoIndexMapping,
       algoParams
     );
-    this.applyResult(result, analyticId, configNode, entity);
+    return this.applyResult(result, analyticId, configNode, entity);
   }
 
   /**
    * Performs an analysis on all entities for an analytic.
    * @param {string} analyticId The ID of the analytic.
-   * @return {*}  {Promise<void>} 
+   * @return {*}  {Promise<void>}
    * @memberof AnalyticService
    */
-  public async doAnalysis(analyticId: string): Promise<void> {
+  public async doAnalysis(analyticId: string): Promise<IResult[]> {
     const entities = await this.getWorkingFollowedEntities(analyticId);
-    if (!entities) return;
+    if (!entities) return [{ success: false, error: 'No entities found' }];
+    const results: IResult[] = [];
     for (const entity of entities) {
-      await this.doAnalysisOnEntity(analyticId, entity);
+      const result = await this.doAnalysisOnEntity(analyticId, entity);
+      results.push(result);
     }
+    return results;
   }
-
 
   ///////////////////////////////////////////////////
   ///////////////// RESULT HANDLING /////////////////
@@ -1240,9 +1251,9 @@ export default class AnalyticService {
     analyticId: string,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
-  ): Promise<void> {
-
-    if (result === undefined) return;
+  ): Promise<IResult> {
+    if (result === undefined)
+      return { success: false, error: 'Result is undefined' };
     const params = await this.getAttributesFromNode(
       configNode.id.get(),
       CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS
@@ -1258,17 +1269,30 @@ export default class AnalyticService {
           params,
           'Ticket'
         );
-        break;
+        return {
+          success: true,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
+        };
+
       case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
         await this.handleControlEndpointResult(
           result,
           followedEntityNode,
           params
         );
-        break;
+        return {
+          success: true,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
+        };
       case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
         await this.handleEndpointResult(result, followedEntityNode, params);
-        break;
+        return {
+          success: true,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
+        };
       case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
         await this.handleTicketResult(
           result,
@@ -1278,10 +1302,18 @@ export default class AnalyticService {
           params,
           'Alarm'
         );
-        break;
+        return {
+          success: true,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM,
+        };
       case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
         await this.handleSMSResult(result, configNode, followedEntityNode);
-        break;
+        return {
+          success: true,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
+        };
 
       case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
         console.log(
@@ -1289,10 +1321,22 @@ export default class AnalyticService {
             params[CONSTANTS.ATTRIBUTE_RESULT_NAME]
           } \t|\t Result : ${result}`
         );
-        break;
+        return {
+          success: true,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.LOG,
+        };
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
+        if (!result) return { success: false, error: 'False result' };
+        return this.handleGChatMessageResult(configNode, followedEntityNode);
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
+        if (!result) return { success: false, error: 'False result' };
+        return this.handleGChatOrganCardResult(configNode, followedEntityNode);
 
       default:
-        console.log('Result type not recognized');
+        return { success: false, error: 'Result type not recognized' };
     }
   }
 
@@ -1458,6 +1502,161 @@ export default class AnalyticService {
 
     const axiosResult = await axios(config);
     console.log({ status: axiosResult.status, data: axiosResult.data });
+  }
+
+  private async handleGChatMessageResult(
+    configNode: SpinalNodeRef,
+    followedEntityNode: SpinalNodeRef
+  ): Promise<IGChatMessageResult> {
+    console.log('Handling Google chat message result');
+    const analyticParams = await this.getAttributesFromNode(
+      configNode.id.get(),
+      CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS
+    );
+    const gChatParams = await this.getAttributesFromNode(
+      configNode.id.get(),
+      CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS
+    );
+
+    const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
+    const message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+    const analyticDescription =
+      analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
+
+    const resultInfo: IGChatMessageResult = {
+      success: true,
+      error: '',
+      spaceName: spaceName,
+      message: 'The following message has been triggered by an analytic.\n '+
+      '\nAnalysis on item : '+ followedEntityNode.name.get()+
+      '\nDescription : '+ analyticDescription +
+      '\nMessage : '+ message,
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
+    };
+    return resultInfo;
+  }
+
+  private async handleGChatOrganCardResult(
+    configNode: SpinalNodeRef,
+    followedEntityNode: SpinalNodeRef
+  ): Promise<IGChatOrganCardResult|IResultResponse> {
+    console.log('Handling Google chat organ card result');
+    const analyticParams = await this.getAttributesFromNode(
+      configNode.id.get(),
+      CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS
+    );
+    const resultParams = await this.getAttributesFromNode(
+      configNode.id.get(),
+      CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS
+    );
+    const gChatParams = await this.getAttributesFromNode(
+      configNode.id.get(),
+      CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS
+    );
+
+    const title = resultParams[CONSTANTS.ATTRIBUTE_RESULT_NAME];
+    const spaceName: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
+    const message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+    const analyticDescription: string =
+      analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
+
+    const lastPing = await findEndpoint(followedEntityNode.id.get(),'last_ping', 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+    if (!lastPing) return { success: false, error: 'endpoint lastPing not found on organ node' };
+    const lastPingValue = await getValueModelFromEntry(lastPing);
+    const lastPingDate = (new Date(lastPingValue.get())).toString();
+    const parents = await SpinalGraphService.getParents(followedEntityNode.id.get(), 'HasOrgan');
+    let platformName = "Couldn't find the platform name";
+    let ipAddress = "Couldn't find the ip adress";
+    for (const parent of parents) {
+      if(parent.id.get() == followedEntityNode.platformId?.get()) {
+        platformName = parent.name?.get();
+        ipAddress = parent.ipAdress?.get();
+      }
+    }
+
+
+
+
+    const card: IGChatCard = {
+      header: {
+        title: title,
+        subtitle: new Date().toLocaleDateString(),
+      },
+      sections: [
+        {
+          header: 'Analytic details',
+          widgets: [
+            {
+              keyValue: {
+                topLabel: "Analytic description",
+                content: analyticDescription,
+              },
+            },
+            {
+              keyValue: {
+                topLabel: "Message",
+                content: message,
+              },
+            },
+          ],
+        },
+        {
+          header: 'Organ details',
+          widgets: [
+            {
+              keyValue: {
+                topLabel: 'Organ name',
+                content: followedEntityNode.name.get(),
+              },
+            },
+            {
+              keyValue: {
+                topLabel: 'Organ type',
+                content: followedEntityNode.organType?.get(),
+              },
+            },
+            {
+              keyValue: {
+                topLabel: 'Last ping',
+                content: lastPingDate,
+              }
+            }
+          ],
+        },
+        {
+          header: 'Platform details',
+          widgets: [
+            {
+              keyValue: {
+                topLabel: 'Platform name',
+                content: platformName,
+              },
+            },
+            {
+              keyValue: {
+                topLabel: 'Platform id',
+                content: followedEntityNode.platformId?.get(),
+              },
+            },
+            {
+              keyValue: {
+                topLabel: 'Ip Address',
+                content: ipAddress,
+              }
+            },
+      
+          ],
+        }
+      ],
+    };
+    const resultInfo: IGChatOrganCardResult = {
+      success: true,
+      error: '',
+      spaceName: spaceName,
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD,
+      card: card,
+    };
+    return resultInfo;
   }
 }
 

@@ -64,6 +64,7 @@ export const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localiz
 export const CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
 export const CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
 export const CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
+export const CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS = "Google chat parameters"
 export const CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = "Trigger parameters";  
 export const CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = "IO dependencies";
 export const CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = "Analytic parameters";
@@ -86,6 +87,8 @@ export const ATTRIBUTE_RESULT_TYPE = "Result type";
 export const ATTRIBUTE_RESULT_NAME = "Result name";
 export const ATTRIBUTE_PHONE_NUMBER = "Phone number";
 export const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
+export const ATTRIBUTE_GCHAT_SPACE = "Google chat space name/id";
+export const ATTRIBUTE_GCHAT_MESSAGE = "Google chat message";
 export const ATTRIBUTE_TICKET_CONTEXT_ID = "Ticket context id";
 export const ATTRIBUTE_TICKET_PROCESS_ID = "Ticket category id";
 export const ATTRIBUTE_ALARM_PRIORITY = "Alarm priority";
@@ -120,7 +123,11 @@ export enum ANALYTIC_RESULT_TYPE {
     ENDPOINT="endpoint",
     ALARM = "alarm",
     SMS = "sms",
-    LOG = "log"
+    LOG = "log",
+    GCHAT_MESSAGE="gChatMessage",
+    GCHAT_ORGAN_CARD="gChatOrganCard",
+    GCHAT_PLATFORM_CARD="gChatPlatformCard",
+
 
 }
 

@@ -28,6 +28,7 @@ export declare const CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket
 export declare const CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
 export declare const CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
 export declare const CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
+export declare const CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS = "Google chat parameters";
 export declare const CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = "Trigger parameters";
 export declare const CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = "IO dependencies";
 export declare const CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = "Analytic parameters";
@@ -44,6 +45,8 @@ export declare const ATTRIBUTE_RESULT_TYPE = "Result type";
 export declare const ATTRIBUTE_RESULT_NAME = "Result name";
 export declare const ATTRIBUTE_PHONE_NUMBER = "Phone number";
 export declare const ATTRIBUTE_PHONE_MESSAGE = "Phone message";
+export declare const ATTRIBUTE_GCHAT_SPACE = "Google chat space name/id";
+export declare const ATTRIBUTE_GCHAT_MESSAGE = "Google chat message";
 export declare const ATTRIBUTE_TICKET_CONTEXT_ID = "Ticket context id";
 export declare const ATTRIBUTE_TICKET_PROCESS_ID = "Ticket category id";
 export declare const ATTRIBUTE_ALARM_PRIORITY = "Alarm priority";
@@ -72,7 +75,10 @@ export declare enum ANALYTIC_RESULT_TYPE {
     ENDPOINT = "endpoint",
     ALARM = "alarm",
     SMS = "sms",
-    LOG = "log"
+    LOG = "log",
+    GCHAT_MESSAGE = "gChatMessage",
+    GCHAT_ORGAN_CARD = "gChatOrganCard",
+    GCHAT_PLATFORM_CARD = "gChatPlatformCard"
 }
 export declare enum TRACK_METHOD {
     ENDPOINT_NAME_FILTER = "endpointFilter",
