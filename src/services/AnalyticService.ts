@@ -1573,10 +1573,6 @@ export default class AnalyticService {
         ipAddress = parent.ipAdress?.get();
       }
     }
-
-
-
-
     const card: IGChatCard = {
       header: {
         title: title,

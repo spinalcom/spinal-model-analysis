@@ -1,6 +1,6 @@
 {
   "name": "spinal-model-analysis",
-  "version": "3.0.2",
+  "version": "3.0.4",
   "description": "Describe and register the models necessary for the whole analysis module and provide the service necessary for handling it.",
   "main": "dist/index.js",
   "types": "declarations/index.d.ts",
@@ -26,7 +26,9 @@
     "spinal-core-connectorjs_type": "git+https://github.com/spinalcom/spinal-core-connectorjs_type.git",
     "spinal-env-viewer-graph-service": "git+https://github.com/spinalcom/Spinal-Graph-Service.git",
     "spinal-env-viewer-plugin-documentation-service": "git+https://github.com/spinalcom/spinal-env-viewer-plugin-documentation-service.git",
+    "spinal-model-bmsnetwork": "git+https://github.com/spinalcom/spinal-model-bmsnetwork.git",
     "spinal-model-graph": "git+https://github.com/spinalcom/spinal-model-graph.git",
+    "spinal-model-timeseries": "git+https://github.com/spinalcom/spinal-model-timeseries.git",
     "spinal-service-ticket": "git+https://github.com/spinalcom/spinal-service-ticket.git"
   },
   "devDependencies": {
