@@ -8,7 +8,7 @@ class Algorithm implements IAlgorithm {
   outputType: string;
   description: string;
   requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string';
-  run: (input: any | any[], params?: any) => any;
+  run: (input: any | any[], params?: any) => string | number | boolean;
 
   constructor(
     name: string,
@@ -16,7 +16,7 @@ class Algorithm implements IAlgorithm {
     inputTypes: string[],
     outputType: string,
     requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string',
-    run: (input: any | any[], params?: any) => any
+    run: (input: any | any[], params?: any) => string | number | boolean
   ) {
     this.name = name;
     this.inputTypes = inputTypes;
@@ -46,12 +46,11 @@ export const COPY = new Algorithm(
   [],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0];
   }
-
 );
 
 export const DIVIDE = new Algorithm(
@@ -62,7 +61,7 @@ export const DIVIDE = new Algorithm(
   [],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] / flattenedArray[1];
@@ -77,7 +76,7 @@ export const DIVIDE_BY = new Algorithm(
   [{ name: 'p1', type: 'number', description: 'the value to divide by' }],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] / params['p1'];
@@ -92,7 +91,7 @@ export const THRESHOLD_ABOVE = new Algorithm(
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     const treshold = params['p1'];
@@ -111,7 +110,7 @@ export const THRESHOLD_BELOW = new Algorithm(
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     const treshold = params['p1'];
@@ -133,7 +132,7 @@ export const THRESHOLD_BETWEEN_IN = new Algorithm(
   ],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     const p1 = params['p1'];
@@ -158,7 +157,7 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
   ],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     const p1 = params['p1'];
@@ -180,7 +179,7 @@ export const AVERAGE = new Algorithm(
   [],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
 
@@ -198,10 +197,10 @@ export const AND = new Algorithm(
   [],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
-      
+
     return !flattenedArray.includes(false);
   }
 );
@@ -214,7 +213,7 @@ export const OR = new Algorithm(
   [],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray.includes(true);
@@ -229,7 +228,7 @@ export const NOT = new Algorithm(
   [],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return !flattenedArray.includes(true);
@@ -244,7 +243,7 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     const treshold = params['p1'];
@@ -255,7 +254,6 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
     return false;
   }
 );
-
 
 export const INTEGRAL_BOOLEAN = new Algorithm(
   'INTEGRAL_BOOLEAN',
@@ -321,24 +319,27 @@ export const STANDARD_DEVIATION = new Algorithm(
   [],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     const n = flattenedArray.length;
     const mean = flattenedArray.reduce((a, b) => a + b) / n;
-    return Math.sqrt(flattenedArray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+    return Math.sqrt(
+      flattenedArray.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) /
+        n
+    );
   }
 );
 
 export const EQUAL_TO = new Algorithm(
   'EQUAL_TO',
   'This algorithm returns true if the first input is equal to the parameter',
-  ['number','string'],
+  ['number', 'string'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the value to compare to' }],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] === params['p1'];
@@ -348,7 +349,7 @@ export const EQUAL_TO = new Algorithm(
 export const IS_EMPTY = new Algorithm(
   'IS_EMPTY',
   'This algorithm returns true if the input is an empty list',
-  ['number','string'],
+  ['number', 'string'],
   'boolean',
   [],
   (input: any[], params: any): boolean => {
@@ -365,7 +366,7 @@ export const CONV_BOOLEAN_TO_NUMBER = new Algorithm(
   [],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] ? 1 : 0;
@@ -380,13 +381,12 @@ export const CONV_NUMBER_TO_BOOLEAN = new Algorithm(
   [],
   (input: any[], params: any): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] !== 0;
   }
 );
-
 
 export const CURRENT_EPOCH_TIME = new Algorithm(
   'CURRENT_EPOCH_TIME',
@@ -407,7 +407,7 @@ export const SUBTRACT = new Algorithm(
   [],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] - flattenedArray[1];
@@ -422,7 +422,7 @@ export const SUBTRACT_BY = new Algorithm(
   [{ name: 'p1', type: 'number', description: 'the value to subtract by' }],
   (input: any[], params: any): number => {
     const isArrayofArrays = Array.isArray(input[0]);
-    const flattenedArray = isArrayofArrays 
+    const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
     return flattenedArray[0] - params['p1'];
@@ -430,5 +430,27 @@ export const SUBTRACT_BY = new Algorithm(
 );
 
 
-
-
+export const ALGORITHMS: { [key: string]: Algorithm } = {
+  PUTVALUE,
+  COPY,
+  DIVIDE,
+  DIVIDE_BY,
+  THRESHOLD_ABOVE,
+  THRESHOLD_BELOW,
+  THRESHOLD_BETWEEN_IN,
+  THRESHOLD_BETWEEN_OUT,
+  AVERAGE,
+  AND,
+  OR,
+  NOT,
+  DIFFERENCE_THRESHOLD,
+  INTEGRAL_BOOLEAN,
+  STANDARD_DEVIATION,
+  EQUAL_TO,
+  IS_EMPTY,
+  CONV_BOOLEAN_TO_NUMBER,
+  CONV_NUMBER_TO_BOOLEAN,
+  CURRENT_EPOCH_TIME,
+  SUBTRACT,
+  SUBTRACT_BY,
+};

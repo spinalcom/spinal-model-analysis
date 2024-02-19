@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -180,7 +180,8 @@ exports.STANDARD_DEVIATION = new Algorithm('STANDARD_DEVIATION', 'This algorithm
         : input;
     const n = flattenedArray.length;
     const mean = flattenedArray.reduce((a, b) => a + b) / n;
-    return Math.sqrt(flattenedArray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+    return Math.sqrt(flattenedArray.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) /
+        n);
 });
 exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if the first input is equal to the parameter', ['number', 'string'], 'boolean', [{ name: 'p1', type: 'number', description: 'the value to compare to' }], (input, params) => {
     const isArrayofArrays = Array.isArray(input[0]);
@@ -224,4 +225,28 @@ exports.SUBTRACT_BY = new Algorithm('SUBTRACT_BY', 'This algorithm returns the r
         : input;
     return flattenedArray[0] - params['p1'];
 });
+exports.ALGORITHMS = {
+    PUTVALUE: exports.PUTVALUE,
+    COPY: exports.COPY,
+    DIVIDE: exports.DIVIDE,
+    DIVIDE_BY: exports.DIVIDE_BY,
+    THRESHOLD_ABOVE: exports.THRESHOLD_ABOVE,
+    THRESHOLD_BELOW: exports.THRESHOLD_BELOW,
+    THRESHOLD_BETWEEN_IN: exports.THRESHOLD_BETWEEN_IN,
+    THRESHOLD_BETWEEN_OUT: exports.THRESHOLD_BETWEEN_OUT,
+    AVERAGE: exports.AVERAGE,
+    AND: exports.AND,
+    OR: exports.OR,
+    NOT: exports.NOT,
+    DIFFERENCE_THRESHOLD: exports.DIFFERENCE_THRESHOLD,
+    INTEGRAL_BOOLEAN: exports.INTEGRAL_BOOLEAN,
+    STANDARD_DEVIATION: exports.STANDARD_DEVIATION,
+    EQUAL_TO: exports.EQUAL_TO,
+    IS_EMPTY: exports.IS_EMPTY,
+    CONV_BOOLEAN_TO_NUMBER: exports.CONV_BOOLEAN_TO_NUMBER,
+    CONV_NUMBER_TO_BOOLEAN: exports.CONV_NUMBER_TO_BOOLEAN,
+    CURRENT_EPOCH_TIME: exports.CURRENT_EPOCH_TIME,
+    SUBTRACT: exports.SUBTRACT,
+    SUBTRACT_BY: exports.SUBTRACT_BY,
+};
 //# sourceMappingURL=algorithms.js.map

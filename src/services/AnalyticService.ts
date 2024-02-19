@@ -28,7 +28,7 @@ import { INodeDocumentation } from '../interfaces/IAttribute';
 import AttributeService, {
   attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
-import { SpinalServiceTimeseries } from 'spinal-model-timeseries';
+import { SpinalDateValue, SpinalServiceTimeseries } from 'spinal-model-timeseries';
 
 import {
   findEndpoint,
@@ -40,6 +40,7 @@ import {
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import { SpinalAttribute } from 'spinal-models-documentation';
 import * as algo from '../algorithms/algorithms';
+import { ALGORITHMS } from '../algorithms/algorithms'
 import axios from 'axios';
 import { stringify } from 'qs';
 
@@ -1032,16 +1033,15 @@ export default class AnalyticService {
     analyticId: string,
     followedEntity: SpinalNodeRef,
     inputIndex: string
-  ): Promise<any[]> {
-    const input: any[] = [];
+  ): Promise<SpinalDateValue[] | string | boolean | number | undefined> {
     const entryDataModel = await this.getEntryDataModelByInputIndex(
       analyticId,
       followedEntity,
       inputIndex
     );
-    if (!entryDataModel) return input;
+    if (!entryDataModel) return undefined;
     const trackingMethod = await this.getTrackingMethod(analyticId);
-    if (!trackingMethod) return input;
+    if (!trackingMethod) return undefined;
     const trackingParams = await this.getAttributesFromNode(
       trackingMethod.id.get(),
       inputIndex
@@ -1051,7 +1051,9 @@ export default class AnalyticService {
       trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0
     ) {
       const currentValue = await getValueModelFromEntry(entryDataModel);
-      input.push(currentValue.get());
+      const assertedValue: string | number | boolean = currentValue.get() as string | number | boolean;
+      return assertedValue;
+
     } else {
       const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
         entryDataModel.id.get()
@@ -1065,9 +1067,8 @@ export default class AnalyticService {
         data.push({ date: end, value: data[data.length - 1].value });
       }
       //const dataValues = data.map((el) => el.value);
-      input.push(data);
+      return data
     }
-    return input;
   }
 
   public findExecutionOrder(dependencies): string[] | null {
@@ -1161,7 +1162,7 @@ export default class AnalyticService {
           entity,
           dependency
         );
-        if (inputData.length == 0) return undefined;
+        if (inputData == undefined) return undefined;
         inputs.push(inputData);
       }
     }
@@ -1171,8 +1172,7 @@ export default class AnalyticService {
       algoParams,
       algoIndexName
     );
-    const result = algo[algorithm_name].run(inputs, algorithmParameters);
-    //console.log('result :', result);
+    const result = ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
     return result;
   }
 

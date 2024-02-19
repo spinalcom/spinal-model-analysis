@@ -6,8 +6,8 @@ declare class Algorithm implements IAlgorithm {
     outputType: string;
     description: string;
     requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string';
-    run: (input: any | any[], params?: any) => any;
-    constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: any) => any);
+    run: (input: any | any[], params?: any) => string | number | boolean;
+    constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: any) => string | number | boolean);
 }
 export declare const PUTVALUE: Algorithm;
 export declare const COPY: Algorithm;
@@ -31,4 +31,7 @@ export declare const CONV_NUMBER_TO_BOOLEAN: Algorithm;
 export declare const CURRENT_EPOCH_TIME: Algorithm;
 export declare const SUBTRACT: Algorithm;
 export declare const SUBTRACT_BY: Algorithm;
+export declare const ALGORITHMS: {
+    [key: string]: Algorithm;
+};
 export {};

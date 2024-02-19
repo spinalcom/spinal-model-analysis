@@ -3,6 +3,7 @@ import { IAnalytic } from '../interfaces/IAnalytic';
 import { IEntity } from '../interfaces/IEntity';
 import { IResult } from '../interfaces/IAnalyticResult';
 import { INodeDocumentation } from '../interfaces/IAttribute';
+import { SpinalDateValue } from 'spinal-model-timeseries';
 import { SpinalAttribute } from 'spinal-models-documentation';
 /**
  * This class handles most of the logic for analytics. It provides methods for creating and retrieving analytics, entities, and contexts.
@@ -338,7 +339,7 @@ export default class AnalyticService {
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
     getWorkingFollowedEntitiesWithParam(followedEntity: SpinalNodeRef, entityType: string): Promise<SpinalNodeRef[]>;
     getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
-    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<any[]>;
+    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalDateValue[] | string | boolean | number | undefined>;
     findExecutionOrder(dependencies: any): string[] | null;
     private filterAlgorithmParametersAttributesByIndex;
     private recExecuteAlgorithm;

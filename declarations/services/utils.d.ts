@@ -27,7 +27,7 @@ export declare function findEndpoints(nodeId: string, filterNameValue: string, d
 export declare function findAttribute(nodeId: string, categoryName: string, attributeName: string, depth: number, strictDepth: boolean, authorizedRelations: string[]): Promise<SpinalAttribute | -1>;
 export declare function findAttributes(nodeId: string, categoryName: string, attributeName: string, depth: number, strictDepth: boolean, authorizedRelations: string[]): Promise<string[]>;
 export declare function findAllCategoriesAndAttributes(followedEntityId: string): Promise<string[]>;
-export declare function getValueModelFromEntry(entryDataModel: SpinalNodeRef | SpinalAttribute): Promise<any>;
+export declare function getValueModelFromEntry(entryDataModel: SpinalNodeRef | SpinalAttribute): Promise<spinal.Model>;
 export declare function formatTrackingMethodsToList(obj: any): any[];
 /**
  * Adds a ticket alarm to the context and process and link it with the node

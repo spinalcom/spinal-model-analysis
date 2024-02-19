@@ -358,9 +358,11 @@ export async function findAllCategoriesAndAttributes(
   return res;
 }
 
+
+
 export async function getValueModelFromEntry(
   entryDataModel: SpinalNodeRef | SpinalAttribute
-): Promise<any> {
+): Promise<spinal.Model> {
   if (!(entryDataModel instanceof SpinalAttribute)) {
     const element = await entryDataModel.element.load();
     return element.currentValue;

@@ -22,7 +22,7 @@ const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const utils_1 = require("./utils");
 const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
-const algo = require("../algorithms/algorithms");
+const algorithms_1 = require("../algorithms/algorithms");
 const axios_1 = require("axios");
 const qs_1 = require("qs");
 /**
@@ -753,18 +753,18 @@ class AnalyticService {
     }
     getFormattedInputDataByIndex(analyticId, followedEntity, inputIndex) {
         return __awaiter(this, void 0, void 0, function* () {
-            const input = [];
             const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex);
             if (!entryDataModel)
-                return input;
+                return undefined;
             const trackingMethod = yield this.getTrackingMethod(analyticId);
             if (!trackingMethod)
-                return input;
+                return undefined;
             const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
             if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
                 trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
                 const currentValue = yield (0, utils_1.getValueModelFromEntry)(entryDataModel);
-                input.push(currentValue.get());
+                const assertedValue = currentValue.get();
+                return assertedValue;
             }
             else {
                 const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
@@ -776,9 +776,8 @@ class AnalyticService {
                     data.push({ date: end, value: data[data.length - 1].value });
                 }
                 //const dataValues = data.map((el) => el.value);
-                input.push(data);
+                return data;
             }
-            return input;
         });
     }
     findExecutionOrder(dependencies) {
@@ -842,7 +841,7 @@ class AnalyticService {
                 else {
                     // if dependency is an input then get the value of the input
                     const inputData = yield this.getFormattedInputDataByIndex(analyticId, entity, dependency);
-                    if (inputData.length == 0)
+                    if (inputData == undefined)
                         return undefined;
                     inputs.push(inputData);
                 }
@@ -850,7 +849,8 @@ class AnalyticService {
             // after the inputs are ready we can execute the algorithm
             const algorithm_name = algoIndexMapping[algoIndexName];
             const algorithmParameters = this.filterAlgorithmParametersAttributesByIndex(algoParams, algoIndexName);
-            const result = algo[algorithm_name].run(inputs, algorithmParameters);
+            //const result = algo[algorithm_name].run(inputs, algorithmParameters);
+            const result = algorithms_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
             //console.log('result :', result);
             return result;
         });
