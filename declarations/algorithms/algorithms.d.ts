@@ -1,13 +1,16 @@
 import { IAlgorithm } from '../interfaces/IAlgorithm';
 import { IRequiredParameter } from '../interfaces/IRequiredParameter';
+interface IParameters {
+    [key: string]: string | number | boolean;
+}
 declare class Algorithm implements IAlgorithm {
     name: string;
     inputTypes: string[];
     outputType: string;
     description: string;
     requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string';
-    run: (input: any | any[], params?: any) => string | number | boolean;
-    constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: any) => string | number | boolean);
+    run: (input: any | any[], params?: IParameters) => string | number | boolean;
+    constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: IParameters) => string | number | boolean);
 }
 export declare const PUTVALUE: Algorithm;
 export declare const COPY: Algorithm;

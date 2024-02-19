@@ -39,7 +39,6 @@ import {
 } from './utils';
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import { SpinalAttribute } from 'spinal-models-documentation';
-import * as algo from '../algorithms/algorithms';
 import { ALGORITHMS } from '../algorithms/algorithms'
 import axios from 'axios';
 import { stringify } from 'qs';
@@ -1225,11 +1224,22 @@ export default class AnalyticService {
   public async doAnalysis(analyticId: string): Promise<IResult[]> {
     const entities = await this.getWorkingFollowedEntities(analyticId);
     if (!entities) return [{ success: false, error: 'No entities found' }];
-    const results: IResult[] = [];
-    for (const entity of entities) {
+
+    //const results: IResult[] = [];
+    const analysisPromises = entities.map(entity => this.doAnalysisOnEntity(analyticId, entity));
+    const resultPromises = await Promise.allSettled(analysisPromises);
+    const results: IResult[] = resultPromises.map(result => {
+      if (result.status === 'fulfilled') {
+        return result.value;
+      } else {
+        // Handle rejected promises, potentially by returning an error result
+        return { success: false, error: 'Analysis failed' }; // Customize as needed
+      }
+    });
+    /*for (const entity of entities) {
       const result = await this.doAnalysisOnEntity(analyticId, entity);
       results.push(result);
-    }
+    }*/
     return results;
   }
 

@@ -2,13 +2,17 @@
 import { IAlgorithm } from '../interfaces/IAlgorithm';
 import { IRequiredParameter } from '../interfaces/IRequiredParameter';
 
+interface IParameters {
+  [key: string]: string | number | boolean;
+}
+
 class Algorithm implements IAlgorithm {
   name: string;
   inputTypes: string[];
   outputType: string;
   description: string;
   requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string';
-  run: (input: any | any[], params?: any) => string | number | boolean;
+  run: (input: any | any[], params?: IParameters) => string | number | boolean;
 
   constructor(
     name: string,
@@ -16,7 +20,7 @@ class Algorithm implements IAlgorithm {
     inputTypes: string[],
     outputType: string,
     requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string',
-    run: (input: any | any[], params?: any) => string | number | boolean
+    run: (input: any | any[], params?: IParameters) => string | number | boolean
   ) {
     this.name = name;
     this.inputTypes = inputTypes;
@@ -33,7 +37,8 @@ export const PUTVALUE = new Algorithm(
   ['number'],
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to inject' }],
-  (input: number, params: any): number => {
+  (input: number, params: IParameters | undefined ): string | number | boolean => {
+    if(!params) throw new Error('No parameters provided');
     return params['p1'];
   }
 );
@@ -44,7 +49,7 @@ export const COPY = new Algorithm(
   ['number'],
   'number',
   [],
-  (input: any[], params: any): number => {
+  (input: any[]): number => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -59,7 +64,7 @@ export const DIVIDE = new Algorithm(
   ['number'],
   'number',
   [],
-  (input: any[], params: any): number => {
+  (input: any[]): number => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -74,11 +79,15 @@ export const DIVIDE_BY = new Algorithm(
   ['number'],
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to divide by' }],
-  (input: any[], params: any): number => {
+  (input: any[], params: IParameters | undefined): number => {
+    if(!params) throw new Error('No parameters provided');
+    if(params['p1'] === 0) throw new Error('Division by zero');
+    if(typeof params['p1'] !== 'number') throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
+    
     return flattenedArray[0] / params['p1'];
   }
 );
@@ -89,7 +98,8 @@ export const THRESHOLD_ABOVE = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: any[], params: any): boolean => {
+  (input: any[], params: IParameters | undefined ): boolean => {
+    if(!params) throw new Error('No parameters provided');
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -108,7 +118,8 @@ export const THRESHOLD_BELOW = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: any[], params: any): boolean => {
+  (input: any[], params: IParameters | undefined): boolean => {
+    if(!params) throw new Error('No parameters provided');
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -130,7 +141,10 @@ export const THRESHOLD_BETWEEN_IN = new Algorithm(
     { name: 'p1', type: 'number', description: 'the first threshold value' },
     { name: 'p2', type: 'number', description: 'the second threshold value' },
   ],
-  (input: any[], params: any): boolean => {
+  (input: any[], params: IParameters | undefined ): boolean => {
+    if(!params) throw new Error('No parameters provided');
+    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
+    if(typeof params['p2'] !== 'number') throw new Error(`Invalid p2 parameter type. Expected number, got ${typeof params['p2']}`);
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -155,7 +169,10 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
     { name: 'p1', type: 'number', description: 'the first threshold value' },
     { name: 'p2', type: 'number', description: 'the second threshold value' },
   ],
-  (input: any[], params: any): boolean => {
+  (input: any[], params: IParameters | undefined ): boolean => {
+    if(!params) throw new Error('No parameters provided');
+    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
+    if(typeof params['p2'] !== 'number') throw new Error(`Invalid p2 parameter type. Expected number, got ${typeof params['p2']}`);
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -177,7 +194,7 @@ export const AVERAGE = new Algorithm(
   ['number'],
   'number',
   [],
-  (input: any[], params: any): number => {
+  (input: any[]): number => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -195,7 +212,7 @@ export const AND = new Algorithm(
   ['boolean'],
   'boolean',
   [],
-  (input: any[], params: any): boolean => {
+  (input: any[]): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -211,7 +228,7 @@ export const OR = new Algorithm(
   ['boolean'],
   'boolean',
   [],
-  (input: any[], params: any): boolean => {
+  (input: any[]): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -226,7 +243,7 @@ export const NOT = new Algorithm(
   ['boolean'],
   'boolean',
   [],
-  (input: any[], params: any): boolean => {
+  (input: any[]): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -241,7 +258,9 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: any[], params: any): boolean => {
+  (input: any[], params: IParameters | undefined ): boolean => {
+    if(!params) throw new Error('No parameters provided');
+    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -274,7 +293,9 @@ export const INTEGRAL_BOOLEAN = new Algorithm(
         'Ratio || Percentage   (write one of the two, Ratio will be used by default)',
     },
   ],
-  (input: { date: number; value: number }[][], params: any): number => {
+  (input: { date: number; value: number }[][], params: IParameters | undefined): number => {
+    if(!params) throw new Error('No parameters provided');
+    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
     const percentageResult = params['p2'] === 'Percentage';
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
     const invertBool = (bool) => (bool ? 0 : 1);
@@ -317,7 +338,7 @@ export const STANDARD_DEVIATION = new Algorithm(
   ['number'],
   'number',
   [],
-  (input: any[], params: any): number => {
+  (input: any[]): number => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -337,7 +358,8 @@ export const EQUAL_TO = new Algorithm(
   ['number', 'string'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the value to compare to' }],
-  (input: any[], params: any): boolean => {
+  (input: any[], params: IParameters | undefined): boolean => {
+    if(!params) throw new Error('No parameters provided');
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -352,7 +374,7 @@ export const IS_EMPTY = new Algorithm(
   ['number', 'string'],
   'boolean',
   [],
-  (input: any[], params: any): boolean => {
+  (input: any[]): boolean => {
     const flattenedArray = input.reduce((acc, curr) => acc.concat(...curr), []);
     return flattenedArray.length === 0;
   }
@@ -364,7 +386,7 @@ export const CONV_BOOLEAN_TO_NUMBER = new Algorithm(
   ['boolean'],
   'number',
   [],
-  (input: any[], params: any): number => {
+  (input: any[]): number => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -379,11 +401,13 @@ export const CONV_NUMBER_TO_BOOLEAN = new Algorithm(
   ['number'],
   'boolean',
   [],
-  (input: any[], params: any): boolean => {
+  (input: any[]): boolean => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
       : input;
+
+    console.log('conv to boolean :', flattenedArray)
     return flattenedArray[0] !== 0;
   }
 );
@@ -394,7 +418,8 @@ export const CURRENT_EPOCH_TIME = new Algorithm(
   [],
   'number',
   [],
-  (input: any[], params: any): number => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  (input: any[]): number => {
     return Date.now();
   }
 );
@@ -405,7 +430,7 @@ export const SUBTRACT = new Algorithm(
   ['number'],
   'number',
   [],
-  (input: any[], params: any): number => {
+  (input: any[]): number => {
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
@@ -420,7 +445,9 @@ export const SUBTRACT_BY = new Algorithm(
   ['number'],
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to subtract by' }],
-  (input: any[], params: any): number => {
+  (input: any[], params: IParameters | undefined): number => {
+    if(!params) throw new Error('No parameters provided');
+    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
     const isArrayofArrays = Array.isArray(input[0]);
     const flattenedArray = isArrayofArrays
       ? input.reduce((acc, curr) => acc.concat(...curr), [])
