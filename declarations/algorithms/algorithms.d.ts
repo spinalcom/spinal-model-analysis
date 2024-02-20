@@ -1,15 +1,18 @@
 import { IAlgorithm } from '../interfaces/IAlgorithm';
 import { IRequiredParameter } from '../interfaces/IRequiredParameter';
+import { SpinalDateValue } from 'spinal-model-timeseries';
 interface IParameters {
     [key: string]: string | number | boolean;
 }
+type PrivimitiveInput = number | string | boolean;
+type IInput = PrivimitiveInput | SpinalDateValue[];
 declare class Algorithm implements IAlgorithm {
     name: string;
     inputTypes: string[];
     outputType: string;
     description: string;
     requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string';
-    run: (input: any | any[], params?: IParameters) => string | number | boolean;
+    run: (input: IInput, params?: IParameters) => string | number | boolean;
     constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IRequiredParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: IParameters) => string | number | boolean);
 }
 export declare const PUTVALUE: Algorithm;

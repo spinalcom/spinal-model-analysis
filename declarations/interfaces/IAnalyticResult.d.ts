@@ -8,14 +8,17 @@ export interface IResultResponse {
 }
 export interface IResultSuccess extends IResultResponse {
     success: true;
+    resultValue: number | string | boolean;
     resultType: ANALYTIC_RESULT_TYPE;
 }
 export interface IGChatMessageResult extends IResultSuccess {
+    resultValue: boolean;
     resultType: ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE;
     spaceName: string;
     message: string;
 }
 export interface IGChatCardResult extends IResultSuccess {
+    resultValue: boolean;
     spaceName: string;
     card: IGChatCard;
 }

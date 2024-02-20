@@ -808,7 +808,7 @@ class AnalyticService {
             }
             else {
                 // Handle rejected promises, potentially by returning an error result
-                return { success: false, error: 'Analysis failed' }; // Customize as needed
+                return { success: false, error: 'Analysis failed ,' }; // Customize as needed
             }
         });
         /*for (const entity of entities) {
@@ -839,6 +839,7 @@ class AnalyticService {
                 await this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Ticket');
                 return {
                     success: true,
+                    resultValue: result,
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
                 };
@@ -846,6 +847,7 @@ class AnalyticService {
                 await this.handleControlEndpointResult(result, followedEntityNode, params);
                 return {
                     success: true,
+                    resultValue: result,
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
                 };
@@ -853,38 +855,26 @@ class AnalyticService {
                 await this.handleEndpointResult(result, followedEntityNode, params);
                 return {
                     success: true,
+                    resultValue: result,
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
                 };
             case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
-                await this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Alarm');
-                return {
-                    success: true,
-                    error: '',
-                    resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM,
-                };
+                return await this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Alarm');
             case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
-                await this.handleSMSResult(result, configNode, followedEntityNode);
-                return {
-                    success: true,
-                    error: '',
-                    resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
-                };
+                return await this.handleSMSResult(result, configNode, followedEntityNode);
             case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
                 console.log(`LOG : ${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} \t|\t Result : ${result}`);
                 return {
                     success: true,
+                    resultValue: result,
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.LOG,
                 };
             case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
-                if (!result)
-                    return { success: false, error: 'False result' };
-                return this.handleGChatMessageResult(configNode, followedEntityNode);
+                return this.handleGChatMessageResult(result, configNode, followedEntityNode);
             case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
-                if (!result)
-                    return { success: false, error: 'False result' };
-                return this.handleGChatOrganCardResult(configNode, followedEntityNode);
+                return this.handleGChatOrganCardResult(result, configNode, followedEntityNode);
             default:
                 return { success: false, error: 'Result type not recognized' };
         }
@@ -904,18 +894,19 @@ class AnalyticService {
      */
     async handleTicketResult(result, analyticId, configNode, followedEntityNode, params, ticketType // Alarm or Ticket
     ) {
-        if (!result)
-            return;
+        if (result == false)
+            return { success: true, error: '', resultValue: result, resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET };
         const outputNode = await this.getOutputsNode(analyticId);
         if (!outputNode)
-            return;
+            return { success: false, error: ' Output Node not found' };
         const analyticContextId = this.getContextIdOfAnalytic(analyticId);
         if (!analyticContextId)
-            return;
+            return { success: false, error: ' Analytic context id not found' };
         const ticketInfo = {
             name: `${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} : ${followedEntityNode.name.get()}`,
         };
         (0, utils_1.addTicketAlarm)(ticketInfo, configNode, analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
+        return { success: true, error: '', resultValue: result, resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET };
     }
     /**
      * Handles the result of an algorithm that modifies a control point.
@@ -930,10 +921,11 @@ class AnalyticService {
     async handleControlEndpointResult(result, followedEntityNode, params) {
         const controlEndpointNode = await (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.CONTROL_ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
         if (!controlEndpointNode)
-            return;
+            return { success: false, error: ' Control endpoint node not found' };
         const controlEndpoint = await controlEndpointNode.element.load();
         controlEndpoint.currentValue.set(result);
         this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
+        return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT };
     }
     /**
      * Handles the result of an algorithm that modifies an Endpoint.
@@ -948,10 +940,11 @@ class AnalyticService {
     async handleEndpointResult(result, followedEntityNode, params) {
         const controlEndpointNode = await (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
         if (!controlEndpointNode)
-            return;
+            return { success: false, error: 'Endpoint node not found' };
         const controlEndpoint = await controlEndpointNode.element.load();
         controlEndpoint.currentValue.set(result);
         this.spinalServiceTimeseries.pushFromEndpoint(controlEndpointNode.id.get(), result);
+        return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT };
     }
     /**
      * Handles the result of an algorithm that sends an SMS.
@@ -967,9 +960,10 @@ class AnalyticService {
         console.log('SMS result');
         if (!this.twilioAccountSid ||
             !this.twilioAuthToken ||
-            !this.twilioFromNumber ||
-            !result)
-            return;
+            !this.twilioFromNumber)
+            return { success: false, error: 'Twilio parameters not found' };
+        if (result == false)
+            return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS };
         const twilioParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS);
         const toNumber = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER];
         const message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
@@ -994,9 +988,12 @@ class AnalyticService {
         };
         const axiosResult = await (0, axios_1.default)(config);
         console.log({ status: axiosResult.status, data: axiosResult.data });
+        return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS };
     }
-    async handleGChatMessageResult(configNode, followedEntityNode) {
+    async handleGChatMessageResult(result, configNode, followedEntityNode) {
         console.log('Handling Google chat message result');
+        if (result == false)
+            return { success: true, resultValue: false, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE };
         const analyticParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS);
         const gChatParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS);
         const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
@@ -1004,6 +1001,7 @@ class AnalyticService {
         const analyticDescription = analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
         const resultInfo = {
             success: true,
+            resultValue: result,
             error: '',
             spaceName: spaceName,
             message: 'The following message has been triggered by an analytic.\n ' +
@@ -1014,8 +1012,10 @@ class AnalyticService {
         };
         return resultInfo;
     }
-    async handleGChatOrganCardResult(configNode, followedEntityNode) {
+    async handleGChatOrganCardResult(result, configNode, followedEntityNode) {
         console.log('Handling Google chat organ card result');
+        if (result == false)
+            return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE };
         const analyticParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS);
         const resultParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS);
         const gChatParams = await this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS);
@@ -1110,6 +1110,7 @@ class AnalyticService {
         };
         const resultInfo = {
             success: true,
+            resultValue: result,
             error: '',
             spaceName: spaceName,
             resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD,
