@@ -48,6 +48,7 @@ import {
 } from './constants';
 
 import * as algos from './algorithms/algorithms';
+import { ALGORITHMS } from './algorithms/algorithms';
 import { AnalyticService } from './services/AnalyticService';
 import { getValueModelFromEntry , getChoiceRelationsWithDepth, getAvailableData } from './services/utils';
 
@@ -119,6 +120,7 @@ export {
   isGChatMessageResult,
   isGChatOrganCardResult,
   algos,
+  ALGORITHMS,
   ANALYTIC_STATUS
 };
 

@@ -18,7 +18,6 @@ import {
   IResult,
   IGChatOrganCardResult,
   IGChatCard,
-  IResultResponse,
 } from '../interfaces/IAnalyticResult';
 import { IInputs } from '../interfaces/IInputs';
 import { InputsModel } from '../models/InputsModel';
