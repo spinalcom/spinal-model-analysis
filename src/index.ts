@@ -4,7 +4,11 @@ import { ITrackingMethod } from './interfaces/ITrackingMethod';
 import { IConfig } from './interfaces/IConfig';
 import { AnalyticModel } from './models/AnalyticModel';
 import { TrackingMethodModel } from './models/TrackingMethodModel';
-import { isResultSuccess,isGChatMessageResult,isGChatOrganCardResult } from './interfaces/IAnalyticResult';
+import {
+  isResultSuccess,
+  isGChatMessageResult,
+  isGChatOrganCardResult,
+} from './interfaces/IAnalyticResult';
 import {
   ANALYTIC_RESULT_TYPE,
   ANALYTIC_TYPE,
@@ -44,13 +48,16 @@ import {
   ATTRIBUTE_TICKET_PROCESS_ID,
   ATTRIBUTE_ALARM_PRIORITY,
   ANALYTIC_STATUS,
-  
 } from './constants';
 
 import * as algos from './algorithms/algorithms';
 import { ALGORITHMS } from './algorithms/algorithms';
 import { AnalyticService } from './services/AnalyticService';
-import { getValueModelFromEntry , getChoiceRelationsWithDepth, getAvailableData } from './services/utils';
+import {
+  getValueModelFromEntry,
+  getChoiceRelationsWithDepth,
+  getAvailableData,
+} from './services/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const globalRoot: any = typeof window === 'undefined' ? global : window;
@@ -121,7 +128,7 @@ export {
   isGChatOrganCardResult,
   algos,
   ALGORITHMS,
-  ANALYTIC_STATUS
+  ANALYTIC_STATUS,
 };
 
 export default spinalAnalyticService;

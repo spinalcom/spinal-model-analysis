@@ -3,14 +3,12 @@ import { IAlgorithm } from '../interfaces/IAlgorithm';
 import { IRequiredParameter } from '../interfaces/IRequiredParameter';
 import { SpinalDateValue } from 'spinal-model-timeseries';
 
-
 interface IParameters {
   [key: string]: string | number | boolean;
 }
 
-
-type PrivimitiveInput  =  number | string| boolean
-type IInput =  PrivimitiveInput | SpinalDateValue[];
+type PrivimitiveInput = number | string | boolean;
+type IInput = PrivimitiveInput | SpinalDateValue[];
 
 class Algorithm implements IAlgorithm {
   name: string;
@@ -43,8 +41,11 @@ export const PUTVALUE = new Algorithm(
   ['number'],
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to inject' }],
-  (input: number, params: IParameters | undefined ): string | number | boolean => {
-    if(!params) throw new Error('No parameters provided');
+  (
+    input: number,
+    params: IParameters | undefined
+  ): string | number | boolean => {
+    if (!params) throw new Error('No parameters provided');
     return params['p1'];
   }
 );
@@ -56,7 +57,7 @@ export const COPY = new Algorithm(
   'number',
   [],
   (input: IInput[]): any => {
-    return input[0]
+    return input[0];
   }
 );
 
@@ -67,8 +68,8 @@ export const DIVIDE = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    if(input.length < 2) throw new Error('Not enough inputs');
-    if(input[1] === 0) throw new Error('Division by zero');
+    if (input.length < 2) throw new Error('Not enough inputs');
+    if (input[1] === 0) throw new Error('Division by zero');
     return input[0] / input[1];
   }
 );
@@ -80,9 +81,12 @@ export const DIVIDE_BY = new Algorithm(
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to divide by' }],
   (input: number[], params: IParameters | undefined): number => {
-    if(!params) throw new Error('No parameters provided');
-    if(params['p1'] === 0) throw new Error('Division by zero');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);    
+    if (!params) throw new Error('No parameters provided');
+    if (params['p1'] === 0) throw new Error('Division by zero');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid parameter type. Expected number, got ${typeof params['p1']}`
+      );
     return input[0] / params['p1'];
   }
 );
@@ -93,9 +97,12 @@ export const THRESHOLD_ABOVE = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: number[], params: IParameters | undefined ): boolean => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);    
+  (input: number[], params: IParameters | undefined): boolean => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid parameter type. Expected number, got ${typeof params['p1']}`
+      );
     const treshold = params['p1'];
     for (const n of input) {
       if (n > treshold) return true;
@@ -111,8 +118,11 @@ export const THRESHOLD_BELOW = new Algorithm(
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
   (input: number[], params: IParameters | undefined): boolean => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid parameter type. Expected number, got ${typeof params['p1']}`
+      );
     const treshold = params['p1'];
     for (const n of input) {
       if (n < treshold) return true;
@@ -130,10 +140,16 @@ export const THRESHOLD_BETWEEN_IN = new Algorithm(
     { name: 'p1', type: 'number', description: 'the first threshold value' },
     { name: 'p2', type: 'number', description: 'the second threshold value' },
   ],
-  (input: number[], params: IParameters | undefined ): boolean => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
-    if(typeof params['p2'] !== 'number') throw new Error(`Invalid p2 parameter type. Expected number, got ${typeof params['p2']}`);
+  (input: number[], params: IParameters | undefined): boolean => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
+      );
+    if (typeof params['p2'] !== 'number')
+      throw new Error(
+        `Invalid p2 parameter type. Expected number, got ${typeof params['p2']}`
+      );
     const p1 = params['p1'];
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
@@ -154,10 +170,16 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
     { name: 'p1', type: 'number', description: 'the first threshold value' },
     { name: 'p2', type: 'number', description: 'the second threshold value' },
   ],
-  (input: number[], params: IParameters | undefined ): boolean => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
-    if(typeof params['p2'] !== 'number') throw new Error(`Invalid p2 parameter type. Expected number, got ${typeof params['p2']}`);
+  (input: number[], params: IParameters | undefined): boolean => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
+      );
+    if (typeof params['p2'] !== 'number')
+      throw new Error(
+        `Invalid p2 parameter type. Expected number, got ${typeof params['p2']}`
+      );
     const p1 = params['p1'];
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
@@ -176,9 +198,7 @@ export const AVERAGE = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    return (
-      input.reduce((acc, current) => acc + current, 0) / input.length
-    );
+    return input.reduce((acc, current) => acc + current, 0) / input.length;
   }
 );
 
@@ -221,9 +241,12 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
   ['number'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the threshold value' }],
-  (input: number[], params: IParameters | undefined ): boolean => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
+  (input: number[], params: IParameters | undefined): boolean => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
+      );
     const treshold = params['p1'];
     const first = input[0];
     for (const n of input) {
@@ -253,9 +276,15 @@ export const INTEGRAL_BOOLEAN = new Algorithm(
     },
   ],
   (input: SpinalDateValue[][], params: IParameters | undefined): number => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
-    if(typeof params['p2'] !== 'string') throw new Error(`Invalid p2 parameter type. Expected string, got ${typeof params['p2']}`);
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
+      );
+    if (typeof params['p2'] !== 'string')
+      throw new Error(
+        `Invalid p2 parameter type. Expected string, got ${typeof params['p2']}`
+      );
     const percentageResult = params['p2'] === 'Percentage';
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
     const invertBool = (bool) => (bool ? 0 : 1);
@@ -302,8 +331,7 @@ export const STANDARD_DEVIATION = new Algorithm(
     const n = input.length;
     const mean = input.reduce((a, b) => a + b) / n;
     return Math.sqrt(
-      input.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) /
-        n
+      input.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n
     );
   }
 );
@@ -314,9 +342,9 @@ export const EQUAL_TO = new Algorithm(
   ['number', 'string', 'boolean'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the value to compare to' }],
-  (input: PrivimitiveInput[] , params: IParameters | undefined): boolean => {
-    if(!params) throw new Error('No parameters provided');
-    for(const i of input){
+  (input: PrivimitiveInput[], params: IParameters | undefined): boolean => {
+    if (!params) throw new Error('No parameters provided');
+    for (const i of input) {
       if (i !== params['p1']) return false;
     }
     return true;
@@ -326,11 +354,11 @@ export const EQUAL_TO = new Algorithm(
 export const IS_EMPTY = new Algorithm(
   'IS_EMPTY',
   'This algorithm returns true if the input is an empty list',
-  ['number', 'string','boolean'],
+  ['number', 'string', 'boolean'],
   'boolean',
   [],
   (input: IInput[]): boolean => {
-    return (input.length === 0);
+    return input.length === 0;
   }
 );
 
@@ -386,12 +414,14 @@ export const SUBTRACT_BY = new Algorithm(
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to subtract by' }],
   (input: number[], params: IParameters | undefined): number => {
-    if(!params) throw new Error('No parameters provided');
-    if(typeof params['p1'] !== 'number') throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
+      );
     return input[0] - params['p1'];
   }
 );
-
 
 export const ALGORITHMS: { [key: string]: Algorithm } = {
   PUTVALUE,

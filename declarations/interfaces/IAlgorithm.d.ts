@@ -1,4 +1,4 @@
-import { IRequiredParameter } from "./IRequiredParameter";
+import { IRequiredParameter } from './IRequiredParameter';
 export interface IAlgorithm {
     name: string;
     inputTypes: string[];

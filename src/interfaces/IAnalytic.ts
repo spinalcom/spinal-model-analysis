@@ -5,13 +5,13 @@
  * if the interval time is 0 or negative, the process will be executed in COV (Change of value) mode.
  * It means that the process execution will be bound to each and every change of value of the tracked variables.
  * @property {string} name - The name of the process
- * @property {number} intervalTime - The interval time of the process. 
+ * @property {number} intervalTime - The interval time of the process.
  * @property {string} description - The description of the entity type not necessary.
  * @export
  * @interface IAnalytic
  */
 export interface IAnalytic {
-    name: string;
-    description: string;
-    [key: string]: string;
+  name: string;
+  description: string;
+  [key: string]: string;
 }

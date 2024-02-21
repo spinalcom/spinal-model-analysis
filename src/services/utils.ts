@@ -50,8 +50,6 @@ import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 
 const serviceTimeseries = SingletonServiceTimeseries.getInstance();
 
-
-
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
  *
@@ -99,73 +97,135 @@ export async function getTicketLocalizationParameters(
   return res;
 }
 
-export async function getRelationsWithDepth(nodeId : string,depth : number): Promise<string[]> {
+export async function getRelationsWithDepth(
+  nodeId: string,
+  depth: number
+): Promise<string[]> {
   const relations = SpinalGraphService.getRelationNames(nodeId);
   if (depth <= 0) return relations;
   const children = await SpinalGraphService.getChildren(nodeId);
   for (const child of children) {
-    const childRelations = await getRelationsWithDepth(child.id.get(),depth-1);
+    const childRelations = await getRelationsWithDepth(
+      child.id.get(),
+      depth - 1
+    );
     for (const childRelation of childRelations) {
-        if (!relations.includes(childRelation)) relations.push(childRelation);
+      if (!relations.includes(childRelation)) relations.push(childRelation);
     }
   }
   return relations;
 }
 
-export async function getChoiceRelationsWithDepth(nodeId : string,depth : number): Promise<string[]> {
-    const relations = await getRelationsWithDepth(nodeId,depth);
-    const usefullRelations = relations.filter(relation => {
-        return !CONSTANTS.ENDPOINT_RELATIONS.includes(relation) &&
-         !CONSTANTS.CONTROL_ENDPOINT_RELATIONS.includes(relation);
-    });
-    return usefullRelations;
+export async function getChoiceRelationsWithDepth(
+  nodeId: string,
+  depth: number
+): Promise<string[]> {
+  const relations = await getRelationsWithDepth(nodeId, depth);
+  const usefullRelations = relations.filter((relation) => {
+    return (
+      !CONSTANTS.ENDPOINT_RELATIONS.includes(relation) &&
+      !CONSTANTS.CONTROL_ENDPOINT_RELATIONS.includes(relation)
+    );
+  });
+  return usefullRelations;
 }
 
-export async function getAvailableData(trackMethod : CONSTANTS.TRACK_METHOD, nodeId : string, filterValue:string, depth : number, stricDepth :boolean, authorizedRelations: string[]): Promise<string[]> {
+export async function getAvailableData(
+  trackMethod: CONSTANTS.TRACK_METHOD,
+  nodeId: string,
+  filterValue: string,
+  depth: number,
+  stricDepth: boolean,
+  authorizedRelations: string[]
+): Promise<string[]> {
   switch (trackMethod) {
     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
-      const data = await findEndpoints(nodeId,filterValue,depth,stricDepth,authorizedRelations,CONSTANTS.ENDPOINT_RELATIONS,CONSTANTS.ENDPOINT_NODE_TYPE);
-      return data.map(endpoint => endpoint.name.get());
+      const data = await findEndpoints(
+        nodeId,
+        filterValue,
+        depth,
+        stricDepth,
+        authorizedRelations,
+        CONSTANTS.ENDPOINT_RELATIONS,
+        CONSTANTS.ENDPOINT_NODE_TYPE
+      );
+      return data.map((endpoint) => endpoint.name.get());
     }
     case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
-      const data = await findEndpoints(nodeId,filterValue,depth,stricDepth,authorizedRelations,CONSTANTS.CONTROL_ENDPOINT_RELATIONS,CONSTANTS.ENDPOINT_NODE_TYPE);
-      return data.map(endpoint => endpoint.name.get());
+      const data = await findEndpoints(
+        nodeId,
+        filterValue,
+        depth,
+        stricDepth,
+        authorizedRelations,
+        CONSTANTS.CONTROL_ENDPOINT_RELATIONS,
+        CONSTANTS.ENDPOINT_NODE_TYPE
+      );
+      return data.map((endpoint) => endpoint.name.get());
     }
     case CONSTANTS.TRACK_METHOD.ATTRIBUTE_NAME_FILTER: {
-      const [category,attribute] = filterValue.split(':');
-      const data = await findAttributes(nodeId,category,attribute,depth,stricDepth,authorizedRelations);
+      const [category, attribute] = filterValue.split(':');
+      const data = await findAttributes(
+        nodeId,
+        category,
+        attribute,
+        depth,
+        stricDepth,
+        authorizedRelations
+      );
       return data;
     }
     default: {
-      console.log("Get available data not implemented yet for this tracking method");
+      console.log(
+        'Get available data not implemented yet for this tracking method'
+      );
       return [];
     }
-
-
   }
 }
 
-export async function findNodes(nodeId: string, authorizedRelations: string[], nodeType: string): Promise<SpinalNodeRef[]> {
-    let res: SpinalNodeRef[] = [];
-    const children = await SpinalGraphService.getChildren(nodeId, authorizedRelations);
-    for (const child of children) {
-      if (child.type.get() === nodeType) {
-        res.push(child);
-      } else {
-        res = res.concat(await findNodes(child.id.get(), authorizedRelations, nodeType));
-      }
+export async function findNodes(
+  nodeId: string,
+  authorizedRelations: string[],
+  nodeType: string
+): Promise<SpinalNodeRef[]> {
+  let res: SpinalNodeRef[] = [];
+  const children = await SpinalGraphService.getChildren(
+    nodeId,
+    authorizedRelations
+  );
+  for (const child of children) {
+    if (child.type.get() === nodeType) {
+      res.push(child);
+    } else {
+      res = res.concat(
+        await findNodes(child.id.get(), authorizedRelations, nodeType)
+      );
     }
-    return res;
+  }
+  return res;
 }
 
-async function findSpecificNode(nodeId:string,filterNameValue:string, trackedRelations:string[],nodeType:string): Promise<SpinalNodeRef | undefined> {
+async function findSpecificNode(
+  nodeId: string,
+  filterNameValue: string,
+  trackedRelations: string[],
+  nodeType: string
+): Promise<SpinalNodeRef | undefined> {
   const endpoints = await findNodes(nodeId, trackedRelations, nodeType);
-  return endpoints.find(endpoint => endpoint.name.get() === filterNameValue);
+  return endpoints.find((endpoint) => endpoint.name.get() === filterNameValue);
 }
 
-async function findMatchingNodes(nodeId:string,filterNameValue:string, trackedRelations:string[],nodeType:string): Promise<SpinalNodeRef[]> {
+async function findMatchingNodes(
+  nodeId: string,
+  filterNameValue: string,
+  trackedRelations: string[],
+  nodeType: string
+): Promise<SpinalNodeRef[]> {
   const endpoints = await findNodes(nodeId, trackedRelations, nodeType);
-  return endpoints.filter(endpoint => endpoint.name.get().includes(filterNameValue));
+  return endpoints.filter((endpoint) =>
+    endpoint.name.get().includes(filterNameValue)
+  );
 }
 
 export async function findEndpoint(
@@ -181,22 +241,37 @@ export async function findEndpoint(
 
   // we dont look further
   if (depth == 0) {
-    return await findSpecificNode(nodeId,filterNameValue,trackedRelations,nodeType);
+    return await findSpecificNode(
+      nodeId,
+      filterNameValue,
+      trackedRelations,
+      nodeType
+    );
   }
 
   // depth > 0
 
   if (!strictDepth) {
-    const foundEndpoint = await findSpecificNode(nodeId,filterNameValue,trackedRelations,nodeType);
+    const foundEndpoint = await findSpecificNode(
+      nodeId,
+      filterNameValue,
+      trackedRelations,
+      nodeType
+    );
     if (foundEndpoint) return foundEndpoint;
   }
 
   const allRelations = SpinalGraphService.getRelationNames(nodeId);
-  const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+  const checkedRelations = allRelations.filter((relation) =>
+    authorizedRelations.includes(relation)
+  );
 
   if (checkedRelations.length === 0) return undefined;
 
-  const children = await SpinalGraphService.getChildren(nodeId, checkedRelations);
+  const children = await SpinalGraphService.getChildren(
+    nodeId,
+    checkedRelations
+  );
   for (const child of children) {
     const endpoint = await findEndpoint(
       child.id.get(),
@@ -205,7 +280,7 @@ export async function findEndpoint(
       strictDepth,
       authorizedRelations,
       trackedRelations,
-      nodeType,
+      nodeType
     );
     if (endpoint) return endpoint;
   }
@@ -221,68 +296,99 @@ export async function findEndpoints(
   trackedRelations: string[],
   nodeType: string
 ): Promise<SpinalNodeRef[]> {
-
   if (depth == 0) {
-    return await findMatchingNodes(nodeId,filterNameValue,trackedRelations,nodeType);
+    return await findMatchingNodes(
+      nodeId,
+      filterNameValue,
+      trackedRelations,
+      nodeType
+    );
   }
 
   let results: SpinalNodeRef[] = [];
 
   if (!strictDepth) {
-    results = results.concat(await findMatchingNodes(nodeId,filterNameValue,trackedRelations,nodeType));
+    results = results.concat(
+      await findMatchingNodes(
+        nodeId,
+        filterNameValue,
+        trackedRelations,
+        nodeType
+      )
+    );
   }
 
   if (depth <= 0) return results;
 
   const allRelations = SpinalGraphService.getRelationNames(nodeId);
-  const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+  const checkedRelations = allRelations.filter((relation) =>
+    authorizedRelations.includes(relation)
+  );
 
   if (checkedRelations.length === 0) return results;
 
-  const children = await SpinalGraphService.getChildren(nodeId, checkedRelations);
+  const children = await SpinalGraphService.getChildren(
+    nodeId,
+    checkedRelations
+  );
   for (const child of children) {
-    results = results.concat(await findEndpoints(
-      child.id.get(),
-      filterNameValue,
-      depth - 1,
-      strictDepth,
-      authorizedRelations,
-      trackedRelations,
-      nodeType,
-      
-    ));
+    results = results.concat(
+      await findEndpoints(
+        child.id.get(),
+        filterNameValue,
+        depth - 1,
+        strictDepth,
+        authorizedRelations,
+        trackedRelations,
+        nodeType
+      )
+    );
   }
 
   return results;
 }
 
 export async function findAttribute(
-  nodeId :string,
-  categoryName:string,
-  attributeName:string,
-  depth:number,
-  strictDepth:boolean,
-  authorizedRelations: string[]) : Promise<SpinalAttribute | -1> {
+  nodeId: string,
+  categoryName: string,
+  attributeName: string,
+  depth: number,
+  strictDepth: boolean,
+  authorizedRelations: string[]
+): Promise<SpinalAttribute | -1> {
   if (depth < 0) return -1;
 
   const node = SpinalGraphService.getRealNode(nodeId);
   // we dont look further
   if (depth == 0) {
-    return await attributeService.findOneAttributeInCategory(node,categoryName,attributeName);
+    return await attributeService.findOneAttributeInCategory(
+      node,
+      categoryName,
+      attributeName
+    );
   }
 
   // depth > 0
   if (!strictDepth) {
-    const foundAttribute = await attributeService.findOneAttributeInCategory(node,categoryName,attributeName);
+    const foundAttribute = await attributeService.findOneAttributeInCategory(
+      node,
+      categoryName,
+      attributeName
+    );
     if (foundAttribute != -1) return foundAttribute;
   }
 
   const allRelations = SpinalGraphService.getRelationNames(nodeId);
-  const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+  const checkedRelations = allRelations.filter((relation) =>
+    authorizedRelations.includes(relation)
+  );
 
   if (checkedRelations.length === 0) return -1;
 
-  const children = await SpinalGraphService.getChildren(nodeId, checkedRelations);
+  const children = await SpinalGraphService.getChildren(
+    nodeId,
+    checkedRelations
+  );
   for (const child of children) {
     const attribute = await findAttribute(
       child.id.get(),
@@ -290,7 +396,7 @@ export async function findAttribute(
       attributeName,
       depth - 1,
       strictDepth,
-      authorizedRelations,
+      authorizedRelations
     );
     if (attribute != -1) return attribute;
   }
@@ -298,13 +404,13 @@ export async function findAttribute(
 }
 
 export async function findAttributes(
-  nodeId :string,
-  categoryName:string,
-  attributeName:string,
-  depth:number,
-  strictDepth:boolean,
-  authorizedRelations: string[]) : Promise<string[]>
-  {
+  nodeId: string,
+  categoryName: string,
+  attributeName: string,
+  depth: number,
+  strictDepth: boolean,
+  authorizedRelations: string[]
+): Promise<string[]> {
   if (depth == 0) {
     return await findAllCategoriesAndAttributes(nodeId);
   }
@@ -316,28 +422,33 @@ export async function findAttributes(
   }
 
   if (depth <= 0) return results;
-  
+
   const allRelations = SpinalGraphService.getRelationNames(nodeId);
-  const checkedRelations = allRelations.filter(relation => authorizedRelations.includes(relation));
+  const checkedRelations = allRelations.filter((relation) =>
+    authorizedRelations.includes(relation)
+  );
 
   if (checkedRelations.length === 0) return results;
 
-  const children = await SpinalGraphService.getChildren(nodeId, checkedRelations);
+  const children = await SpinalGraphService.getChildren(
+    nodeId,
+    checkedRelations
+  );
   for (const child of children) {
-    results = results.concat(await findAttributes(
-      child.id.get(),
-      categoryName,
-      attributeName,
-      depth - 1,
-      strictDepth,
-      authorizedRelations,
-    ));
+    results = results.concat(
+      await findAttributes(
+        child.id.get(),
+        categoryName,
+        attributeName,
+        depth - 1,
+        strictDepth,
+        authorizedRelations
+      )
+    );
   }
 
   return results;
 }
-
-
 
 export async function findAllCategoriesAndAttributes(
   followedEntityId: string
@@ -357,8 +468,6 @@ export async function findAllCategoriesAndAttributes(
   }
   return res;
 }
-
-
 
 export async function getValueModelFromEntry(
   entryDataModel: SpinalNodeRef | SpinalAttribute
@@ -623,30 +732,41 @@ async function updateEndpointOccurenceNumber(
   });
 }
 
-
-
-
-async function removeChild(parentNode: SpinalNode<any>, childNode: SpinalNode<any>, relation : string) : Promise<void>{
+async function removeChild(
+  parentNode: SpinalNode<any>,
+  childNode: SpinalNode<any>,
+  relation: string
+): Promise<void> {
   try {
-    await parentNode.removeChild(childNode, relation, SPINAL_RELATION_PTR_LST_TYPE);
+    await parentNode.removeChild(
+      childNode,
+      relation,
+      SPINAL_RELATION_PTR_LST_TYPE
+    );
   } catch (e) {
     try {
-      await parentNode.removeChild(childNode, relation, SPINAL_RELATION_LST_PTR_TYPE);
+      await parentNode.removeChild(
+        childNode,
+        relation,
+        SPINAL_RELATION_LST_PTR_TYPE
+      );
     } catch (e) {
       console.log(e);
     }
   }
 }
 
-
-export async function safeDeleteNode(nodeId: string,shouldDeleteChildren = false) : Promise<void>{
+export async function safeDeleteNode(
+  nodeId: string,
+  shouldDeleteChildren = false
+): Promise<void> {
   const realNode = SpinalGraphService.getRealNode(nodeId);
   const relations = realNode.getRelationNames();
-  for(const relation of relations) {
+  for (const relation of relations) {
     const children = await realNode.getChildren(relation);
-    for(const child of children) {
-      await removeChild(realNode,child,relation);
-      if(shouldDeleteChildren) await child.removeFromGraph();
+    for (const child of children) {
+      await removeChild(realNode, child, relation);
+      if (shouldDeleteChildren) await child.removeFromGraph();
     }
   }
   await realNode.removeFromGraph();

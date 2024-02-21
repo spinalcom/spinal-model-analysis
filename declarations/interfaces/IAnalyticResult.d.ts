@@ -1,4 +1,4 @@
-import { ANALYTIC_RESULT_TYPE } from "../constants";
+import { ANALYTIC_RESULT_TYPE } from '../constants';
 export declare function isResultSuccess(result: IResult): result is IResultSuccess;
 export declare function isGChatMessageResult(result: IResultSuccess): result is IGChatMessageResult;
 export declare function isGChatOrganCardResult(result: IResultSuccess): result is IGChatOrganCardResult;

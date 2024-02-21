@@ -3,7 +3,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.isGChatOrganCardResult = exports.isGChatMessageResult = exports.isResultSuccess = void 0;
 const constants_1 = require("../constants");
 function isResultSuccess(result) {
-    return result.success = true;
+    return (result.success = true);
 }
 exports.isResultSuccess = isResultSuccess;
 function isGChatMessageResult(result) {

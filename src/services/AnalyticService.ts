@@ -27,7 +27,10 @@ import { INodeDocumentation } from '../interfaces/IAttribute';
 import AttributeService, {
   attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
-import { SpinalDateValue, SpinalServiceTimeseries } from 'spinal-model-timeseries';
+import {
+  SpinalDateValue,
+  SpinalServiceTimeseries,
+} from 'spinal-model-timeseries';
 
 import {
   findEndpoint,
@@ -38,7 +41,7 @@ import {
 } from './utils';
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import { SpinalAttribute } from 'spinal-models-documentation';
-import { ALGORITHMS } from '../algorithms/algorithms'
+import { ALGORITHMS } from '../algorithms/algorithms';
 import axios from 'axios';
 import { stringify } from 'qs';
 
@@ -1049,9 +1052,11 @@ export default class AnalyticService {
       trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0
     ) {
       const currentValue = await getValueModelFromEntry(entryDataModel);
-      const assertedValue: string | number | boolean = currentValue.get() as string | number | boolean;
+      const assertedValue: string | number | boolean = currentValue.get() as
+        | string
+        | number
+        | boolean;
       return assertedValue;
-
     } else {
       const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
         entryDataModel.id.get()
@@ -1065,7 +1070,7 @@ export default class AnalyticService {
         data.push({ date: end, value: data[data.length - 1].value });
       }
       //const dataValues = data.map((el) => el.value);
-      return data
+      return data;
     }
   }
 
@@ -1225,20 +1230,10 @@ export default class AnalyticService {
     if (!entities) return [{ success: false, error: 'No entities found' }];
 
     //const results: IResult[] = [];
-    const analysisPromises = entities.map(entity => this.doAnalysisOnEntity(analyticId, entity));
-    const resultPromises = await Promise.allSettled(analysisPromises);
-    const results: IResult[] = resultPromises.map(result => {
-      if (result.status === 'fulfilled') {
-        return result.value;
-      } else {
-        // Handle rejected promises, potentially by returning an error result
-        return { success: false, error: 'Analysis failed ,' }; // Customize as needed
-      }
-    });
-    /*for (const entity of entities) {
-      const result = await this.doAnalysisOnEntity(analyticId, entity);
-      results.push(result);
-    }*/
+    const analysisPromises = entities.map((entity) =>
+      this.doAnalysisOnEntity(analyticId, entity)
+    );
+    const results = await Promise.all(analysisPromises);
     return results;
   }
 
@@ -1280,7 +1275,7 @@ export default class AnalyticService {
         );
         return {
           success: true,
-          resultValue : result,
+          resultValue: result,
           error: '',
           resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
         };
@@ -1293,7 +1288,7 @@ export default class AnalyticService {
         );
         return {
           success: true,
-          resultValue : result,
+          resultValue: result,
           error: '',
           resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
         };
@@ -1301,7 +1296,7 @@ export default class AnalyticService {
         await this.handleEndpointResult(result, followedEntityNode, params);
         return {
           success: true,
-          resultValue : result,
+          resultValue: result,
           error: '',
           resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
         };
@@ -1314,11 +1309,13 @@ export default class AnalyticService {
           params,
           'Alarm'
         );
-      
-        
+
       case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
-        return await this.handleSMSResult(result, configNode, followedEntityNode);
-      
+        return await this.handleSMSResult(
+          result,
+          configNode,
+          followedEntityNode
+        );
 
       case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
         console.log(
@@ -1328,16 +1325,24 @@ export default class AnalyticService {
         );
         return {
           success: true,
-          resultValue : result,
+          resultValue: result,
           error: '',
           resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.LOG,
         };
 
       case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
-        return this.handleGChatMessageResult(result, configNode, followedEntityNode);
+        return this.handleGChatMessageResult(
+          result,
+          configNode,
+          followedEntityNode
+        );
 
       case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
-        return this.handleGChatOrganCardResult(result, configNode, followedEntityNode);
+        return this.handleGChatOrganCardResult(
+          result,
+          configNode,
+          followedEntityNode
+        );
 
       default:
         return { success: false, error: 'Result type not recognized' };
@@ -1365,13 +1370,20 @@ export default class AnalyticService {
     params: any,
     ticketType: string // Alarm or Ticket
   ): Promise<IResult> {
-    if (result == false) return { success: true, error: '', resultValue: result, resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET }; 
+    if (result == false)
+      return {
+        success: true,
+        error: '',
+        resultValue: result,
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
+      };
 
     const outputNode = await this.getOutputsNode(analyticId);
-    if (!outputNode) return { success: false, error: ' Output Node not found' }; 
+    if (!outputNode) return { success: false, error: ' Output Node not found' };
 
     const analyticContextId = this.getContextIdOfAnalytic(analyticId);
-    if (!analyticContextId) return { success: false, error: ' Analytic context id not found' }; 
+    if (!analyticContextId)
+      return { success: false, error: ' Analytic context id not found' };
 
     const ticketInfo = {
       name: `${
@@ -1387,7 +1399,12 @@ export default class AnalyticService {
       followedEntityNode.id.get(),
       ticketType
     );
-    return { success: true, error: '', resultValue: result, resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET };
+    return {
+      success: true,
+      error: '',
+      resultValue: result,
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
+    };
   }
 
   /**
@@ -1414,7 +1431,8 @@ export default class AnalyticService {
       CONSTANTS.CONTROL_ENDPOINT_RELATIONS,
       CONSTANTS.ENDPOINT_NODE_TYPE
     );
-    if (!controlEndpointNode) return { success: false, error: ' Control endpoint node not found' }; 
+    if (!controlEndpointNode)
+      return { success: false, error: ' Control endpoint node not found' };
 
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
@@ -1422,7 +1440,12 @@ export default class AnalyticService {
       controlEndpointNode.id.get(),
       result
     );
-    return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT };
+    return {
+      success: true,
+      resultValue: result,
+      error: '',
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
+    };
   }
 
   /**
@@ -1449,14 +1472,20 @@ export default class AnalyticService {
       CONSTANTS.ENDPOINT_RELATIONS,
       CONSTANTS.ENDPOINT_NODE_TYPE
     );
-    if (!controlEndpointNode) return { success: false, error: 'Endpoint node not found' };
+    if (!controlEndpointNode)
+      return { success: false, error: 'Endpoint node not found' };
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
     this.spinalServiceTimeseries.pushFromEndpoint(
       controlEndpointNode.id.get(),
       result
     );
-    return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT };
+    return {
+      success: true,
+      resultValue: result,
+      error: '',
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
+    };
   }
 
   /**
@@ -1482,7 +1511,13 @@ export default class AnalyticService {
     )
       return { success: false, error: 'Twilio parameters not found' };
 
-    if( result == false) return { success: true, resultValue: result , error : '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS};
+    if (result == false)
+      return {
+        success: true,
+        resultValue: result,
+        error: '',
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
+      };
     const twilioParams = await this.getAttributesFromNode(
       configNode.id.get(),
       CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS
@@ -1511,17 +1546,27 @@ export default class AnalyticService {
 
     const axiosResult = await axios(config);
     console.log({ status: axiosResult.status, data: axiosResult.data });
-    return { success: true, resultValue: result, error: '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS };
-
+    return {
+      success: true,
+      resultValue: result,
+      error: '',
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
+    };
   }
 
   private async handleGChatMessageResult(
-    result :any ,
+    result: any,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
     console.log('Handling Google chat message result');
-    if(result == false) return { success: true, resultValue: false , error : '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE};
+    if (result == false)
+      return {
+        success: true,
+        resultValue: false,
+        error: '',
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
+      };
 
     const analyticParams = await this.getAttributesFromNode(
       configNode.id.get(),
@@ -1539,26 +1584,36 @@ export default class AnalyticService {
 
     const resultInfo: IGChatMessageResult = {
       success: true,
-      resultValue : result,
+      resultValue: result,
       error: '',
       spaceName: spaceName,
-      message: 'The following message has been triggered by an analytic.\n '+
-      '\nAnalysis on item : '+ followedEntityNode.name.get()+
-      '\nDescription : '+ analyticDescription +
-      '\nMessage : '+ message,
+      message:
+        'The following message has been triggered by an analytic.\n ' +
+        '\nAnalysis on item : ' +
+        followedEntityNode.name.get() +
+        '\nDescription : ' +
+        analyticDescription +
+        '\nMessage : ' +
+        message,
       resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
     };
     return resultInfo;
   }
 
   private async handleGChatOrganCardResult(
-    result:any,
+    result: any,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
     console.log('Handling Google chat organ card result');
 
-    if(result == false) return { success: true, resultValue: result , error : '', resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE};
+    if (result == false)
+      return {
+        success: true,
+        resultValue: result,
+        error: '',
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
+      };
 
     const analyticParams = await this.getAttributesFromNode(
       configNode.id.get(),
@@ -1579,15 +1634,30 @@ export default class AnalyticService {
     const analyticDescription: string =
       analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
 
-    const lastPing = await findEndpoint(followedEntityNode.id.get(),'last_ping', 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
-    if (!lastPing) return { success: false, error: 'endpoint lastPing not found on organ node' };
+    const lastPing = await findEndpoint(
+      followedEntityNode.id.get(),
+      'last_ping',
+      0,
+      true,
+      [],
+      CONSTANTS.ENDPOINT_RELATIONS,
+      CONSTANTS.ENDPOINT_NODE_TYPE
+    );
+    if (!lastPing)
+      return {
+        success: false,
+        error: 'endpoint lastPing not found on organ node',
+      };
     const lastPingValue = await getValueModelFromEntry(lastPing);
-    const lastPingDate = (new Date(lastPingValue.get())).toString();
-    const parents = await SpinalGraphService.getParents(followedEntityNode.id.get(), 'HasOrgan');
+    const lastPingDate = new Date(lastPingValue.get()).toString();
+    const parents = await SpinalGraphService.getParents(
+      followedEntityNode.id.get(),
+      'HasOrgan'
+    );
     let platformName = "Couldn't find the platform name";
     let ipAddress = "Couldn't find the ip adress";
     for (const parent of parents) {
-      if(parent.id.get() == followedEntityNode.platformId?.get()) {
+      if (parent.id.get() == followedEntityNode.platformId?.get()) {
         platformName = parent.name?.get();
         ipAddress = parent.ipAdress?.get();
       }
@@ -1603,13 +1673,13 @@ export default class AnalyticService {
           widgets: [
             {
               keyValue: {
-                topLabel: "Analytic description",
+                topLabel: 'Analytic description',
                 content: analyticDescription,
               },
             },
             {
               keyValue: {
-                topLabel: "Message",
+                topLabel: 'Message',
                 content: message,
               },
             },
@@ -1634,8 +1704,8 @@ export default class AnalyticService {
               keyValue: {
                 topLabel: 'Last ping',
                 content: lastPingDate,
-              }
-            }
+              },
+            },
           ],
         },
         {
@@ -1657,11 +1727,10 @@ export default class AnalyticService {
               keyValue: {
                 topLabel: 'Ip Address',
                 content: ipAddress,
-              }
+              },
             },
-      
           ],
-        }
+        },
       ],
     };
     const resultInfo: IGChatOrganCardResult = {

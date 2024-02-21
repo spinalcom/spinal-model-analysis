@@ -100,7 +100,7 @@ exports.THRESHOLD_BETWEEN_OUT = new Algorithm('THRESHOLD_BETWEEN_OUT', 'This alg
     return false;
 });
 exports.AVERAGE = new Algorithm('AVERAGE', 'This algorithm returns the average of the inputs', ['number'], 'number', [], (input) => {
-    return (input.reduce((acc, current) => acc + current, 0) / input.length);
+    return input.reduce((acc, current) => acc + current, 0) / input.length;
 });
 exports.AND = new Algorithm('AND', 'This algorithm returns true if all the inputs are true', ['boolean'], 'boolean', [], (input) => {
     return !input.includes(false);
@@ -170,8 +170,7 @@ exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm cal
 exports.STANDARD_DEVIATION = new Algorithm('STANDARD_DEVIATION', 'This algorithm returns the standard deviation of the inputs', ['number'], 'number', [], (input) => {
     const n = input.length;
     const mean = input.reduce((a, b) => a + b) / n;
-    return Math.sqrt(input.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) /
-        n);
+    return Math.sqrt(input.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
 });
 exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if all inputs are equal to the parameter', ['number', 'string', 'boolean'], 'boolean', [{ name: 'p1', type: 'number', description: 'the value to compare to' }], (input, params) => {
     if (!params)
@@ -183,7 +182,7 @@ exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if all
     return true;
 });
 exports.IS_EMPTY = new Algorithm('IS_EMPTY', 'This algorithm returns true if the input is an empty list', ['number', 'string', 'boolean'], 'boolean', [], (input) => {
-    return (input.length === 0);
+    return input.length === 0;
 });
 exports.CONV_BOOLEAN_TO_NUMBER = new Algorithm('CONV_BOOLEAN_TO_NUMBER', 'This algorithm converts a boolean to a number', ['boolean'], 'number', [], (input) => {
     return input[0] ? 1 : 0;

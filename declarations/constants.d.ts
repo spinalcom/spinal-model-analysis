@@ -18,9 +18,9 @@ export declare const TARGET_NODE_TYPES: Readonly<{
     Floor: "geographicFloor";
     Room: "geographicRoom";
     Equipment: "BIMObject";
-    "Floor Group": "geographicFloorGroup";
-    "Room Group": "geographicRoomGroup";
-    "Equipment Group": "BIMObjectGroup";
+    'Floor Group': "geographicFloorGroup";
+    'Room Group': "geographicRoomGroup";
+    'Equipment Group': "BIMObjectGroup";
     Other: undefined;
 }>;
 export declare const CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";

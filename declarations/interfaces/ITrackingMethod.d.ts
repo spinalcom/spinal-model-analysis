@@ -1,4 +1,4 @@
-import { TRACK_METHOD } from "../constants";
+import { TRACK_METHOD } from '../constants';
 /**
  * @property {string} trackMethod - The method used to track the variable
  * @export

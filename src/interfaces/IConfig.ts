@@ -1,4 +1,4 @@
-import { ANALYTIC_RESULT_TYPE } from "../constants";
+import { ANALYTIC_RESULT_TYPE } from '../constants';
 
 /**
  * @property {string} name - The name of the analytic should correspond to the name of the analytic function
@@ -9,8 +9,8 @@ import { ANALYTIC_RESULT_TYPE } from "../constants";
  * @interface IConfig
  */
 export interface IConfig {
-   algorithm: string;
-   resultType: ANALYTIC_RESULT_TYPE;
-   resultName: string;
-   [key: string]: string | number | undefined;
+  algorithm: string;
+  resultType: ANALYTIC_RESULT_TYPE;
+  resultName: string;
+  [key: string]: string | number | undefined;
 }

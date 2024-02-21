@@ -1,5 +1,4 @@
-
-import {ENTITY_TYPES} from "../constants"
+import { ENTITY_TYPES } from '../constants';
 /**
  * @property {string} name - The name of the entity type e.g. "Bâtiment / Etage / Pièce"
  * @property {string} standard_name - The standard name of the entity type e.g. "Buildings / Floors / Rooms"
@@ -9,9 +8,9 @@ import {ENTITY_TYPES} from "../constants"
  * @interface IEntity
  */
 export interface IEntity {
-    name: string;
-    standard_name: string;
-    entityType: ENTITY_TYPES;
-    description: string;
-    [key: string]: string;
+  name: string;
+  standard_name: string;
+  entityType: ENTITY_TYPES;
+  description: string;
+  [key: string]: string;
 }

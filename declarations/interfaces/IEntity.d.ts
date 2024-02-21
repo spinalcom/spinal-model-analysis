@@ -1,4 +1,4 @@
-import { ENTITY_TYPES } from "../constants";
+import { ENTITY_TYPES } from '../constants';
 /**
  * @property {string} name - The name of the entity type e.g. "Bâtiment / Etage / Pièce"
  * @property {string} standard_name - The standard name of the entity type e.g. "Buildings / Floors / Rooms"

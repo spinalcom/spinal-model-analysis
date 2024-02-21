@@ -1,5 +1,5 @@
 export interface IAnalyticOutputType {
-    outputType: string;
-    compatibleResultTypes: string[];
-    description : string;
+  outputType: string;
+  compatibleResultTypes: string[];
+  description: string;
 }

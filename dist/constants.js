@@ -25,64 +25,72 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ANALYTIC_RESULT_TYPE = exports.ENDPOINT_NODE_TYPE = exports.CONTROL_ENDPOINT_RELATIONS = exports.ENDPOINT_RELATIONS = exports.ATTRIBUTE_TRIGGER_AT_START = exports.ATTRIBUTE_ANALYTIC_DESCRIPTION = exports.ATTRIBUTE_ANALYTIC_STATUS = exports.ATTRIBUTE_ALARM_PRIORITY = exports.ATTRIBUTE_TICKET_PROCESS_ID = exports.ATTRIBUTE_TICKET_CONTEXT_ID = exports.ATTRIBUTE_GCHAT_MESSAGE = exports.ATTRIBUTE_GCHAT_SPACE = exports.ATTRIBUTE_PHONE_MESSAGE = exports.ATTRIBUTE_PHONE_NUMBER = exports.ATTRIBUTE_RESULT_NAME = exports.ATTRIBUTE_RESULT_TYPE = exports.ATTRIBUTE_SEARCH_RELATIONS = exports.ATTRIBUTE_STRICT_DEPTH = exports.ATTRIBUTE_SEARCH_DEPTH = exports.ATTRIBUTE_TIMESERIES = exports.ATTRIBUTE_FILTER_VALUE = exports.ATTRIBUTE_TRACKING_METHOD = exports.ATTRIBUTE_VALUE_SEPARATOR = exports.ATTRIBUTE_SEPARATOR = exports.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING = exports.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = exports.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = exports.CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = exports.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = exports.TARGET_NODE_TYPES = exports.GROUP_RELATION_PREFIX = exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = exports.ANALYTIC_TO_CONFIG_RELATION = exports.ANALYTIC_TO_OUTPUTS_RELATION = exports.ANALYTIC_TO_INPUTS_RELATION = exports.ENTITY_TO_ANALYTIC_RELATION = exports.CONTEXT_TO_ENTITY_RELATION = exports.CONFIG_TYPE = exports.OUTPUTS_TYPE = exports.INPUTS_TYPE = exports.TRACKING_METHOD_TYPE = exports.ANALYTIC_TYPE = exports.ENTITY_TYPE = exports.CONTEXT_TYPE = void 0;
 exports.ENTITY_TYPES = exports.ANALYTIC_STATUS = exports.TRIGGER_TYPE = exports.TRACK_METHOD = void 0;
-exports.CONTEXT_TYPE = "analysisContext";
-exports.ENTITY_TYPE = "entity";
-exports.ANALYTIC_TYPE = "analytic";
-exports.TRACKING_METHOD_TYPE = "trackingMethod";
-exports.INPUTS_TYPE = "analyticInputs";
-exports.OUTPUTS_TYPE = "analyticOutputs";
-exports.CONFIG_TYPE = "analyticConfig";
-exports.CONTEXT_TO_ENTITY_RELATION = "hasEntity";
-exports.ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
-exports.ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
-exports.ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
-exports.ANALYTIC_TO_CONFIG_RELATION = "hasConfig";
-exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = "hasEntity";
-exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = "hasTrackingMethod";
-exports.GROUP_RELATION_PREFIX = "groupHas";
+exports.CONTEXT_TYPE = 'analysisContext';
+exports.ENTITY_TYPE = 'entity';
+exports.ANALYTIC_TYPE = 'analytic';
+exports.TRACKING_METHOD_TYPE = 'trackingMethod';
+exports.INPUTS_TYPE = 'analyticInputs';
+exports.OUTPUTS_TYPE = 'analyticOutputs';
+exports.CONFIG_TYPE = 'analyticConfig';
+exports.CONTEXT_TO_ENTITY_RELATION = 'hasEntity';
+exports.ENTITY_TO_ANALYTIC_RELATION = 'hasAnalytics';
+exports.ANALYTIC_TO_INPUTS_RELATION = 'hasInputs';
+exports.ANALYTIC_TO_OUTPUTS_RELATION = 'hasOutputs';
+exports.ANALYTIC_TO_CONFIG_RELATION = 'hasConfig';
+exports.ANALYTIC_INPUTS_TO_FOLLOWED_ENTITY_RELATION = 'hasEntity';
+exports.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION = 'hasTrackingMethod';
+exports.GROUP_RELATION_PREFIX = 'groupHas';
 exports.TARGET_NODE_TYPES = Object.freeze({
-    "Building": "geographicBuilding",
-    "Floor": "geographicFloor",
-    "Room": "geographicRoom",
-    "Equipment": "BIMObject",
-    "Floor Group": "geographicFloorGroup",
-    "Room Group": "geographicRoomGroup",
-    "Equipment Group": "BIMObjectGroup",
-    "Other": undefined
+    Building: 'geographicBuilding',
+    Floor: 'geographicFloor',
+    Room: 'geographicRoom',
+    Equipment: 'BIMObject',
+    'Floor Group': 'geographicFloorGroup',
+    'Room Group': 'geographicRoomGroup',
+    'Equipment Group': 'BIMObjectGroup',
+    Other: undefined,
 });
 // *** Categories ***
-exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = "Algorithm parameters";
-exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = "Ticket localization parameters";
-exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = "Result parameters";
-exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = "Tracking parameters";
-exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = "Twilio parameters";
-exports.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS = "Google chat parameters";
-exports.CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = "Trigger parameters";
-exports.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = "IO dependencies";
-exports.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = "Analytic parameters";
-exports.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING = "Algorithm index mapping";
-exports.ATTRIBUTE_SEPARATOR = "_";
-exports.ATTRIBUTE_VALUE_SEPARATOR = ",";
-exports.ATTRIBUTE_TRACKING_METHOD = "Tracking method";
-exports.ATTRIBUTE_FILTER_VALUE = "Filter value";
-exports.ATTRIBUTE_TIMESERIES = "Timeseries intervalTime";
-exports.ATTRIBUTE_SEARCH_DEPTH = "Search depth";
-exports.ATTRIBUTE_STRICT_DEPTH = "Strict depth";
-exports.ATTRIBUTE_SEARCH_RELATIONS = "Search relations";
-exports.ATTRIBUTE_RESULT_TYPE = "Result type";
-exports.ATTRIBUTE_RESULT_NAME = "Result name";
-exports.ATTRIBUTE_PHONE_NUMBER = "Phone number";
-exports.ATTRIBUTE_PHONE_MESSAGE = "Phone message";
-exports.ATTRIBUTE_GCHAT_SPACE = "Google chat space name/id";
-exports.ATTRIBUTE_GCHAT_MESSAGE = "Google chat message";
-exports.ATTRIBUTE_TICKET_CONTEXT_ID = "Ticket context id";
-exports.ATTRIBUTE_TICKET_PROCESS_ID = "Ticket category id";
-exports.ATTRIBUTE_ALARM_PRIORITY = "Alarm priority";
-exports.ATTRIBUTE_ANALYTIC_STATUS = "Status";
-exports.ATTRIBUTE_ANALYTIC_DESCRIPTION = "Description";
-exports.ATTRIBUTE_TRIGGER_AT_START = "Trigger at start";
-exports.ENDPOINT_RELATIONS = ['hasBmsEndpoint', 'hasBmsDevice', 'hasBmsEndpointGroup', 'hasEndPoint'];
-exports.CONTROL_ENDPOINT_RELATIONS = ['hasControlPoints', 'hasBmsEndpoint'];
+exports.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS = 'Algorithm parameters';
+exports.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS = 'Ticket localization parameters';
+exports.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS = 'Result parameters';
+exports.CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS = 'Tracking parameters';
+exports.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = 'Twilio parameters';
+exports.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS = 'Google chat parameters';
+exports.CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = 'Trigger parameters';
+exports.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = 'IO dependencies';
+exports.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = 'Analytic parameters';
+exports.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING = 'Algorithm index mapping';
+exports.ATTRIBUTE_SEPARATOR = '_';
+exports.ATTRIBUTE_VALUE_SEPARATOR = ',';
+exports.ATTRIBUTE_TRACKING_METHOD = 'Tracking method';
+exports.ATTRIBUTE_FILTER_VALUE = 'Filter value';
+exports.ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime';
+exports.ATTRIBUTE_SEARCH_DEPTH = 'Search depth';
+exports.ATTRIBUTE_STRICT_DEPTH = 'Strict depth';
+exports.ATTRIBUTE_SEARCH_RELATIONS = 'Search relations';
+exports.ATTRIBUTE_RESULT_TYPE = 'Result type';
+exports.ATTRIBUTE_RESULT_NAME = 'Result name';
+exports.ATTRIBUTE_PHONE_NUMBER = 'Phone number';
+exports.ATTRIBUTE_PHONE_MESSAGE = 'Phone message';
+exports.ATTRIBUTE_GCHAT_SPACE = 'Google chat space name/id';
+exports.ATTRIBUTE_GCHAT_MESSAGE = 'Google chat message';
+exports.ATTRIBUTE_TICKET_CONTEXT_ID = 'Ticket context id';
+exports.ATTRIBUTE_TICKET_PROCESS_ID = 'Ticket category id';
+exports.ATTRIBUTE_ALARM_PRIORITY = 'Alarm priority';
+exports.ATTRIBUTE_ANALYTIC_STATUS = 'Status';
+exports.ATTRIBUTE_ANALYTIC_DESCRIPTION = 'Description';
+exports.ATTRIBUTE_TRIGGER_AT_START = 'Trigger at start';
+exports.ENDPOINT_RELATIONS = [
+    'hasBmsEndpoint',
+    'hasBmsDevice',
+    'hasBmsEndpointGroup',
+    'hasEndPoint',
+];
+exports.CONTROL_ENDPOINT_RELATIONS = [
+    'hasControlPoints',
+    'hasBmsEndpoint',
+];
 exports.ENDPOINT_NODE_TYPE = 'BmsEndpoint';
 /**
  * The different types of results that an analytic can lead to.
