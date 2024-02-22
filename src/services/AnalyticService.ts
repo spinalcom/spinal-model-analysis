@@ -1156,7 +1156,6 @@ export default class AnalyticService {
           algoIndexMapping,
           algoParams
         );
-        if (res == undefined) return undefined;
         inputs.push(res);
       } else {
         // if dependency is an input then get the value of the input
@@ -1165,7 +1164,12 @@ export default class AnalyticService {
           entity,
           dependency
         );
-        if (inputData == undefined) return undefined;
+        if (inputData == undefined) {
+          const analyticInfo = SpinalGraphService.getInfo(analyticId);
+          throw new Error(
+            `Input data ${dependency} could not be retrieved on ${entity.name.get()} for analytic ${analyticInfo.name.get()}`
+          );
+        }
         inputs.push(inputData);
       }
     }
@@ -1190,33 +1194,41 @@ export default class AnalyticService {
     analyticId: string,
     entity: SpinalNodeRef
   ): Promise<IResult> {
-    //Get the io dependencies of the analytic
-    const configNode = await this.getConfig(analyticId);
-    if (!configNode) return { success: false, error: 'No config node found' };
+    try {
+      // Get the io dependencies of the analytic
+      const configNode = await this.getConfig(analyticId);
+      if (!configNode) return { success: false, error: 'No config node found' };
 
-    const ioDependencies = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES
-    );
-    const algoIndexMapping = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING
-    );
-    const algoParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS
-    );
+      const ioDependencies = await this.getAttributesFromNode(
+        configNode.id.get(),
+        CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES
+      );
+      const algoIndexMapping = await this.getAttributesFromNode(
+        configNode.id.get(),
+        CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING
+      );
+      const algoParams = await this.getAttributesFromNode(
+        configNode.id.get(),
+        CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS
+      );
 
-    const R = ioDependencies['R'];
-    const result = await this.recExecuteAlgorithm(
-      analyticId,
-      entity,
-      R,
-      ioDependencies,
-      algoIndexMapping,
-      algoParams
-    );
-    return this.applyResult(result, analyticId, configNode, entity);
+      const R = ioDependencies['R'];
+      const result = await this.recExecuteAlgorithm(
+        analyticId,
+        entity,
+        R,
+        ioDependencies,
+        algoIndexMapping,
+        algoParams
+      );
+      return this.applyResult(result, analyticId, configNode, entity);
+    } catch (error) {
+      if (error instanceof Error) {
+        return { success: false, error: error.message };
+      } else {
+        return { success: false, error: 'An unknown error occurred' };
+      }
+    }
   }
 
   /**

@@ -834,15 +834,15 @@ class AnalyticService {
                 if (dependency.startsWith('A')) {
                     // save the result of the algorithm in the inputs array
                     const res = yield this.recExecuteAlgorithm(analyticId, entity, dependency, ioDependencies, algoIndexMapping, algoParams);
-                    if (res == undefined)
-                        return undefined;
                     inputs.push(res);
                 }
                 else {
                     // if dependency is an input then get the value of the input
                     const inputData = yield this.getFormattedInputDataByIndex(analyticId, entity, dependency);
-                    if (inputData == undefined)
-                        return undefined;
+                    if (inputData == undefined) {
+                        const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
+                        throw new Error(`Input data ${dependency} could not be retrieved on ${entity.name.get()} for analytic ${analyticInfo.name.get()}`);
+                    }
                     inputs.push(inputData);
                 }
             }
@@ -862,16 +862,26 @@ class AnalyticService {
      */
     doAnalysisOnEntity(analyticId, entity) {
         return __awaiter(this, void 0, void 0, function* () {
-            //Get the io dependencies of the analytic
-            const configNode = yield this.getConfig(analyticId);
-            if (!configNode)
-                return { success: false, error: 'No config node found' };
-            const ioDependencies = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES);
-            const algoIndexMapping = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING);
-            const algoParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
-            const R = ioDependencies['R'];
-            const result = yield this.recExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams);
-            return this.applyResult(result, analyticId, configNode, entity);
+            try {
+                // Get the io dependencies of the analytic
+                const configNode = yield this.getConfig(analyticId);
+                if (!configNode)
+                    return { success: false, error: 'No config node found' };
+                const ioDependencies = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES);
+                const algoIndexMapping = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING);
+                const algoParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
+                const R = ioDependencies['R'];
+                const result = yield this.recExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams);
+                return this.applyResult(result, analyticId, configNode, entity);
+            }
+            catch (error) {
+                if (error instanceof Error) {
+                    return { success: false, error: error.message };
+                }
+                else {
+                    return { success: false, error: 'An unknown error occurred' };
+                }
+            }
         });
     }
     /**

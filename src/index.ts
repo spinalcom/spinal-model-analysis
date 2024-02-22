@@ -8,6 +8,7 @@ import {
   isResultSuccess,
   isGChatMessageResult,
   isGChatOrganCardResult,
+  IResult,
 } from './interfaces/IAnalyticResult';
 import {
   ANALYTIC_RESULT_TYPE,
@@ -81,6 +82,7 @@ export {
   ITrackingMethod,
   IEntity,
   IConfig,
+  IResult,
   AnalyticModel,
   TrackingMethodModel,
   ENTITY_TYPES,
