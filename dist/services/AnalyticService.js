@@ -840,8 +840,7 @@ class AnalyticService {
                     // if dependency is an input then get the value of the input
                     const inputData = yield this.getFormattedInputDataByIndex(analyticId, entity, dependency);
                     if (inputData == undefined) {
-                        const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
-                        throw new Error(`Input data ${dependency} could not be retrieved on ${entity.name.get()} for analytic ${analyticInfo.name.get()}`);
+                        throw new Error(`Input data ${dependency} could not be retrieved`);
                     }
                     inputs.push(inputData);
                 }
@@ -875,11 +874,16 @@ class AnalyticService {
                 return this.applyResult(result, analyticId, configNode, entity);
             }
             catch (error) {
+                const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
+                const positionString = ' on ' + entity.name.get() + ' in analytic : ' + analyticInfo.name.get();
                 if (error instanceof Error) {
-                    return { success: false, error: error.message };
+                    return { success: false, error: error.message + positionString };
                 }
                 else {
-                    return { success: false, error: 'An unknown error occurred' };
+                    return {
+                        success: false,
+                        error: 'An unknown error occurred' + positionString,
+                    };
                 }
             }
         });

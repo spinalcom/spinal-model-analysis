@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -99,8 +99,34 @@ exports.THRESHOLD_BETWEEN_OUT = new Algorithm('THRESHOLD_BETWEEN_OUT', 'This alg
     }
     return false;
 });
+exports.THRESHOLD_ZSCORE = new Algorithm('THRESHOLD_ZSCORE', `This algorithm is used to detect anomalies in a timeseries. 
+   The Z-score is a measure of how many standard deviations an element is from the mean.
+   It's calculated as Z = (X - mean) / stdDev 
+   where X is the value, mean is the average of the timeserie and stdDev is the standard deviation of the timeserie.
+   The threshold is a number set by the user. If the Z-score of the last value of the timeserie is above the threshold,
+   the algorithm returns true, otherwise it returns false.`, ['Timeseries'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
+    if (!params)
+        throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+        throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0)
+        throw new Error('Timeseries is empty');
+    const threshold = params['p1'];
+    const mean = dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
+    const variance = dataInput.reduce((acc, current) => acc + Math.pow(current.value - mean, 2), 0) / dataInput.length;
+    const stdDev = Math.sqrt(variance);
+    const zScore = (dataInput[dataInput.length - 1].value - mean) / stdDev;
+    return zScore > threshold;
+});
 exports.AVERAGE = new Algorithm('AVERAGE', 'This algorithm returns the average of the inputs', ['number'], 'number', [], (input) => {
     return input.reduce((acc, current) => acc + current, 0) / input.length;
+});
+exports.TIMESERIES_AVERAGE = new Algorithm('TIMESERIES_AVERAGE', 'This algorithm returns the average of the timeseries', ['Timeseries'], 'number', [], (input) => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0)
+        throw new Error('Timeseries is empty');
+    return dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
 });
 exports.AND = new Algorithm('AND', 'This algorithm returns true if all the inputs are true', ['boolean'], 'boolean', [], (input) => {
     return !input.includes(false);
@@ -124,7 +150,7 @@ exports.DIFFERENCE_THRESHOLD = new Algorithm('DIFFERENCE_THRESHOLD', 'This algor
     }
     return false;
 });
-exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm calculates the integral of timeseries.', ['object'], 'number', [
+exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm calculates the integral of timeseries.', ['Timeseries'], 'number', [
     {
         name: 'p1',
         type: 'number',
@@ -144,6 +170,8 @@ exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm cal
         throw new Error(`Invalid p2 parameter type. Expected string, got ${typeof params['p2']}`);
     const percentageResult = params['p2'] === 'Percentage';
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0)
+        throw new Error('Timeseries is empty');
     const invertBool = (bool) => (bool ? 0 : 1);
     dataInput.unshift({
         date: dataInput[dataInput.length - 1].date - params['p1'],
@@ -214,7 +242,9 @@ exports.ALGORITHMS = {
     THRESHOLD_BELOW: exports.THRESHOLD_BELOW,
     THRESHOLD_BETWEEN_IN: exports.THRESHOLD_BETWEEN_IN,
     THRESHOLD_BETWEEN_OUT: exports.THRESHOLD_BETWEEN_OUT,
+    THRESHOLD_ZSCORE: exports.THRESHOLD_ZSCORE,
     AVERAGE: exports.AVERAGE,
+    TIMESERIES_AVERAGE: exports.TIMESERIES_AVERAGE,
     AND: exports.AND,
     OR: exports.OR,
     NOT: exports.NOT,

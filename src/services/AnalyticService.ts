@@ -1165,10 +1165,7 @@ export default class AnalyticService {
           dependency
         );
         if (inputData == undefined) {
-          const analyticInfo = SpinalGraphService.getInfo(analyticId);
-          throw new Error(
-            `Input data ${dependency} could not be retrieved on ${entity.name.get()} for analytic ${analyticInfo.name.get()}`
-          );
+          throw new Error(`Input data ${dependency} could not be retrieved`);
         }
         inputs.push(inputData);
       }
@@ -1223,10 +1220,16 @@ export default class AnalyticService {
       );
       return this.applyResult(result, analyticId, configNode, entity);
     } catch (error) {
+      const analyticInfo = SpinalGraphService.getInfo(analyticId);
+      const positionString =
+        ' on ' + entity.name.get() + ' in analytic : ' + analyticInfo.name.get();
       if (error instanceof Error) {
-        return { success: false, error: error.message };
+        return { success: false, error: error.message + positionString };
       } else {
-        return { success: false, error: 'An unknown error occurred' };
+        return {
+          success: false,
+          error: 'An unknown error occurred' + positionString,
+        };
       }
     }
   }

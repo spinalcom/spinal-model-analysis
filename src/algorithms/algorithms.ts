@@ -191,6 +191,40 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
   }
 );
 
+export const THRESHOLD_ZSCORE = new Algorithm(
+  'THRESHOLD_ZSCORE',
+  `This algorithm is used to detect anomalies in a timeseries. 
+   The Z-score is a measure of how many standard deviations an element is from the mean.
+   It's calculated as Z = (X - mean) / stdDev 
+   where X is the value, mean is the average of the timeserie and stdDev is the standard deviation of the timeserie.
+   The threshold is a number set by the user. If the Z-score of the last value of the timeserie is above the threshold,
+   the algorithm returns true, otherwise it returns false.`,
+  ['Timeseries'],
+  'boolean',
+  [{ name: 'p1', type: 'number', description: 'the threshold value' }],
+  (input: SpinalDateValue[][], params: IParameters | undefined): boolean => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+      throw new Error(
+        `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
+      );
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if(dataInput.length === 0) throw new Error('Timeseries is empty');
+    const threshold = params['p1'];
+    const mean =
+    dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
+    const variance =
+    dataInput.reduce(
+        (acc, current) => acc + Math.pow(current.value - mean, 2),
+        0
+      ) / dataInput.length;
+    const stdDev = Math.sqrt(variance);
+    const zScore = (dataInput[dataInput.length - 1].value - mean) / stdDev;
+    return zScore > threshold;
+  }
+);
+
+
 export const AVERAGE = new Algorithm(
   'AVERAGE',
   'This algorithm returns the average of the inputs',
@@ -199,6 +233,19 @@ export const AVERAGE = new Algorithm(
   [],
   (input: number[]): number => {
     return input.reduce((acc, current) => acc + current, 0) / input.length;
+  }
+);
+
+export const TIMESERIES_AVERAGE = new Algorithm(
+  'TIMESERIES_AVERAGE',
+  'This algorithm returns the average of the timeseries',
+  ['Timeseries'],
+  'number',
+  [],
+  (input: SpinalDateValue[][]): number => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if(dataInput.length === 0) throw new Error('Timeseries is empty');
+    return dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
   }
 );
 
@@ -259,7 +306,7 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
 export const INTEGRAL_BOOLEAN = new Algorithm(
   'INTEGRAL_BOOLEAN',
   'This algorithm calculates the integral of timeseries.',
-  ['object'],
+  ['Timeseries'],
   'number',
   [
     {
@@ -287,6 +334,7 @@ export const INTEGRAL_BOOLEAN = new Algorithm(
       );
     const percentageResult = params['p2'] === 'Percentage';
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if(dataInput.length === 0) throw new Error('Timeseries is empty');
     const invertBool = (bool) => (bool ? 0 : 1);
     dataInput.unshift({
       date: dataInput[dataInput.length - 1].date - params['p1'],
@@ -432,7 +480,9 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   THRESHOLD_BELOW,
   THRESHOLD_BETWEEN_IN,
   THRESHOLD_BETWEEN_OUT,
+  THRESHOLD_ZSCORE,
   AVERAGE,
+  TIMESERIES_AVERAGE,
   AND,
   OR,
   NOT,
