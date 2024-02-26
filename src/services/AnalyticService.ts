@@ -1218,7 +1218,7 @@ export default class AnalyticService {
         algoIndexMapping,
         algoParams
       );
-      return this.applyResult(result, analyticId, configNode, entity);
+      return await this.applyResult(result, analyticId, configNode, entity);
     } catch (error) {
       const analyticInfo = SpinalGraphService.getInfo(analyticId);
       const positionString =
@@ -1328,6 +1328,7 @@ export default class AnalyticService {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
         return await this.handleSMSResult(
           result,
+          analyticId,
           configNode,
           followedEntityNode
         );
@@ -1348,6 +1349,7 @@ export default class AnalyticService {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
         return this.handleGChatMessageResult(
           result,
+          analyticId,
           configNode,
           followedEntityNode
         );
@@ -1355,6 +1357,7 @@ export default class AnalyticService {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
         return this.handleGChatOrganCardResult(
           result,
+          analyticId,
           configNode,
           followedEntityNode
         );
@@ -1515,17 +1518,18 @@ export default class AnalyticService {
    */
   private async handleSMSResult(
     result: any,
+    analyticId: string,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
-    console.log('SMS result');
     if (
       !this.twilioAccountSid ||
       !this.twilioAuthToken ||
       !this.twilioFromNumber
     )
+    
       return { success: false, error: 'Twilio parameters not found' };
-
+      
     if (result == false)
       return {
         success: true,
@@ -1533,12 +1537,24 @@ export default class AnalyticService {
         error: '',
         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
       };
+    console.log('SMS result');
     const twilioParams = await this.getAttributesFromNode(
       configNode.id.get(),
       CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS
     );
     const toNumber: string = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER];
-    const message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
+    let message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
+    const variables = message.match(/[^{}]+(?=\})/g) 
+    if(variables){
+      for(const variable of variables){
+        const value = await this.getFormattedInputDataByIndex(
+          analyticId,
+          followedEntityNode,
+          variable
+        );
+        message = message.replace(`{${variable}}`, ""+value)
+      }
+    }
     const url = `https://api.twilio.com/2010-04-01/Accounts/${this.twilioAccountSid}/Messages.json`;
     const entityName: string = followedEntityNode.name
       .get()
@@ -1571,6 +1587,7 @@ export default class AnalyticService {
 
   private async handleGChatMessageResult(
     result: any,
+    analyticId: string,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
@@ -1578,7 +1595,7 @@ export default class AnalyticService {
     if (result == false)
       return {
         success: true,
-        resultValue: false,
+        resultValue: result,
         error: '',
         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
       };
@@ -1593,10 +1610,20 @@ export default class AnalyticService {
     );
 
     const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
-    const message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+    let message : string  = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
     const analyticDescription =
       analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
-
+    const variables = message.match(/[^{}]+(?=\})/g) 
+    if(variables){
+      for(const variable of variables){
+        const value = await this.getFormattedInputDataByIndex(
+          analyticId,
+          followedEntityNode,
+          variable
+        );
+        message = message.replace(`{${variable}}`, ''+value)
+      }
+    }
     const resultInfo: IGChatMessageResult = {
       success: true,
       resultValue: result,
@@ -1617,6 +1644,7 @@ export default class AnalyticService {
 
   private async handleGChatOrganCardResult(
     result: any,
+    analyticId: string,
     configNode: SpinalNodeRef,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
@@ -1645,7 +1673,18 @@ export default class AnalyticService {
 
     const title = resultParams[CONSTANTS.ATTRIBUTE_RESULT_NAME];
     const spaceName: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
-    const message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+    let message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+    const variables = message.match(/[^{}]+(?=\})/g) 
+    if(variables){
+      for(const variable of variables){
+        const value = await this.getFormattedInputDataByIndex(
+          analyticId,
+          followedEntityNode,
+          variable
+        );
+        message = message.replace(`{${variable}}`, ""+value)
+      }
+    }
     const analyticDescription: string =
       analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
 

@@ -871,7 +871,7 @@ class AnalyticService {
                 const algoParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS);
                 const R = ioDependencies['R'];
                 const result = yield this.recExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams);
-                return this.applyResult(result, analyticId, configNode, entity);
+                return yield this.applyResult(result, analyticId, configNode, entity);
             }
             catch (error) {
                 const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
@@ -951,7 +951,7 @@ class AnalyticService {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
                     return yield this.handleTicketResult(result, analyticId, configNode, followedEntityNode, params, 'Alarm');
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
-                    return yield this.handleSMSResult(result, configNode, followedEntityNode);
+                    return yield this.handleSMSResult(result, analyticId, configNode, followedEntityNode);
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
                     console.log(`LOG : ${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} \t|\t Result : ${result}`);
                     return {
@@ -961,9 +961,9 @@ class AnalyticService {
                         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.LOG,
                     };
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
-                    return this.handleGChatMessageResult(result, configNode, followedEntityNode);
+                    return this.handleGChatMessageResult(result, analyticId, configNode, followedEntityNode);
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
-                    return this.handleGChatOrganCardResult(result, configNode, followedEntityNode);
+                    return this.handleGChatOrganCardResult(result, analyticId, configNode, followedEntityNode);
                 default:
                     return { success: false, error: 'Result type not recognized' };
             }
@@ -1072,9 +1072,8 @@ class AnalyticService {
      * @return {*}  {Promise<void>}
      * @memberof AnalyticService
      */
-    handleSMSResult(result, configNode, followedEntityNode) {
+    handleSMSResult(result, analyticId, configNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('SMS result');
             if (!this.twilioAccountSid ||
                 !this.twilioAuthToken ||
                 !this.twilioFromNumber)
@@ -1086,9 +1085,17 @@ class AnalyticService {
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
                 };
+            console.log('SMS result');
             const twilioParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS);
             const toNumber = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER];
-            const message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
+            let message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
+            const variables = message.match(/[^{}]+(?=\})/g);
+            if (variables) {
+                for (const variable of variables) {
+                    const value = yield this.getFormattedInputDataByIndex(analyticId, followedEntityNode, variable);
+                    message = message.replace(`{${variable}}`, "" + value);
+                }
+            }
             const url = `https://api.twilio.com/2010-04-01/Accounts/${this.twilioAccountSid}/Messages.json`;
             const entityName = followedEntityNode.name
                 .get()
@@ -1118,21 +1125,28 @@ class AnalyticService {
             };
         });
     }
-    handleGChatMessageResult(result, configNode, followedEntityNode) {
+    handleGChatMessageResult(result, analyticId, configNode, followedEntityNode) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log('Handling Google chat message result');
             if (result == false)
                 return {
                     success: true,
-                    resultValue: false,
+                    resultValue: result,
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
                 };
             const analyticParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS);
             const gChatParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS);
             const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
-            const message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+            let message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
             const analyticDescription = analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
+            const variables = message.match(/[^{}]+(?=\})/g);
+            if (variables) {
+                for (const variable of variables) {
+                    const value = yield this.getFormattedInputDataByIndex(analyticId, followedEntityNode, variable);
+                    message = message.replace(`{${variable}}`, '' + value);
+                }
+            }
             const resultInfo = {
                 success: true,
                 resultValue: result,
@@ -1150,7 +1164,7 @@ class AnalyticService {
             return resultInfo;
         });
     }
-    handleGChatOrganCardResult(result, configNode, followedEntityNode) {
+    handleGChatOrganCardResult(result, analyticId, configNode, followedEntityNode) {
         var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
             console.log('Handling Google chat organ card result');
@@ -1166,7 +1180,14 @@ class AnalyticService {
             const gChatParams = yield this.getAttributesFromNode(configNode.id.get(), CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS);
             const title = resultParams[CONSTANTS.ATTRIBUTE_RESULT_NAME];
             const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
-            const message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+            let message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+            const variables = message.match(/[^{}]+(?=\})/g);
+            if (variables) {
+                for (const variable of variables) {
+                    const value = yield this.getFormattedInputDataByIndex(analyticId, followedEntityNode, variable);
+                    message = message.replace(`{${variable}}`, "" + value);
+                }
+            }
             const analyticDescription = analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
             const lastPing = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), 'last_ping', 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
             if (!lastPing)
