@@ -37,16 +37,18 @@ class Algorithm implements IAlgorithm {
 
 export const PUTVALUE = new Algorithm(
   'PUTVALUE',
-  'This algorithm returns the value set by the user (p1) regardless of the input',
+  'This algorithm returns the value set by the user (p1) if the input is true or if the input is empty. Otherwise, it throws an error.',
   ['number'],
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to inject' }],
   (
-    input: number,
+    input: boolean[],
     params: IParameters | undefined
   ): string | number | boolean => {
     if (!params) throw new Error('No parameters provided');
-    return params['p1'];
+    if(params['p1'] === undefined) throw new Error('No value provided');
+    if(input[0] === true || input.length === 0) return params['p1'];
+    else throw new Error('PUTVALUE Input is false');
   }
 );
 

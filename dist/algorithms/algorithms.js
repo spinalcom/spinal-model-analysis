@@ -11,10 +11,15 @@ class Algorithm {
         this.run = run;
     }
 }
-exports.PUTVALUE = new Algorithm('PUTVALUE', 'This algorithm returns the value set by the user (p1) regardless of the input', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to inject' }], (input, params) => {
+exports.PUTVALUE = new Algorithm('PUTVALUE', 'This algorithm returns the value set by the user (p1) if the input is true or if the input is empty. Otherwise, it throws an error.', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to inject' }], (input, params) => {
     if (!params)
         throw new Error('No parameters provided');
-    return params['p1'];
+    if (params['p1'] === undefined)
+        throw new Error('No value provided');
+    if (input[0] === true || input.length === 0)
+        return params['p1'];
+    else
+        throw new Error('PUTVALUE Input is false');
 });
 exports.COPY = new Algorithm('COPY', 'This algorithm returns the value of first input', ['number'], 'number', [], (input) => {
     return input[0];
