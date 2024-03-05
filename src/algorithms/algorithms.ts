@@ -414,7 +414,7 @@ export const IS_EMPTY = new Algorithm(
 
 export const CONV_BOOLEAN_TO_NUMBER = new Algorithm(
   'CONV_BOOLEAN_TO_NUMBER',
-  'This algorithm converts a boolean to a number',
+  'This algorithm converts a boolean to a number. True becomes 1, false becomes 0',
   ['boolean'],
   'number',
   [],

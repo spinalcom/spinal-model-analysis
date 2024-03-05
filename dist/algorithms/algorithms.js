@@ -217,7 +217,7 @@ exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if all
 exports.IS_EMPTY = new Algorithm('IS_EMPTY', 'This algorithm returns true if the input is an empty list', ['number', 'string', 'boolean'], 'boolean', [], (input) => {
     return input.length === 0;
 });
-exports.CONV_BOOLEAN_TO_NUMBER = new Algorithm('CONV_BOOLEAN_TO_NUMBER', 'This algorithm converts a boolean to a number', ['boolean'], 'number', [], (input) => {
+exports.CONV_BOOLEAN_TO_NUMBER = new Algorithm('CONV_BOOLEAN_TO_NUMBER', 'This algorithm converts a boolean to a number. True becomes 1, false becomes 0', ['boolean'], 'number', [], (input) => {
     return input[0] ? 1 : 0;
 });
 exports.CONV_NUMBER_TO_BOOLEAN = new Algorithm('CONV_NUMBER_TO_BOOLEAN', 'This algorithm converts a number to a boolean (0 is false, everything else is true)', ['number'], 'boolean', [], (input) => {
