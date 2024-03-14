@@ -7,8 +7,8 @@ interface IParameters {
   [key: string]: string | number | boolean;
 }
 
-type PrivimitiveInput = number | string | boolean;
-type IInput = PrivimitiveInput | SpinalDateValue[];
+type PrimitiveInput = number | string | boolean;
+type IInput = PrimitiveInput | SpinalDateValue[];
 
 class Algorithm implements IAlgorithm {
   name: string;
@@ -37,7 +37,7 @@ class Algorithm implements IAlgorithm {
 
 export const PUTVALUE = new Algorithm(
   'PUTVALUE',
-  'This algorithm returns the value set by the user (p1) if the input is true or if the input is empty. Otherwise, it throws an error.',
+  'This algorithm returns the value set by the user (p1) regardless of input.',
   ['number'],
   'number',
   [{ name: 'p1', type: 'number', description: 'the value to inject' }],
@@ -47,8 +47,7 @@ export const PUTVALUE = new Algorithm(
   ): string | number | boolean => {
     if (!params) throw new Error('No parameters provided');
     if(params['p1'] === undefined) throw new Error('No value provided');
-    if(input[0] === true || input.length === 0) return params['p1'];
-    else throw new Error('PUTVALUE Input is false');
+    return params['p1'];
   }
 );
 
@@ -392,7 +391,7 @@ export const EQUAL_TO = new Algorithm(
   ['number', 'string', 'boolean'],
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the value to compare to' }],
-  (input: PrivimitiveInput[], params: IParameters | undefined): boolean => {
+  (input: PrimitiveInput[], params: IParameters | undefined): boolean => {
     if (!params) throw new Error('No parameters provided');
     for (const i of input) {
       if (i !== params['p1']) return false;
@@ -473,6 +472,17 @@ export const SUBTRACT_BY = new Algorithm(
   }
 );
 
+export const EXIT = new Algorithm(
+  'EXIT',
+  'This algorithm is used to stop the execution of the workflow if the first input is true',
+  ['boolean'],
+  'void',
+  [],
+  (input: boolean[]): boolean => {
+    return input[0];
+  }
+); 
+
 export const ALGORITHMS: { [key: string]: Algorithm } = {
   PUTVALUE,
   COPY,
@@ -498,4 +508,5 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   CURRENT_EPOCH_TIME,
   SUBTRACT,
   SUBTRACT_BY,
+  EXIT
 };

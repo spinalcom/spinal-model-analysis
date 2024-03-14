@@ -179,6 +179,7 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     getConfig(analyticId: string): Promise<SpinalNodeRef | undefined>;
+    deleteConfigNode(analyticId: string): Promise<void>;
     /**
      * Retrieves the Inputs node for the specified analytic.
      * @async

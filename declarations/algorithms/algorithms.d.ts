@@ -4,8 +4,8 @@ import { SpinalDateValue } from 'spinal-model-timeseries';
 interface IParameters {
     [key: string]: string | number | boolean;
 }
-type PrivimitiveInput = number | string | boolean;
-type IInput = PrivimitiveInput | SpinalDateValue[];
+type PrimitiveInput = number | string | boolean;
+type IInput = PrimitiveInput | SpinalDateValue[];
 declare class Algorithm implements IAlgorithm {
     name: string;
     inputTypes: string[];
@@ -39,6 +39,7 @@ export declare const CONV_NUMBER_TO_BOOLEAN: Algorithm;
 export declare const CURRENT_EPOCH_TIME: Algorithm;
 export declare const SUBTRACT: Algorithm;
 export declare const SUBTRACT_BY: Algorithm;
+export declare const EXIT: Algorithm;
 export declare const ALGORITHMS: {
     [key: string]: Algorithm;
 };

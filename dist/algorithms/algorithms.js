@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.EXIT = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -11,15 +11,12 @@ class Algorithm {
         this.run = run;
     }
 }
-exports.PUTVALUE = new Algorithm('PUTVALUE', 'This algorithm returns the value set by the user (p1) if the input is true or if the input is empty. Otherwise, it throws an error.', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to inject' }], (input, params) => {
+exports.PUTVALUE = new Algorithm('PUTVALUE', 'This algorithm returns the value set by the user (p1) regardless of input.', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to inject' }], (input, params) => {
     if (!params)
         throw new Error('No parameters provided');
     if (params['p1'] === undefined)
         throw new Error('No value provided');
-    if (input[0] === true || input.length === 0)
-        return params['p1'];
-    else
-        throw new Error('PUTVALUE Input is false');
+    return params['p1'];
 });
 exports.COPY = new Algorithm('COPY', 'This algorithm returns the value of first input', ['number'], 'number', [], (input) => {
     return input[0];
@@ -238,6 +235,9 @@ exports.SUBTRACT_BY = new Algorithm('SUBTRACT_BY', 'This algorithm returns the r
         throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
     return input[0] - params['p1'];
 });
+exports.EXIT = new Algorithm('EXIT', 'This algorithm is used to stop the execution of the workflow if the first input is true', ['boolean'], 'void', [], (input) => {
+    return input[0];
+});
 exports.ALGORITHMS = {
     PUTVALUE: exports.PUTVALUE,
     COPY: exports.COPY,
@@ -263,5 +263,6 @@ exports.ALGORITHMS = {
     CURRENT_EPOCH_TIME: exports.CURRENT_EPOCH_TIME,
     SUBTRACT: exports.SUBTRACT,
     SUBTRACT_BY: exports.SUBTRACT_BY,
+    EXIT: exports.EXIT
 };
 //# sourceMappingURL=algorithms.js.map

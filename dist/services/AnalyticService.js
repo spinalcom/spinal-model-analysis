@@ -25,6 +25,7 @@ const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
 const algorithms_1 = require("../algorithms/algorithms");
 const axios_1 = require("axios");
 const qs_1 = require("qs");
+const Errors_1 = require("../classes/Errors");
 /**
  * This class handles most of the logic for analytics. It provides methods for creating and retrieving analytics, entities, and contexts.
  * It also provides methods for applying tracking methods to followed entities and applying algorithms to inputs.
@@ -330,6 +331,13 @@ class AnalyticService {
             if (nodes.length === 0)
                 return undefined;
             return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(nodes[0].id.get());
+        });
+    }
+    deleteConfigNode(analyticId) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const configNode = yield this.getConfig(analyticId);
+            if (configNode)
+                yield (0, utils_1.safeDeleteNode)(configNode.id.get());
         });
     }
     /**
@@ -826,10 +834,13 @@ class AnalyticService {
         return result;
     }
     recExecuteAlgorithm(analyticId, entity, algoIndexName, ioDependencies, algoIndexMapping, algoParams) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const inputs = [];
-            const myDependencies = ioDependencies[algoIndexName].split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR);
+            const myDependencies = (_a = ioDependencies[algoIndexName]) === null || _a === void 0 ? void 0 : _a.split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR);
             for (const dependency of myDependencies) {
+                if (!dependency)
+                    continue; // if the dependency is empty
                 // if dependency is an algorithm then rec call with that algorithm
                 if (dependency.startsWith('A')) {
                     // save the result of the algorithm in the inputs array
@@ -849,6 +860,10 @@ class AnalyticService {
             const algorithm_name = algoIndexMapping[algoIndexName];
             const algorithmParameters = this.filterAlgorithmParametersAttributesByIndex(algoParams, algoIndexName);
             const result = algorithms_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
+            if (result == undefined)
+                throw new Error(`Algorithm ${algorithm_name} returned undefined`);
+            if (algorithm_name === 'EXIT')
+                throw new Errors_1.ExitAnalyticError('EXIT algorithm triggered');
             return result;
         });
     }
@@ -876,7 +891,7 @@ class AnalyticService {
             catch (error) {
                 const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
                 const positionString = ' on ' + entity.name.get() + ' in analytic : ' + analyticInfo.name.get();
-                if (error instanceof Error) {
+                if (error instanceof Error || error instanceof Errors_1.ExitAnalyticError) {
                     return { success: false, error: error.message + positionString };
                 }
                 else {

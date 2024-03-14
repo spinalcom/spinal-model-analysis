@@ -44,6 +44,7 @@ import { SpinalAttribute } from 'spinal-models-documentation';
 import { ALGORITHMS } from '../algorithms/algorithms';
 import axios from 'axios';
 import { stringify } from 'qs';
+import { ExitAnalyticError } from '../classes/Errors';
 
 /**
  * This class handles most of the logic for analytics. It provides methods for creating and retrieving analytics, entities, and contexts.
@@ -466,6 +467,11 @@ export default class AnalyticService {
     return SpinalGraphService.getInfo(nodes[0].id.get());
   }
 
+  public async deleteConfigNode(analyticId: string): Promise<void> {
+    const configNode = await this.getConfig(analyticId);
+    if (configNode) await safeDeleteNode(configNode.id.get());
+  }
+
   /**
    * Retrieves the Inputs node for the specified analytic.
    * @async
@@ -523,6 +529,7 @@ export default class AnalyticService {
     if (inputsNode) await safeDeleteNode(inputsNode.id.get());
     if (outputsNode)
       await safeDeleteNode(outputsNode.id.get(), shouldDeleteChildren);
+    
     await safeDeleteNode(analyticId);
   }
 
@@ -1141,10 +1148,11 @@ export default class AnalyticService {
     algoParams: any
   ): Promise<any> {
     const inputs: any[] = [];
-    const myDependencies = ioDependencies[algoIndexName].split(
+    const myDependencies = ioDependencies[algoIndexName]?.split(
       CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
     );
     for (const dependency of myDependencies) {
+      if(!dependency) continue; // if the dependency is empty
       // if dependency is an algorithm then rec call with that algorithm
       if (dependency.startsWith('A')) {
         // save the result of the algorithm in the inputs array
@@ -1177,6 +1185,8 @@ export default class AnalyticService {
       algoIndexName
     );
     const result = ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
+    if(result == undefined) throw new Error(`Algorithm ${algorithm_name} returned undefined`);
+    if(algorithm_name === 'EXIT') throw new ExitAnalyticError('EXIT algorithm triggered');
     return result;
   }
 
@@ -1223,7 +1233,7 @@ export default class AnalyticService {
       const analyticInfo = SpinalGraphService.getInfo(analyticId);
       const positionString =
         ' on ' + entity.name.get() + ' in analytic : ' + analyticInfo.name.get();
-      if (error instanceof Error) {
+      if (error instanceof Error || error instanceof ExitAnalyticError) {
         return { success: false, error: error.message + positionString };
       } else {
         return {
