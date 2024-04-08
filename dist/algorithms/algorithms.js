@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.EXIT = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.INTEGRAL_BOOLEAN = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.EXIT = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -36,6 +36,18 @@ exports.DIVIDE_BY = new Algorithm('DIVIDE_BY', 'This algorithm returns the resul
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
     return input[0] / params['p1'];
+});
+exports.MULTIPLY_BY = new Algorithm('MULTIPLY_BY', 'This algorithm returns the result of the multiplication of the first input by the value set by the user (p1)', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to multiply by' }], (input, params) => {
+    if (!params)
+        throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number')
+        throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
+    return input[0] * params['p1'];
+});
+exports.MULTIPLY = new Algorithm('MULTIPLY', 'This algorithm returns the result of the multiplication of the first input by the second input', ['number'], 'number', [], (input) => {
+    if (input.length < 2)
+        throw new Error('Not enough inputs');
+    return input[0] * input[1];
 });
 exports.THRESHOLD_ABOVE = new Algorithm('THRESHOLD_ABOVE', 'This algorithm returns true if the input is above the threshold set by the user', ['number'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
     if (!params)
@@ -130,6 +142,69 @@ exports.TIMESERIES_AVERAGE = new Algorithm('TIMESERIES_AVERAGE', 'This algorithm
         throw new Error('Timeseries is empty');
     return dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
 });
+exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm('TIMESERIES_TIME_WEIGHTED_AVERAGE', 'This algorithm calculates the time-weighted average value of a timeseries. It takes into account the time intervals between successive data points to compute the average.', ['Timeseries'], 'number', [{ name: 'p1', type: 'string', description: " 'normal' (default) => No interpolation , 'linear' => linear interpolation for two successive points" }], (input, params) => {
+    const linearInterpolation = params && params['p1'] === 'linear';
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length < 2) {
+        throw new Error('Insufficient data. At least two timeseries data points are required.');
+    }
+    dataInput.sort((a, b) => a.date - b.date);
+    let sum = 0;
+    for (let i = 0; i < dataInput.length - 1; i++) {
+        const timeInterval = dataInput[i + 1].date - dataInput[i].date;
+        if (linearInterpolation) {
+            // For linear interpolation, take the average value of the current and next point
+            const avgValue = (dataInput[i].value + dataInput[i + 1].value) / 2;
+            sum += avgValue * timeInterval;
+        }
+        else {
+            // Without interpolation, use the current value
+            sum += dataInput[i].value * timeInterval;
+        }
+    }
+    const totalTimeInterval = dataInput[dataInput.length - 1].date - dataInput[0].date;
+    if (totalTimeInterval <= 0) {
+        throw new Error('Invalid date range. Ensure data is correctly ordered and spans a positive time interval.');
+    }
+    const average = sum / totalTimeInterval;
+    return average;
+});
+exports.TIMESERIES_BOOLEAN_RATE = new Algorithm('TIMESERIES_BOOLEAN_RATE', 'This algorithm calculates a rate on boolean timeseries (0 | 1).', ['Timeseries'], 'number', [
+    {
+        name: 'p1',
+        type: 'string',
+        description: 'Ratio || Percentage   (write one of the two, Ratio will be used by default)',
+    },
+], (input, params) => {
+    if (!params)
+        throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'string')
+        throw new Error(`Invalid p1 parameter type. Expected string, got ${typeof params['p1']}`);
+    const percentageResult = params['p1'] === 'Percentage';
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0)
+        throw new Error('Timeseries is empty');
+    // Ensure input is sorted by time
+    dataInput.sort((a, b) => a.date - b.date);
+    let sum = 0;
+    for (let i = 0; i < dataInput.length - 1; i++) {
+        // Calculate the difference in time
+        const deltaTime = dataInput[i + 1].date - dataInput[i].date;
+        // Calculate the average value between two points
+        const avgValue = (dataInput[i + 1].value + dataInput[i].value) / 2;
+        sum += avgValue * deltaTime;
+    }
+    if (!percentageResult)
+        return (sum / (dataInput[dataInput.length - 1].date - dataInput[0].date));
+    else
+        return ((sum /
+            (dataInput[dataInput.length - 1].date - dataInput[0].date)) *
+            100);
+});
+exports.TIMESERIES_IS_EMPTY = new Algorithm('TIMESERIES_IS_EMPTY', 'This algorithm returns true if the input is an empty timeseries', ['Timeseries'], 'boolean', [], (input) => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    return dataInput.length === 0;
+});
 exports.AND = new Algorithm('AND', 'This algorithm returns true if all the inputs are true', ['boolean'], 'boolean', [], (input) => {
     return !input.includes(false);
 });
@@ -151,51 +226,6 @@ exports.DIFFERENCE_THRESHOLD = new Algorithm('DIFFERENCE_THRESHOLD', 'This algor
             return true;
     }
     return false;
-});
-exports.INTEGRAL_BOOLEAN = new Algorithm('INTEGRAL_BOOLEAN', 'This algorithm calculates the integral of timeseries.', ['Timeseries'], 'number', [
-    {
-        name: 'p1',
-        type: 'number',
-        description: 'intervalTime, please copy paste the timeseries interval time',
-    },
-    {
-        name: 'p2',
-        type: 'string',
-        description: 'Ratio || Percentage   (write one of the two, Ratio will be used by default)',
-    },
-], (input, params) => {
-    if (!params)
-        throw new Error('No parameters provided');
-    if (typeof params['p1'] !== 'number')
-        throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
-    if (typeof params['p2'] !== 'string')
-        throw new Error(`Invalid p2 parameter type. Expected string, got ${typeof params['p2']}`);
-    const percentageResult = params['p2'] === 'Percentage';
-    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
-    if (dataInput.length === 0)
-        throw new Error('Timeseries is empty');
-    const invertBool = (bool) => (bool ? 0 : 1);
-    dataInput.unshift({
-        date: dataInput[dataInput.length - 1].date - params['p1'],
-        value: invertBool(dataInput[0].value),
-    });
-    // Ensure input is sorted by time
-    dataInput.sort((a, b) => a.date - b.date);
-    let integral = 0;
-    for (let i = 1; i < dataInput.length; i++) {
-        // Calculate the difference in time
-        const deltaTime = dataInput[i].date - dataInput[i - 1].date;
-        // Calculate the average value between two points
-        const avgValue = (dataInput[i].value + dataInput[i - 1].value) / 2;
-        // Add the area of the trapezoid to the total integral
-        integral += avgValue * deltaTime;
-    }
-    if (!percentageResult)
-        return (integral / (dataInput[dataInput.length - 1].date - dataInput[0].date));
-    else
-        return ((integral /
-            (dataInput[dataInput.length - 1].date - dataInput[0].date)) *
-            100);
 });
 exports.STANDARD_DEVIATION = new Algorithm('STANDARD_DEVIATION', 'This algorithm returns the standard deviation of the inputs', ['number'], 'number', [], (input) => {
     const n = input.length;
@@ -243,18 +273,22 @@ exports.ALGORITHMS = {
     COPY: exports.COPY,
     DIVIDE: exports.DIVIDE,
     DIVIDE_BY: exports.DIVIDE_BY,
+    MULTIPLY: exports.MULTIPLY,
+    MULTIPLY_BY: exports.MULTIPLY_BY,
     THRESHOLD_ABOVE: exports.THRESHOLD_ABOVE,
     THRESHOLD_BELOW: exports.THRESHOLD_BELOW,
     THRESHOLD_BETWEEN_IN: exports.THRESHOLD_BETWEEN_IN,
     THRESHOLD_BETWEEN_OUT: exports.THRESHOLD_BETWEEN_OUT,
     THRESHOLD_ZSCORE: exports.THRESHOLD_ZSCORE,
     AVERAGE: exports.AVERAGE,
+    TIMESERIES_IS_EMPTY: exports.TIMESERIES_IS_EMPTY,
     TIMESERIES_AVERAGE: exports.TIMESERIES_AVERAGE,
+    TIMESERIES_TIME_WEIGHTED_AVERAGE: exports.TIMESERIES_TIME_WEIGHTED_AVERAGE,
+    TIMESERIES_BOOLEAN_RATE: exports.TIMESERIES_BOOLEAN_RATE,
     AND: exports.AND,
     OR: exports.OR,
     NOT: exports.NOT,
     DIFFERENCE_THRESHOLD: exports.DIFFERENCE_THRESHOLD,
-    INTEGRAL_BOOLEAN: exports.INTEGRAL_BOOLEAN,
     STANDARD_DEVIATION: exports.STANDARD_DEVIATION,
     EQUAL_TO: exports.EQUAL_TO,
     IS_EMPTY: exports.IS_EMPTY,

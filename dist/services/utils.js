@@ -33,7 +33,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.safeDeleteNode = exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.timeseriesPreProcessing = exports.getIntervalTimeMissingExecutionTimes = exports.getCronMissingExecutionTimes = exports.safeDeleteNode = exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
@@ -42,6 +42,7 @@ const InputDataEndpoint_1 = require("../models/InputData/InputDataModel/InputDat
 const CONSTANTS = require("../constants");
 const spinal_models_documentation_1 = require("spinal-models-documentation");
 const SingletonTimeSeries_1 = require("./SingletonTimeSeries");
+const cronParser = require("cron-parser");
 const serviceTimeseries = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
@@ -368,9 +369,9 @@ function alarmAlreadyDeclared(nodeId, contextId, processId, ticketName) {
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-function addTicketAlarm(ticketInfos, configInfo, analyticContextId, outputNodeId, entityNodeId, ticketType) {
+function addTicketAlarm(ticketInfos, configAttributes, analyticContextId, outputNodeId, entityNodeId, ticketType) {
     return __awaiter(this, void 0, void 0, function* () {
-        const localizationInfo = yield getTicketLocalizationParameters(configInfo);
+        const localizationInfo = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS];
         const contextId = localizationInfo[CONSTANTS.ATTRIBUTE_TICKET_CONTEXT_ID];
         const processId = localizationInfo[CONSTANTS.ATTRIBUTE_TICKET_PROCESS_ID];
         const context = getTicketContext(contextId);
@@ -479,4 +480,64 @@ function safeDeleteNode(nodeId, shouldDeleteChildren = false) {
     });
 }
 exports.safeDeleteNode = safeDeleteNode;
+function getCronMissingExecutionTimes(cronSyntax, lastExecutedTime) {
+    const now = new Date();
+    const lastExecutedDate = new Date(lastExecutedTime);
+    const executionTimes = [];
+    try {
+        // Initialize options for cron-parser
+        const options = {
+            currentDate: lastExecutedDate,
+            endDate: now,
+        };
+        // Parse the cron syntax with the provided options
+        const interval = cronParser.parseExpression(cronSyntax, options);
+        // Using a while loop to fetch the next valid date within the range
+        let nextDate = interval.next();
+        while (nextDate && nextDate.toDate() <= now) {
+            executionTimes.push(nextDate.getTime());
+            try {
+                nextDate = interval.next();
+            }
+            catch (e) {
+                // Break the loop if there are no more dates to process
+                break;
+            }
+        }
+    }
+    catch (err) {
+        console.error('Failed to parse cron syntax:', err);
+    }
+    return executionTimes;
+}
+exports.getCronMissingExecutionTimes = getCronMissingExecutionTimes;
+function getIntervalTimeMissingExecutionTimes(intervalTime, lastExecutedTime) {
+    const now = new Date();
+    const lastExecutedDate = new Date(lastExecutedTime);
+    const executionTimes = [];
+    try {
+        let nextDate = new Date(lastExecutedDate.getTime() + intervalTime);
+        while (nextDate <= now) {
+            executionTimes.push(nextDate.getTime());
+            nextDate = new Date(nextDate.getTime() + intervalTime);
+        }
+    }
+    catch (err) {
+        console.error('Failed to parse interval time:', err);
+    }
+    return executionTimes;
+}
+exports.getIntervalTimeMissingExecutionTimes = getIntervalTimeMissingExecutionTimes;
+function timeseriesPreProcessing(start, end, timeseries) {
+    if (timeseries.length === 0)
+        return [];
+    //shifting the first timeseries to start if it is before start
+    if (timeseries[0].date < start) {
+        timeseries[0].date = start;
+    }
+    //copy last timeseries value to the end
+    timeseries.push({ date: end, value: timeseries[timeseries.length - 1].value });
+    return timeseries;
+}
+exports.timeseriesPreProcessing = timeseriesPreProcessing;
 //# sourceMappingURL=utils.js.map

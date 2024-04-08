@@ -1,5 +1,6 @@
 import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
 import { IAnalytic } from '../interfaces/IAnalytic';
+import { IAnalyticDetails } from '../interfaces/IAnalyticDetails';
 import { IEntity } from '../interfaces/IEntity';
 import { IResult } from '../interfaces/IAnalyticResult';
 import { INodeDocumentation } from '../interfaces/IAttribute';
@@ -170,6 +171,7 @@ export default class AnalyticService {
      * @memberof AnalyticService
      */
     addConfig(configAttributes: INodeDocumentation, analyticId: string, contextId: string): Promise<SpinalNodeRef>;
+    updateLastExecutionTime(analyticId: string): Promise<void>;
     /**
      * Retrieves the Config node for the specified analytic
      *
@@ -340,7 +342,8 @@ export default class AnalyticService {
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
     getWorkingFollowedEntitiesWithParam(followedEntity: SpinalNodeRef, entityType: string): Promise<SpinalNodeRef[]>;
     getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
-    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalDateValue[] | string | boolean | number | undefined>;
+    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, referenceEpochTime?: number): Promise<SpinalDateValue[] | string | boolean | number | undefined>;
+    getAnalyticDetails(analyticId: string): Promise<IAnalyticDetails>;
     findExecutionOrder(dependencies: any): string[] | null;
     private filterAlgorithmParametersAttributesByIndex;
     private recExecuteAlgorithm;
@@ -351,14 +354,17 @@ export default class AnalyticService {
      * @returns {*} {Promise<void>}
      * @memberof AnalyticService
      */
-    doAnalysisOnEntity(analyticId: string, entity: SpinalNodeRef): Promise<IResult>;
+    doAnalysisOnEntity(analyticId: string, entity: SpinalNodeRef, configAttributes?: any, executionTime?: number): Promise<IResult>;
     /**
      * Performs an analysis on all entities for an analytic.
      * @param {string} analyticId The ID of the analytic.
      * @return {*}  {Promise<void>}
      * @memberof AnalyticService
      */
-    doAnalysis(analyticId: string): Promise<IResult[]>;
+    doAnalysis(analyticId: string, triggerObject: {
+        triggerType: string;
+        triggerValue: string;
+    }): Promise<IResult[]>;
     /**
      * Applies the result of an algorithm.
      *
@@ -369,7 +375,7 @@ export default class AnalyticService {
      * @return {*}
      * @memberof AnalyticService
      */
-    applyResult(result: any, analyticId: string, configNode: SpinalNodeRef, followedEntityNode: SpinalNodeRef): Promise<IResult>;
+    applyResult(result: any, analyticId: string, configAttributes: any, followedEntityNode: SpinalNodeRef, referenceEpochTime?: number): Promise<IResult>;
     /**
      * Handles the result of an algorithm that creates a ticket or an alarm.
      *

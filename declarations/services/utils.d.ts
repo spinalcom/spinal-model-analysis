@@ -1,6 +1,7 @@
 import { SpinalNodeRef } from 'spinal-env-viewer-graph-service';
 import * as CONSTANTS from '../constants';
 import { SpinalAttribute } from 'spinal-models-documentation';
+import { SpinalDateValue } from 'spinal-model-timeseries';
 /**
  * Uses the documentation service to get the attributes related to the algorithm parameters
  *
@@ -37,5 +38,8 @@ export declare function formatTrackingMethodsToList(obj: any): any[];
  * @param {SpinalNodeRef} configInfo
  * @param {string} nodeId
  */
-export declare function addTicketAlarm(ticketInfos: any, configInfo: SpinalNodeRef, analyticContextId: string, outputNodeId: string, entityNodeId: string, ticketType: string): Promise<void>;
+export declare function addTicketAlarm(ticketInfos: any, configAttributes: any, analyticContextId: string, outputNodeId: string, entityNodeId: string, ticketType: string): Promise<void>;
 export declare function safeDeleteNode(nodeId: string, shouldDeleteChildren?: boolean): Promise<void>;
+export declare function getCronMissingExecutionTimes(cronSyntax: string, lastExecutedTime: number): number[];
+export declare function getIntervalTimeMissingExecutionTimes(intervalTime: number, lastExecutedTime: number): number[];
+export declare function timeseriesPreProcessing(start: number, end: number, timeseries: SpinalDateValue[]): SpinalDateValue[];

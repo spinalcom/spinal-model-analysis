@@ -10,6 +10,7 @@ import * as CONSTANTS from '../constants';
 import { ConfigModel } from '../models/ConfigModel';
 import { AnalyticModel } from '../models/AnalyticModel';
 import { IAnalytic } from '../interfaces/IAnalytic';
+import { IAnalyticDetails } from '../interfaces/IAnalyticDetails';
 import { EntityModel } from '../models/EntityModel';
 import { IEntity } from '../interfaces/IEntity';
 import { TrackingMethodModel } from '../models/TrackingMethodModel';
@@ -37,7 +38,10 @@ import {
   findAttribute,
   addTicketAlarm,
   getValueModelFromEntry,
+  getCronMissingExecutionTimes,
+  getIntervalTimeMissingExecutionTimes,
   safeDeleteNode,
+  timeseriesPreProcessing,
 } from './utils';
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import { SpinalAttribute } from 'spinal-models-documentation';
@@ -444,9 +448,21 @@ export default class AnalyticService {
       CONSTANTS.ANALYTIC_TO_CONFIG_RELATION,
       SPINAL_RELATION_PTR_LST_TYPE
     );
-
     this.addAttributesToNode(configNode, configAttributes);
     return SpinalGraphService.getInfo(configId);
+  }
+
+  public async updateLastExecutionTime(analyticId: string): Promise<void> {
+    const configNode = await this.getConfig(analyticId);
+    if (!configNode) throw Error('Config node not found');
+    const realNode = SpinalGraphService.getRealNode(configNode.id.get());
+    const attr = await attributeService.addAttributeByCategoryName(
+      realNode,
+      CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS,
+      CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME,
+      Date.now().toString(),
+      'number'
+    );
   }
 
   /**
@@ -529,7 +545,7 @@ export default class AnalyticService {
     if (inputsNode) await safeDeleteNode(inputsNode.id.get());
     if (outputsNode)
       await safeDeleteNode(outputsNode.id.get(), shouldDeleteChildren);
-    
+
     await safeDeleteNode(analyticId);
   }
 
@@ -1040,7 +1056,8 @@ export default class AnalyticService {
   public async getFormattedInputDataByIndex(
     analyticId: string,
     followedEntity: SpinalNodeRef,
-    inputIndex: string
+    inputIndex: string,
+    referenceEpochTime: number = Date.now()
   ): Promise<SpinalDateValue[] | string | boolean | number | undefined> {
     const entryDataModel = await this.getEntryDataModelByInputIndex(
       analyticId,
@@ -1068,18 +1085,85 @@ export default class AnalyticService {
       const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
         entryDataModel.id.get()
       );
-      const end = Date.now();
+      const end = referenceEpochTime;
       const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
-      const data = await spinalTs.getFromIntervalTime(start, end);
-
-      //add fictive data copying last value to currentTime.
-      if (data.length != 0) {
-        data.push({ date: end, value: data[data.length - 1].value });
-      }
-      //const dataValues = data.map((el) => el.value);
+      const injectLastValueBeforeStart : boolean = trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
+      let data = injectLastValueBeforeStart ? 
+                    await spinalTs.getFromIntervalTime(start, end,true) :
+                    await spinalTs.getFromIntervalTime(start, end);
+      
+      data = timeseriesPreProcessing(start,end,data) // tidy up the data mainly at start and end
       return data;
     }
   }
+
+  public async getAnalyticDetails(analyticId: string) {
+    const config = await this.getConfig(analyticId);
+    const trackingMethod = await this.getTrackingMethod(analyticId);
+    const followedEntity = await this.getFollowedEntity(analyticId);
+    const entity = await this.getEntityFromAnalytic(analyticId);
+    const analyticNode = SpinalGraphService.getRealNode(analyticId);
+    if (!analyticNode) throw new Error('No analytic node found');
+    if (!config) throw new Error('No config node found');
+    if (!trackingMethod) throw new Error('No tracking method node found');
+    if (!followedEntity) throw new Error('No followed entity node found');
+    if (!entity) throw new Error('No entity node found');
+
+    const configNode = SpinalGraphService.getRealNode(config.id.get());
+    const trackingMethodNode = SpinalGraphService.getRealNode(
+      trackingMethod.id.get()
+    );
+
+    const configCategoryAttributes = (
+      await attributeService.getCategory(configNode)
+    ).map((el) => {
+      return el.nameCat;
+    });
+    const trackingMethodCategoryAttributes = (
+      await attributeService.getCategory(trackingMethodNode)
+    ).map((el) => {
+      return el.nameCat;
+    });
+
+    const configInfo = {};
+    const trackingMethodInfo = {};
+
+    for (const cat of configCategoryAttributes) {
+      const attributes = await attributeService.getAttributesByCategory(
+        configNode,
+        cat
+      );
+      configInfo[cat] = attributes;
+    }
+
+    for (const cat of trackingMethodCategoryAttributes) {
+      const attributes = await attributeService.getAttributesByCategory(
+        trackingMethodNode,
+        cat
+      );
+      trackingMethodInfo[cat] = attributes;
+    }
+
+    const analyticDetails = SpinalGraphService.getInfo(analyticId);
+
+    const followedEntityId = followedEntity.id.get();
+    const res: IAnalyticDetails = {
+      entityNodeInfo: entity,
+      analyticName: analyticDetails.name.get(),
+      config: configInfo,
+      trackingMethod: trackingMethodInfo,
+      followedEntityId,
+    };
+    return res;
+  }
+
+  /*public async createAnalytic(contextId : string, entityId :string , analyticDetails : IAnalyticDetails){
+    const analyticCreationInfo : IAnalytic = {name : analyticDetails.analyticName, description : ''};
+    const analyticNode = await this.addAnalytic(analyticCreationInfo,contextId,entityId)
+    const InputNode = await this.addInputsNode(analyticNode.id.get(),contextId);
+    const OutputNode = await this.addOutputsNode(analyticNode.id.get(),contextId);
+    //const configNode = await this.addConfig(analyticDetails.config,analyticNode.id.get(),contextId);
+  }*/
 
   public findExecutionOrder(dependencies): string[] | null {
     const graph: { [key: string]: string[] } = {};
@@ -1145,14 +1229,17 @@ export default class AnalyticService {
     algoIndexName: string,
     ioDependencies: any,
     algoIndexMapping: any,
-    algoParams: any
+    algoParams: any,
+    referenceEpochTime :number = Date.now()
   ): Promise<any> {
     const inputs: any[] = [];
-    const myDependencies = ioDependencies[algoIndexName]?.split(
-      CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
-    );
+    const myDependencies =
+      ioDependencies[algoIndexName]?.split(
+        CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
+      ) ?? [];
     for (const dependency of myDependencies) {
-      if(!dependency) continue; // if the dependency is empty
+      if (!dependency) continue; // if the dependency is empty
+
       // if dependency is an algorithm then rec call with that algorithm
       if (dependency.startsWith('A')) {
         // save the result of the algorithm in the inputs array
@@ -1170,7 +1257,8 @@ export default class AnalyticService {
         const inputData = await this.getFormattedInputDataByIndex(
           analyticId,
           entity,
-          dependency
+          dependency,
+          referenceEpochTime
         );
         if (inputData == undefined) {
           throw new Error(`Input data ${dependency} could not be retrieved`);
@@ -1185,8 +1273,10 @@ export default class AnalyticService {
       algoIndexName
     );
     const result = ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
-    if(result == undefined) throw new Error(`Algorithm ${algorithm_name} returned undefined`);
-    if(algorithm_name === 'EXIT') throw new ExitAnalyticError('EXIT algorithm triggered');
+    if (result == undefined)
+      throw new Error(`Algorithm ${algorithm_name} returned undefined`);
+    if (algorithm_name === 'EXIT' && result === true)
+      throw new ExitAnalyticError('EXIT algorithm triggered');
     return result;
   }
 
@@ -1199,40 +1289,57 @@ export default class AnalyticService {
    */
   public async doAnalysisOnEntity(
     analyticId: string,
-    entity: SpinalNodeRef
+    entity: SpinalNodeRef,
+    configAttributes? : any,
+    executionTime : number = Date.now()
+
   ): Promise<IResult> {
     try {
       // Get the io dependencies of the analytic
-      const configNode = await this.getConfig(analyticId);
-      if (!configNode) return { success: false, error: 'No config node found' };
+      if(!configAttributes){
+        const configNode = await this.getConfig(analyticId);
+        if (!configNode) return { success: false, error: 'No config node found' };
+        configAttributes = await this.getAllCategoriesAndAttributesFromNode(configNode.id.get());
+      }
 
-      const ioDependencies = await this.getAttributesFromNode(
-        configNode.id.get(),
-        CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES
-      );
-      const algoIndexMapping = await this.getAttributesFromNode(
-        configNode.id.get(),
-        CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING
-      );
-      const algoParams = await this.getAttributesFromNode(
-        configNode.id.get(),
-        CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS
-      );
+      // const ioDependencies = await this.getAttributesFromNode(
+      //   configNode.id.get(),
+      //   CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES
+      // );
+      // const algoIndexMapping = await this.getAttributesFromNode(
+      //   configNode.id.get(),
+      //   CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING
+      // );
+      // const algoParams = await this.getAttributesFromNode(
+      //   configNode.id.get(),
+      //   CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS
+      // );
+      const ioDependencies= configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES];
+
+      const algoIndexMapping = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING];
+      
+      const algoParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS];
+      
 
       const R = ioDependencies['R'];
-      const result = await this.recExecuteAlgorithm(
-        analyticId,
-        entity,
-        R,
-        ioDependencies,
-        algoIndexMapping,
-        algoParams
-      );
-      return await this.applyResult(result, analyticId, configNode, entity);
+
+        const result = await this.recExecuteAlgorithm(
+          analyticId,
+          entity,
+          R,
+          ioDependencies,
+          algoIndexMapping,
+          algoParams,
+          executionTime);
+          
+        return await this.applyResult(result, analyticId, configAttributes, entity);
     } catch (error) {
       const analyticInfo = SpinalGraphService.getInfo(analyticId);
       const positionString =
-        ' on ' + entity.name.get() + ' in analytic : ' + analyticInfo.name.get();
+        ' on ' +
+        entity.name.get() +
+        ' in analytic : ' +
+        analyticInfo.name.get();
       if (error instanceof Error || error instanceof ExitAnalyticError) {
         return { success: false, error: error.message + positionString };
       } else {
@@ -1250,15 +1357,34 @@ export default class AnalyticService {
    * @return {*}  {Promise<void>}
    * @memberof AnalyticService
    */
-  public async doAnalysis(analyticId: string): Promise<IResult[]> {
+  public async doAnalysis(analyticId: string, triggerObject: {triggerType:string, triggerValue:string }): Promise<IResult[]> {
     const entities = await this.getWorkingFollowedEntities(analyticId);
     if (!entities) return [{ success: false, error: 'No entities found' }];
 
-    //const results: IResult[] = [];
+    const configNode = await this.getConfig(analyticId);
+    if (!configNode) return [{ success: false, error: 'No config node found' }];
+
+    const configAttributes = await this.getAllCategoriesAndAttributesFromNode(configNode.id.get());
+    
+    const lastExecutionTime = parseInt(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME]);
+    const shouldCatchUpMissedExecutions : boolean = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS]
+    let missingExecutionsTimes : number[] = [];
+    if(shouldCatchUpMissedExecutions){
+      if(triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON){
+        missingExecutionsTimes = getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
+      }
+      if(triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.INTERVAL_TIME){
+        missingExecutionsTimes = getIntervalTimeMissingExecutionTimes(parseInt(triggerObject.triggerValue), lastExecutionTime);
+      }
+    }
+    missingExecutionsTimes.push(Date.now());
+    
     const analysisPromises = entities.map((entity) =>
-      this.doAnalysisOnEntity(analyticId, entity)
+      missingExecutionsTimes.map((missingExecutionsTime) => 
+      this.doAnalysisOnEntity(analyticId, entity,configAttributes, missingExecutionsTime))
+      
     );
-    const results = await Promise.all(analysisPromises);
+    const results = await Promise.all(analysisPromises.flat());
     return results;
   }
 
@@ -1278,22 +1404,21 @@ export default class AnalyticService {
   public async applyResult(
     result: any,
     analyticId: string,
-    configNode: SpinalNodeRef,
-    followedEntityNode: SpinalNodeRef
+    configAttributes: any,
+    followedEntityNode: SpinalNodeRef,
+    referenceEpochTime : number = Date.now()
   ): Promise<IResult> {
     if (result === undefined)
       return { success: false, error: 'Result is undefined' };
-    const params = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS
-    );
-
+    
+    const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
+    
     switch (params[CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
         await this.handleTicketResult(
           result,
           analyticId,
-          configNode,
+          configAttributes,
           followedEntityNode,
           params,
           'Ticket'
@@ -1309,7 +1434,8 @@ export default class AnalyticService {
         await this.handleControlEndpointResult(
           result,
           followedEntityNode,
-          params
+          params,
+          referenceEpochTime
         );
         return {
           success: true,
@@ -1318,7 +1444,7 @@ export default class AnalyticService {
           resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
         };
       case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
-        await this.handleEndpointResult(result, followedEntityNode, params);
+        await this.handleEndpointResult(result, followedEntityNode, params,referenceEpochTime);
         return {
           success: true,
           resultValue: result,
@@ -1329,7 +1455,7 @@ export default class AnalyticService {
         return await this.handleTicketResult(
           result,
           analyticId,
-          configNode,
+          configAttributes,
           followedEntityNode,
           params,
           'Alarm'
@@ -1339,7 +1465,7 @@ export default class AnalyticService {
         return await this.handleSMSResult(
           result,
           analyticId,
-          configNode,
+          configAttributes,
           followedEntityNode
         );
 
@@ -1360,7 +1486,7 @@ export default class AnalyticService {
         return this.handleGChatMessageResult(
           result,
           analyticId,
-          configNode,
+          configAttributes,
           followedEntityNode
         );
 
@@ -1368,7 +1494,7 @@ export default class AnalyticService {
         return this.handleGChatOrganCardResult(
           result,
           analyticId,
-          configNode,
+          configAttributes,
           followedEntityNode
         );
 
@@ -1393,7 +1519,7 @@ export default class AnalyticService {
   private async handleTicketResult(
     result: any,
     analyticId: string,
-    configNode: SpinalNodeRef,
+    configAttributes: any,
     followedEntityNode: SpinalNodeRef,
     params: any,
     ticketType: string // Alarm or Ticket
@@ -1421,7 +1547,7 @@ export default class AnalyticService {
 
     addTicketAlarm(
       ticketInfo,
-      configNode,
+      configAttributes,
       analyticContextId,
       outputNode.id.get(),
       followedEntityNode.id.get(),
@@ -1448,7 +1574,8 @@ export default class AnalyticService {
   private async handleControlEndpointResult(
     result: any,
     followedEntityNode: SpinalNodeRef,
-    params: any
+    params: any,
+    referenceEpochTime : number
   ): Promise<IResult> {
     const controlEndpointNode = await findEndpoint(
       followedEntityNode.id.get(),
@@ -1464,9 +1591,10 @@ export default class AnalyticService {
 
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
-    this.spinalServiceTimeseries.pushFromEndpoint(
+    this.spinalServiceTimeseries.insertFromEndpoint(
       controlEndpointNode.id.get(),
-      result
+      result,
+      referenceEpochTime
     );
     return {
       success: true,
@@ -1489,7 +1617,8 @@ export default class AnalyticService {
   private async handleEndpointResult(
     result: any,
     followedEntityNode: SpinalNodeRef,
-    params: any
+    params: any,
+    referenceEpochTime: number
   ): Promise<IResult> {
     const controlEndpointNode = await findEndpoint(
       followedEntityNode.id.get(),
@@ -1504,9 +1633,10 @@ export default class AnalyticService {
       return { success: false, error: 'Endpoint node not found' };
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
-    this.spinalServiceTimeseries.pushFromEndpoint(
+    this.spinalServiceTimeseries.insertFromEndpoint(
       controlEndpointNode.id.get(),
-      result
+      result,
+      referenceEpochTime
     );
     return {
       success: true,
@@ -1529,7 +1659,7 @@ export default class AnalyticService {
   private async handleSMSResult(
     result: any,
     analyticId: string,
-    configNode: SpinalNodeRef,
+    configAttributes: any,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
     if (
@@ -1537,9 +1667,8 @@ export default class AnalyticService {
       !this.twilioAuthToken ||
       !this.twilioFromNumber
     )
-    
       return { success: false, error: 'Twilio parameters not found' };
-      
+
     if (result == false)
       return {
         success: true,
@@ -1548,21 +1677,19 @@ export default class AnalyticService {
         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.SMS,
       };
     console.log('SMS result');
-    const twilioParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS
-    );
+
+    const twilioParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS];
     const toNumber: string = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_NUMBER];
     let message = twilioParams[CONSTANTS.ATTRIBUTE_PHONE_MESSAGE];
-    const variables = message.match(/[^{}]+(?=\})/g) 
-    if(variables){
-      for(const variable of variables){
+    const variables = message.match(/[^{}]+(?=\})/g);
+    if (variables) {
+      for (const variable of variables) {
         const value = await this.getFormattedInputDataByIndex(
           analyticId,
           followedEntityNode,
           variable
         );
-        message = message.replace(`{${variable}}`, ""+value)
+        message = message.replace(`{${variable}}`, '' + value);
       }
     }
     const url = `https://api.twilio.com/2010-04-01/Accounts/${this.twilioAccountSid}/Messages.json`;
@@ -1598,7 +1725,7 @@ export default class AnalyticService {
   private async handleGChatMessageResult(
     result: any,
     analyticId: string,
-    configNode: SpinalNodeRef,
+    configAttributes: any,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
     console.log('Handling Google chat message result');
@@ -1610,28 +1737,22 @@ export default class AnalyticService {
         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
       };
 
-    const analyticParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS
-    );
-    const gChatParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS
-    );
+    const analyticParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS];
+    const gChatParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS];
 
     const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
-    let message : string  = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+    let message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
     const analyticDescription =
       analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
-    const variables = message.match(/[^{}]+(?=\})/g) 
-    if(variables){
-      for(const variable of variables){
+    const variables = message.match(/[^{}]+(?=\})/g);
+    if (variables) {
+      for (const variable of variables) {
         const value = await this.getFormattedInputDataByIndex(
           analyticId,
           followedEntityNode,
           variable
         );
-        message = message.replace(`{${variable}}`, ''+value)
+        message = message.replace(`{${variable}}`, '' + value);
       }
     }
     const resultInfo: IGChatMessageResult = {
@@ -1655,7 +1776,7 @@ export default class AnalyticService {
   private async handleGChatOrganCardResult(
     result: any,
     analyticId: string,
-    configNode: SpinalNodeRef,
+    configAttributes: any,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
     console.log('Handling Google chat organ card result');
@@ -1668,31 +1789,23 @@ export default class AnalyticService {
         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
       };
 
-    const analyticParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS
-    );
-    const resultParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS
-    );
-    const gChatParams = await this.getAttributesFromNode(
-      configNode.id.get(),
-      CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS
-    );
+    const analyticParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS];
+    const resultParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
+    const gChatParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS];
+
 
     const title = resultParams[CONSTANTS.ATTRIBUTE_RESULT_NAME];
     const spaceName: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
     let message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
-    const variables = message.match(/[^{}]+(?=\})/g) 
-    if(variables){
-      for(const variable of variables){
+    const variables = message.match(/[^{}]+(?=\})/g);
+    if (variables) {
+      for (const variable of variables) {
         const value = await this.getFormattedInputDataByIndex(
           analyticId,
           followedEntityNode,
           variable
         );
-        message = message.replace(`{${variable}}`, ""+value)
+        message = message.replace(`{${variable}}`, '' + value);
       }
     }
     const analyticDescription: string =

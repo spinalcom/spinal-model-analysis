@@ -70,13 +70,14 @@ export const CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING =
 
 export const ATTRIBUTE_SEPARATOR = '_';
 export const ATTRIBUTE_VALUE_SEPARATOR = ',';
-
+export const ATTRIBUTE_LAST_EXECUTION_TIME = 'lastExecutionTime';
 export const ATTRIBUTE_TRACKING_METHOD = 'Tracking method';
 export const ATTRIBUTE_FILTER_VALUE = 'Filter value';
 export const ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime';
 export const ATTRIBUTE_SEARCH_DEPTH = 'Search depth';
 export const ATTRIBUTE_STRICT_DEPTH = 'Strict depth';
 export const ATTRIBUTE_SEARCH_RELATIONS = 'Search relations';
+export const ATTRIBUTE_TIMESERIES_VALUE_AT_START = 'Get timeseries value at start'
 
 export const ATTRIBUTE_RESULT_TYPE = 'Result type';
 export const ATTRIBUTE_RESULT_NAME = 'Result name';
@@ -91,6 +92,7 @@ export const ATTRIBUTE_ALARM_PRIORITY = 'Alarm priority';
 export const ATTRIBUTE_ANALYTIC_STATUS = 'Status';
 export const ATTRIBUTE_ANALYTIC_DESCRIPTION = 'Description';
 export const ATTRIBUTE_TRIGGER_AT_START = 'Trigger at start';
+export const ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS = 'Catch up past executions';
 
 export const ENDPOINT_RELATIONS = [
   'hasBmsEndpoint',

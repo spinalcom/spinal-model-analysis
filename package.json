@@ -1,6 +1,6 @@
 {
   "name": "spinal-model-analysis",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "description": "Describe and register the models necessary for the whole analysis module and provide the service necessary for handling it.",
   "main": "dist/index.js",
   "types": "declarations/index.d.ts",
@@ -22,6 +22,7 @@
   "homepage": "https://github.com/spinalcom/spinal-model-analysis#readme",
   "dependencies": {
     "axios": "^1.6.3",
+    "cron-parser": "^4.9.0",
     "qs": "^6.11.2",
     "spinal-core-connectorjs_type": "git+https://github.com/spinalcom/spinal-core-connectorjs_type.git",
     "spinal-env-viewer-graph-service": "git+https://github.com/spinalcom/Spinal-Graph-Service.git",

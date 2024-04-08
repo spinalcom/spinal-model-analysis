@@ -47,6 +47,9 @@ import { InputDataEndpoint } from '../models/InputData/InputDataModel/InputDataE
 import * as CONSTANTS from '../constants';
 import { SpinalAttribute } from 'spinal-models-documentation';
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
+import * as cronParser from 'cron-parser';
+import { SpinalDateValue } from 'spinal-model-timeseries';
+
 
 const serviceTimeseries = SingletonServiceTimeseries.getInstance();
 
@@ -569,13 +572,13 @@ async function alarmAlreadyDeclared(
  */
 export async function addTicketAlarm(
   ticketInfos: any,
-  configInfo: SpinalNodeRef,
+  configAttributes: any,
   analyticContextId: string,
   outputNodeId: string,
   entityNodeId: string,
   ticketType: string
 ) {
-  const localizationInfo = await getTicketLocalizationParameters(configInfo);
+  const localizationInfo = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS];
   const contextId: string =
     localizationInfo[CONSTANTS.ATTRIBUTE_TICKET_CONTEXT_ID];
   const processId: string =
@@ -771,3 +774,74 @@ export async function safeDeleteNode(
   }
   await realNode.removeFromGraph();
 }
+
+
+export function getCronMissingExecutionTimes(cronSyntax: string, lastExecutedTime: number): number[] {
+  const now = new Date();
+    const lastExecutedDate = new Date(lastExecutedTime);
+    const executionTimes: number[] = [];
+
+    try {
+        // Initialize options for cron-parser
+        const options = {
+            currentDate: lastExecutedDate,
+            endDate: now,
+        };
+
+        // Parse the cron syntax with the provided options
+        const interval = cronParser.parseExpression(cronSyntax, options);
+
+        // Using a while loop to fetch the next valid date within the range
+        let nextDate = interval.next();
+        while (nextDate && nextDate.toDate() <= now) {
+            executionTimes.push(nextDate.getTime());
+            try {
+                nextDate = interval.next();
+            } catch (e) {
+                // Break the loop if there are no more dates to process
+                break;
+            }
+        }
+    } catch (err) {
+        console.error('Failed to parse cron syntax:', err);
+    }
+
+    return executionTimes;
+
+}
+
+export function getIntervalTimeMissingExecutionTimes(intervalTime: number, lastExecutedTime: number): number[] {
+  const now = new Date();
+    const lastExecutedDate = new Date(lastExecutedTime);
+    const executionTimes: number[] = [];
+    try {
+        let nextDate = new Date(lastExecutedDate.getTime() + intervalTime);
+        while (nextDate <= now) {
+            executionTimes.push(nextDate.getTime());
+            nextDate = new Date(nextDate.getTime() + intervalTime);
+        }
+    } catch (err) {
+        console.error('Failed to parse interval time:', err);
+    }
+
+    return executionTimes;
+}
+
+
+export function timeseriesPreProcessing(
+  start: number,
+  end: number,
+  timeseries : SpinalDateValue[]
+) : SpinalDateValue[] {
+  if(timeseries.length === 0) return []
+
+  //shifting the first timeseries to start if it is before start
+  if(timeseries[0].date < start ) {
+    timeseries[0].date = start;
+  }
+
+  //copy last timeseries value to the end
+  timeseries.push({ date: end, value: timeseries[timeseries.length - 1].value });
+  return timeseries;
+}
+

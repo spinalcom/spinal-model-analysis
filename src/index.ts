@@ -48,6 +48,9 @@ import {
   ATTRIBUTE_TICKET_CONTEXT_ID,
   ATTRIBUTE_TICKET_PROCESS_ID,
   ATTRIBUTE_ALARM_PRIORITY,
+  ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS,
+  ATTRIBUTE_TIMESERIES_VALUE_AT_START,
+  ATTRIBUTE_LAST_EXECUTION_TIME,
   ANALYTIC_STATUS,
 } from './constants';
 
@@ -58,6 +61,8 @@ import {
   getValueModelFromEntry,
   getChoiceRelationsWithDepth,
   getAvailableData,
+  getCronMissingExecutionTimes,
+  getIntervalTimeMissingExecutionTimes
 } from './services/utils';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -117,12 +122,17 @@ export {
   ATTRIBUTE_RESULT_TYPE,
   ATTRIBUTE_ANALYTIC_STATUS,
   ATTRIBUTE_ANALYTIC_DESCRIPTION,
+  ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS,
   ATTRIBUTE_TRIGGER_AT_START,
   ATTRIBUTE_TICKET_CONTEXT_ID,
   ATTRIBUTE_TICKET_PROCESS_ID,
   ATTRIBUTE_ALARM_PRIORITY,
   ATTRIBUTE_VALUE_SEPARATOR,
+  ATTRIBUTE_LAST_EXECUTION_TIME,
+  ATTRIBUTE_TIMESERIES_VALUE_AT_START,
   getValueModelFromEntry,
+  getCronMissingExecutionTimes,
+  getIntervalTimeMissingExecutionTimes,
   getChoiceRelationsWithDepth,
   getAvailableData,
   isResultSuccess,
