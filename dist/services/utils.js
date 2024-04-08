@@ -508,6 +508,7 @@ function getCronMissingExecutionTimes(cronSyntax, lastExecutedTime) {
     catch (err) {
         console.error('Failed to parse cron syntax:', err);
     }
+    executionTimes.pop();
     return executionTimes;
 }
 exports.getCronMissingExecutionTimes = getCronMissingExecutionTimes;
