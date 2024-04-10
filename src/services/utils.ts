@@ -805,7 +805,7 @@ export function getCronMissingExecutionTimes(cronSyntax: string, lastExecutedTim
     } catch (err) {
         console.error('Failed to parse cron syntax:', err);
     }
-    executionTimes.pop();
+    executionTimes.pop(); // Remove the last date (current time ) as it is 
     return executionTimes;
 
 }
@@ -840,7 +840,7 @@ export function timeseriesPreProcessing(
     timeseries[0].date = start;
   }
 
-  //copy last timeseries value to the end
+  //copy last value to the end of the timeseries
   timeseries.push({ date: end, value: timeseries[timeseries.length - 1].value });
   return timeseries;
 }
