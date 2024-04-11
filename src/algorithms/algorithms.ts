@@ -343,9 +343,9 @@ export const TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm(
         const deltaTime = dataInput[i+1].date - dataInput[i].date;
   
         // Calculate the average value between two points
-        const avgValue = (dataInput[i+1].value + dataInput[i].value) / 2;
+        //const avgValue = (dataInput[i+1].value + dataInput[i].value) / 2;
   
-        sum += avgValue * deltaTime;
+        sum +=  dataInput[i].value * deltaTime;
       }
   
       if (!percentageResult)

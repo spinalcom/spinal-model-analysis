@@ -191,8 +191,8 @@ exports.TIMESERIES_BOOLEAN_RATE = new Algorithm('TIMESERIES_BOOLEAN_RATE', 'This
         // Calculate the difference in time
         const deltaTime = dataInput[i + 1].date - dataInput[i].date;
         // Calculate the average value between two points
-        const avgValue = (dataInput[i + 1].value + dataInput[i].value) / 2;
-        sum += avgValue * deltaTime;
+        //const avgValue = (dataInput[i+1].value + dataInput[i].value) / 2;
+        sum += dataInput[i].value * deltaTime;
     }
     if (!percentageResult)
         return (sum / (dataInput[dataInput.length - 1].date - dataInput[0].date));
