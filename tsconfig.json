@@ -7,6 +7,7 @@
       "*": ["types/*"]
     },
     "outDir": "dist",
+    "lib": ["es2019", "dom"],
     "sourceMap": true,
     "declaration": true,
     "declarationDir": "./declarations",
