@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.EXIT = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.EXIT = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -205,6 +205,12 @@ exports.TIMESERIES_IS_EMPTY = new Algorithm('TIMESERIES_IS_EMPTY', 'This algorit
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
     return dataInput.length === 0;
 });
+exports.TIMESERIES_SUM = new Algorithm('TIMESERIES_SUM', 'This algorithm returns the sum of the timeseries', ['Timeseries'], 'number', [], (input) => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0)
+        throw new Error('Timeseries is empty');
+    return dataInput.reduce((acc, current) => acc + current.value, 0);
+});
 exports.AND = new Algorithm('AND', 'This algorithm returns true if all the inputs are true', ['boolean'], 'boolean', [], (input) => {
     return !input.includes(false);
 });
@@ -284,6 +290,7 @@ exports.ALGORITHMS = {
     TIMESERIES_IS_EMPTY: exports.TIMESERIES_IS_EMPTY,
     TIMESERIES_AVERAGE: exports.TIMESERIES_AVERAGE,
     TIMESERIES_TIME_WEIGHTED_AVERAGE: exports.TIMESERIES_TIME_WEIGHTED_AVERAGE,
+    TIMESERIES_SUM: exports.TIMESERIES_SUM,
     TIMESERIES_BOOLEAN_RATE: exports.TIMESERIES_BOOLEAN_RATE,
     AND: exports.AND,
     OR: exports.OR,

@@ -50,7 +50,6 @@ import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import * as cronParser from 'cron-parser';
 import { SpinalDateValue } from 'spinal-model-timeseries';
 
-
 const serviceTimeseries = SingletonServiceTimeseries.getInstance();
 
 /**
@@ -578,7 +577,10 @@ export async function addTicketAlarm(
   entityNodeId: string,
   ticketType: string
 ) {
-  const localizationInfo = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS];
+  const localizationInfo =
+    configAttributes[
+      CONSTANTS.CATEGORY_ATTRIBUTE_TICKET_LOCALIZATION_PARAMETERS
+    ];
   const contextId: string =
     localizationInfo[CONSTANTS.ATTRIBUTE_TICKET_CONTEXT_ID];
   const processId: string =
@@ -775,73 +777,123 @@ export async function safeDeleteNode(
   await realNode.removeFromGraph();
 }
 
-
-export function getCronMissingExecutionTimes(cronSyntax: string, lastExecutedTime: number): number[] {
+export function getCronMissingExecutionTimes(
+  cronSyntax: string,
+  lastExecutedTime: number
+): number[] {
   const now = new Date();
-    const lastExecutedDate = new Date(lastExecutedTime);
-    const executionTimes: number[] = [];
+  const lastExecutedDate = new Date(lastExecutedTime);
+  const executionTimes: number[] = [];
 
-    try {
-        // Initialize options for cron-parser
-        const options = {
-            currentDate: lastExecutedDate,
-            endDate: now,
-        };
+  try {
+    // Initialize options for cron-parser
+    const options = {
+      currentDate: lastExecutedDate,
+      endDate: now,
+    };
 
-        // Parse the cron syntax with the provided options
-        const interval = cronParser.parseExpression(cronSyntax, options);
+    // Parse the cron syntax with the provided options
+    const interval = cronParser.parseExpression(cronSyntax, options);
 
-        // Using a while loop to fetch the next valid date within the range
-        let nextDate = interval.next();
-        while (nextDate && nextDate.toDate() <= now) {
-            executionTimes.push(nextDate.getTime());
-            try {
-                nextDate = interval.next();
-            } catch (e) {
-                // Break the loop if there are no more dates to process
-                break;
-            }
-        }
-    } catch (err) {
-        console.error('Failed to parse cron syntax:', err);
+    // Using a while loop to fetch the next valid date within the range
+    let nextDate = interval.next();
+    while (nextDate && nextDate.toDate() <= now) {
+      executionTimes.push(nextDate.getTime());
+      try {
+        nextDate = interval.next();
+      } catch (e) {
+        // Break the loop if there are no more dates to process
+        break;
+      }
     }
-    executionTimes.pop(); // Remove the last date (current time ) as it is 
-    return executionTimes;
-
+  } catch (err) {
+    console.error('Failed to parse cron syntax:', err);
+  }
+  executionTimes.pop(); // Remove the last date (current time ) as it is
+  return executionTimes;
 }
 
-export function getIntervalTimeMissingExecutionTimes(intervalTime: number, lastExecutedTime: number): number[] {
+export function getIntervalTimeMissingExecutionTimes(
+  intervalTime: number,
+  lastExecutedTime: number
+): number[] {
   const now = new Date();
-    const lastExecutedDate = new Date(lastExecutedTime);
-    const executionTimes: number[] = [];
-    try {
-        let nextDate = new Date(lastExecutedDate.getTime() + intervalTime);
-        while (nextDate <= now) {
-            executionTimes.push(nextDate.getTime());
-            nextDate = new Date(nextDate.getTime() + intervalTime);
-        }
-    } catch (err) {
-        console.error('Failed to parse interval time:', err);
+  const lastExecutedDate = new Date(lastExecutedTime);
+  const executionTimes: number[] = [];
+  try {
+    let nextDate = new Date(lastExecutedDate.getTime() + intervalTime);
+    while (nextDate <= now) {
+      executionTimes.push(nextDate.getTime());
+      nextDate = new Date(nextDate.getTime() + intervalTime);
     }
+  } catch (err) {
+    console.error('Failed to parse interval time:', err);
+  }
 
-    return executionTimes;
+  return executionTimes;
 }
-
 
 export function timeseriesPreProcessing(
   start: number,
   end: number,
-  timeseries : SpinalDateValue[]
-) : SpinalDateValue[] {
-  if(timeseries.length === 0) return []
+  timeseries: SpinalDateValue[]
+): SpinalDateValue[] {
+  if (timeseries.length === 0) return [];
 
   //shifting the first timeseries to start if it is before start
-  if(timeseries[0].date < start ) {
+  if (timeseries[0].date < start) {
     timeseries[0].date = start;
   }
 
   //copy last value to the end of the timeseries
-  timeseries.push({ date: end, value: timeseries[timeseries.length - 1].value });
+  timeseries.push({
+    date: end,
+    value: timeseries[timeseries.length - 1].value,
+  });
   return timeseries;
 }
 
+export async function createEndpoint(
+  referenceEpochTime: number,
+  parentId: string,
+  endpointName: string,
+  initialValue: number,
+  unit:string,
+  maxDays: number
+) : Promise<SpinalNodeRef> {
+  const endpoint = new InputDataEndpoint(
+    endpointName,
+    initialValue,
+    '',
+    InputDataEndpointDataType.Integer,
+    InputDataEndpointType.Other
+  );
+
+  const res = new SpinalBmsEndpoint(
+    endpoint.name,
+    endpoint.path,
+    endpoint.currentValue,
+    endpoint.unit,
+    InputDataEndpointDataType[endpoint.dataType],
+    InputDataEndpointType[endpoint.type],
+    endpoint.id
+  );
+
+  const childId = SpinalGraphService.createNode(
+    { type: SpinalBmsEndpoint.nodeTypeName, name: endpoint.name },
+    res
+  );
+  SpinalGraphService.addChild(
+    parentId,
+    childId,
+    SpinalBmsEndpoint.relationName,
+    SPINAL_RELATION_PTR_LST_TYPE
+  );
+  await serviceTimeseries.getOrCreateTimeSeries(childId);
+  serviceTimeseries.insertFromEndpoint(childId, initialValue, referenceEpochTime);
+
+  const realNode = SpinalGraphService.getRealNode(childId);
+  await attributeService.updateAttribute(realNode, 'default', 'timeSeries maxDay', { value: ''+maxDays })
+  return SpinalGraphService.getInfo(childId)
+
+}

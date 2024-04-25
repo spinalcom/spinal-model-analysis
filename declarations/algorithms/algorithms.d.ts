@@ -31,6 +31,7 @@ export declare const TIMESERIES_AVERAGE: Algorithm;
 export declare const TIMESERIES_TIME_WEIGHTED_AVERAGE: Algorithm;
 export declare const TIMESERIES_BOOLEAN_RATE: Algorithm;
 export declare const TIMESERIES_IS_EMPTY: Algorithm;
+export declare const TIMESERIES_SUM: Algorithm;
 export declare const AND: Algorithm;
 export declare const OR: Algorithm;
 export declare const NOT: Algorithm;

@@ -1158,12 +1158,17 @@ class AnalyticService {
      */
     handleEndpointResult(result, followedEntityNode, params, referenceEpochTime) {
         return __awaiter(this, void 0, void 0, function* () {
-            const controlEndpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
-            if (!controlEndpointNode)
+            let endpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+            if (!endpointNode && !params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST])
                 return { success: false, error: 'Endpoint node not found' };
-            const controlEndpoint = yield controlEndpointNode.element.load();
-            controlEndpoint.currentValue.set(result);
-            this.spinalServiceTimeseries.insertFromEndpoint(controlEndpointNode.id.get(), result, referenceEpochTime);
+            if (!endpointNode) {
+                endpointNode = yield (0, utils_1.createEndpoint)(referenceEpochTime, followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], result, params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_UNIT], params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS]);
+                if (!endpointNode)
+                    return { success: false, error: 'Failed endpoint creation' };
+            }
+            const endpoint = yield endpointNode.element.load();
+            endpoint.currentValue.set(result);
+            this.spinalServiceTimeseries.insertFromEndpoint(endpointNode.id.get(), result, referenceEpochTime);
             return {
                 success: true,
                 resultValue: result,

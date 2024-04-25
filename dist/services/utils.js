@@ -33,7 +33,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.timeseriesPreProcessing = exports.getIntervalTimeMissingExecutionTimes = exports.getCronMissingExecutionTimes = exports.safeDeleteNode = exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
+exports.createEndpoint = exports.timeseriesPreProcessing = exports.getIntervalTimeMissingExecutionTimes = exports.getCronMissingExecutionTimes = exports.safeDeleteNode = exports.addTicketAlarm = exports.formatTrackingMethodsToList = exports.getValueModelFromEntry = exports.findAllCategoriesAndAttributes = exports.findAttributes = exports.findAttribute = exports.findEndpoints = exports.findEndpoint = exports.findNodes = exports.getAvailableData = exports.getChoiceRelationsWithDepth = exports.getRelationsWithDepth = exports.getTicketLocalizationParameters = exports.getAlgorithmParameters = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const spinal_service_ticket_1 = require("spinal-service-ticket");
@@ -508,7 +508,7 @@ function getCronMissingExecutionTimes(cronSyntax, lastExecutedTime) {
     catch (err) {
         console.error('Failed to parse cron syntax:', err);
     }
-    executionTimes.pop(); // Remove the last date (current time ) as it is 
+    executionTimes.pop(); // Remove the last date (current time ) as it is
     return executionTimes;
 }
 exports.getCronMissingExecutionTimes = getCronMissingExecutionTimes;
@@ -537,8 +537,25 @@ function timeseriesPreProcessing(start, end, timeseries) {
         timeseries[0].date = start;
     }
     //copy last value to the end of the timeseries
-    timeseries.push({ date: end, value: timeseries[timeseries.length - 1].value });
+    timeseries.push({
+        date: end,
+        value: timeseries[timeseries.length - 1].value,
+    });
     return timeseries;
 }
 exports.timeseriesPreProcessing = timeseriesPreProcessing;
+function createEndpoint(referenceEpochTime, parentId, endpointName, initialValue, unit, maxDays) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const endpoint = new InputDataEndpoint_1.InputDataEndpoint(endpointName, initialValue, '', spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Other);
+        const res = new spinal_model_bmsnetwork_1.SpinalBmsEndpoint(endpoint.name, endpoint.path, endpoint.currentValue, endpoint.unit, spinal_model_bmsnetwork_1.InputDataEndpointDataType[endpoint.dataType], spinal_model_bmsnetwork_1.InputDataEndpointType[endpoint.type], endpoint.id);
+        const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName, name: endpoint.name }, res);
+        spinal_env_viewer_graph_service_1.SpinalGraphService.addChild(parentId, childId, spinal_model_bmsnetwork_1.SpinalBmsEndpoint.relationName, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+        yield serviceTimeseries.getOrCreateTimeSeries(childId);
+        serviceTimeseries.insertFromEndpoint(childId, initialValue, referenceEpochTime);
+        const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(childId);
+        yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(realNode, 'default', 'timeSeries maxDay', { value: '' + maxDays });
+        return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(childId);
+    });
+}
+exports.createEndpoint = createEndpoint;
 //# sourceMappingURL=utils.js.map

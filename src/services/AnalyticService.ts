@@ -42,6 +42,7 @@ import {
   getIntervalTimeMissingExecutionTimes,
   safeDeleteNode,
   timeseriesPreProcessing,
+  createEndpoint
 } from './utils';
 import { SingletonServiceTimeseries } from './SingletonTimeSeries';
 import { SpinalAttribute } from 'spinal-models-documentation';
@@ -1620,7 +1621,7 @@ export default class AnalyticService {
     params: any,
     referenceEpochTime: number
   ): Promise<IResult> {
-    const controlEndpointNode = await findEndpoint(
+    let endpointNode = await findEndpoint(
       followedEntityNode.id.get(),
       params[CONSTANTS.ATTRIBUTE_RESULT_NAME],
       0,
@@ -1629,12 +1630,24 @@ export default class AnalyticService {
       CONSTANTS.ENDPOINT_RELATIONS,
       CONSTANTS.ENDPOINT_NODE_TYPE
     );
-    if (!controlEndpointNode)
+
+    if (!endpointNode && !params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST])
       return { success: false, error: 'Endpoint node not found' };
-    const controlEndpoint = await controlEndpointNode.element.load();
-    controlEndpoint.currentValue.set(result);
+
+    if (!endpointNode) {
+      endpointNode = await createEndpoint(referenceEpochTime,
+        followedEntityNode.id.get(),
+        params[CONSTANTS.ATTRIBUTE_RESULT_NAME],
+        result,
+        params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_UNIT],
+        params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS])
+      
+        if(!endpointNode) return { success: false, error: 'Failed endpoint creation' };
+    }
+    const endpoint = await endpointNode.element.load();
+    endpoint.currentValue.set(result);
     this.spinalServiceTimeseries.insertFromEndpoint(
-      controlEndpointNode.id.get(),
+      endpointNode.id.get(),
       result,
       referenceEpochTime
     );

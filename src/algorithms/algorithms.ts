@@ -373,6 +373,19 @@ export const TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm(
     }
   );
 
+  export const TIMESERIES_SUM = new Algorithm(
+    'TIMESERIES_SUM',
+    'This algorithm returns the sum of the timeseries',
+    ['Timeseries'],
+    'number',
+    [],
+    (input: SpinalDateValue[][]): number => {
+      const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+      if(dataInput.length === 0) throw new Error('Timeseries is empty');
+      return dataInput.reduce((acc, current) => acc + current.value, 0);
+    }
+  );
+
 export const AND = new Algorithm(
   'AND',
   'This algorithm returns true if all the inputs are true',
@@ -560,6 +573,7 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   TIMESERIES_IS_EMPTY,
   TIMESERIES_AVERAGE,
   TIMESERIES_TIME_WEIGHTED_AVERAGE,
+  TIMESERIES_SUM,
   TIMESERIES_BOOLEAN_RATE,
   AND,
   OR,

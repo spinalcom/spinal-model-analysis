@@ -62,6 +62,7 @@ export const CATEGORY_ATTRIBUTE_TRACKING_METHOD_PARAMETERS =
   'Tracking parameters';
 export const CATEGORY_ATTRIBUTE_TWILIO_PARAMETERS = 'Twilio parameters';
 export const CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS = 'Google chat parameters';
+export const CATEGORY_ATTRIBUTE_ENDPOINT_PARAMETERS = 'Endpoint creation parameters';
 export const CATEGORY_ATTRIBUTE_TRIGGER_PARAMETERS = 'Trigger parameters';
 export const CATEGORY_ATTRIBUTE_IO_DEPENDENCIES = 'IO dependencies';
 export const CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS = 'Analytic parameters';
@@ -88,6 +89,9 @@ export const ATTRIBUTE_GCHAT_MESSAGE = 'Google chat message';
 export const ATTRIBUTE_TICKET_CONTEXT_ID = 'Ticket context id';
 export const ATTRIBUTE_TICKET_PROCESS_ID = 'Ticket category id';
 export const ATTRIBUTE_ALARM_PRIORITY = 'Alarm priority';
+export const ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST = 'Create endpoint if not exist';
+export const ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS = 'Number or days the timeseries are stored'
+export const ATTRIBUTE_CREATE_ENDPOINT_UNIT = 'Unit of the endpoint'
 
 export const ATTRIBUTE_ANALYTIC_STATUS = 'Status';
 export const ATTRIBUTE_ANALYTIC_DESCRIPTION = 'Description';

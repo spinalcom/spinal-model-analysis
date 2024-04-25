@@ -43,3 +43,4 @@ export declare function safeDeleteNode(nodeId: string, shouldDeleteChildren?: bo
 export declare function getCronMissingExecutionTimes(cronSyntax: string, lastExecutedTime: number): number[];
 export declare function getIntervalTimeMissingExecutionTimes(intervalTime: number, lastExecutedTime: number): number[];
 export declare function timeseriesPreProcessing(start: number, end: number, timeseries: SpinalDateValue[]): SpinalDateValue[];
+export declare function createEndpoint(referenceEpochTime: number, parentId: string, endpointName: string, initialValue: number, unit: string, maxDays: number): Promise<SpinalNodeRef>;
