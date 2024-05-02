@@ -546,14 +546,14 @@ function timeseriesPreProcessing(start, end, timeseries) {
 exports.timeseriesPreProcessing = timeseriesPreProcessing;
 function createEndpoint(referenceEpochTime, parentId, endpointName, initialValue, unit, maxDays) {
     return __awaiter(this, void 0, void 0, function* () {
-        const endpoint = new InputDataEndpoint_1.InputDataEndpoint(endpointName, initialValue, '', spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Other);
+        const endpoint = new InputDataEndpoint_1.InputDataEndpoint(endpointName, initialValue, unit !== null && unit !== void 0 ? unit : '', spinal_model_bmsnetwork_1.InputDataEndpointDataType.Integer, spinal_model_bmsnetwork_1.InputDataEndpointType.Other);
         const res = new spinal_model_bmsnetwork_1.SpinalBmsEndpoint(endpoint.name, endpoint.path, endpoint.currentValue, endpoint.unit, spinal_model_bmsnetwork_1.InputDataEndpointDataType[endpoint.dataType], spinal_model_bmsnetwork_1.InputDataEndpointType[endpoint.type], endpoint.id);
         const childId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({ type: spinal_model_bmsnetwork_1.SpinalBmsEndpoint.nodeTypeName, name: endpoint.name }, res);
         spinal_env_viewer_graph_service_1.SpinalGraphService.addChild(parentId, childId, spinal_model_bmsnetwork_1.SpinalBmsEndpoint.relationName, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
         yield serviceTimeseries.getOrCreateTimeSeries(childId);
         serviceTimeseries.insertFromEndpoint(childId, initialValue, referenceEpochTime);
         const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(childId);
-        yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(realNode, 'default', 'timeSeries maxDay', { value: '' + maxDays });
+        yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(realNode, 'default', 'timeSeries maxDay', { value: maxDays });
         return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(childId);
     });
 }

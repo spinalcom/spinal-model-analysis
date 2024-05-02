@@ -859,12 +859,12 @@ export async function createEndpoint(
   endpointName: string,
   initialValue: number,
   unit:string,
-  maxDays: number
+  maxDays: string
 ) : Promise<SpinalNodeRef> {
   const endpoint = new InputDataEndpoint(
     endpointName,
     initialValue,
-    '',
+    unit??'',
     InputDataEndpointDataType.Integer,
     InputDataEndpointType.Other
   );
@@ -893,7 +893,7 @@ export async function createEndpoint(
   serviceTimeseries.insertFromEndpoint(childId, initialValue, referenceEpochTime);
 
   const realNode = SpinalGraphService.getRealNode(childId);
-  await attributeService.updateAttribute(realNode, 'default', 'timeSeries maxDay', { value: ''+maxDays })
+  await attributeService.updateAttribute(realNode, 'default', 'timeSeries maxDay', { value: maxDays })
   return SpinalGraphService.getInfo(childId)
 
 }

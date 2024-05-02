@@ -90,7 +90,7 @@ export const ATTRIBUTE_TICKET_CONTEXT_ID = 'Ticket context id';
 export const ATTRIBUTE_TICKET_PROCESS_ID = 'Ticket category id';
 export const ATTRIBUTE_ALARM_PRIORITY = 'Alarm priority';
 export const ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST = 'Create endpoint if not exist';
-export const ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS = 'Number or days the timeseries are stored'
+export const ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS = 'Number of days the timeseries are stored'
 export const ATTRIBUTE_CREATE_ENDPOINT_UNIT = 'Unit of the endpoint'
 
 export const ATTRIBUTE_ANALYTIC_STATUS = 'Status';

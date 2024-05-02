@@ -1412,16 +1412,14 @@ export default class AnalyticService {
     if (result === undefined)
       return { success: false, error: 'Result is undefined' };
     
-    const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
-    
-    switch (params[CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
+    //const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
+    switch (configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
         await this.handleTicketResult(
           result,
           analyticId,
           configAttributes,
           followedEntityNode,
-          params,
           'Ticket'
         );
         return {
@@ -1435,7 +1433,7 @@ export default class AnalyticService {
         await this.handleControlEndpointResult(
           result,
           followedEntityNode,
-          params,
+          configAttributes,
           referenceEpochTime
         );
         return {
@@ -1445,7 +1443,7 @@ export default class AnalyticService {
           resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
         };
       case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
-        await this.handleEndpointResult(result, followedEntityNode, params,referenceEpochTime);
+        await this.handleEndpointResult(result, followedEntityNode, configAttributes,referenceEpochTime);
         return {
           success: true,
           resultValue: result,
@@ -1458,7 +1456,6 @@ export default class AnalyticService {
           analyticId,
           configAttributes,
           followedEntityNode,
-          params,
           'Alarm'
         );
 
@@ -1473,7 +1470,7 @@ export default class AnalyticService {
       case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
         console.log(
           `LOG : ${
-            params[CONSTANTS.ATTRIBUTE_RESULT_NAME]
+            configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME]
           } \t|\t Result : ${result}`
         );
         return {
@@ -1522,7 +1519,6 @@ export default class AnalyticService {
     analyticId: string,
     configAttributes: any,
     followedEntityNode: SpinalNodeRef,
-    params: any,
     ticketType: string // Alarm or Ticket
   ): Promise<IResult> {
     if (result == false)
@@ -1542,7 +1538,7 @@ export default class AnalyticService {
 
     const ticketInfo = {
       name: `${
-        params[CONSTANTS.ATTRIBUTE_RESULT_NAME]
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME]
       } : ${followedEntityNode.name.get()}`,
     };
 
@@ -1575,12 +1571,12 @@ export default class AnalyticService {
   private async handleControlEndpointResult(
     result: any,
     followedEntityNode: SpinalNodeRef,
-    params: any,
+    configAttributes: any,
     referenceEpochTime : number
   ): Promise<IResult> {
     const controlEndpointNode = await findEndpoint(
       followedEntityNode.id.get(),
-      params[CONSTANTS.ATTRIBUTE_RESULT_NAME],
+      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME],
       0,
       true,
       [],
@@ -1618,12 +1614,12 @@ export default class AnalyticService {
   private async handleEndpointResult(
     result: any,
     followedEntityNode: SpinalNodeRef,
-    params: any,
+    configAttributes: any,
     referenceEpochTime: number
   ): Promise<IResult> {
     let endpointNode = await findEndpoint(
       followedEntityNode.id.get(),
-      params[CONSTANTS.ATTRIBUTE_RESULT_NAME],
+      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME],
       0,
       true,
       [],
@@ -1631,16 +1627,16 @@ export default class AnalyticService {
       CONSTANTS.ENDPOINT_NODE_TYPE
     );
 
-    if (!endpointNode && !params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST])
+    if (!endpointNode && !configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST])
       return { success: false, error: 'Endpoint node not found' };
 
     if (!endpointNode) {
       endpointNode = await createEndpoint(referenceEpochTime,
         followedEntityNode.id.get(),
-        params[CONSTANTS.ATTRIBUTE_RESULT_NAME],
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME],
         result,
-        params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_UNIT],
-        params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS])
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ENDPOINT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_UNIT],
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ENDPOINT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS])
       
         if(!endpointNode) return { success: false, error: 'Failed endpoint creation' };
     }

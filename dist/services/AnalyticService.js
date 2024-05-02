@@ -1032,10 +1032,10 @@ class AnalyticService {
         return __awaiter(this, void 0, void 0, function* () {
             if (result === undefined)
                 return { success: false, error: 'Result is undefined' };
-            const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
-            switch (params[CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
+            //const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
+            switch (configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_TYPE]) {
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
-                    yield this.handleTicketResult(result, analyticId, configAttributes, followedEntityNode, params, 'Ticket');
+                    yield this.handleTicketResult(result, analyticId, configAttributes, followedEntityNode, 'Ticket');
                     return {
                         success: true,
                         resultValue: result,
@@ -1043,7 +1043,7 @@ class AnalyticService {
                         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
                     };
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
-                    yield this.handleControlEndpointResult(result, followedEntityNode, params, referenceEpochTime);
+                    yield this.handleControlEndpointResult(result, followedEntityNode, configAttributes, referenceEpochTime);
                     return {
                         success: true,
                         resultValue: result,
@@ -1051,7 +1051,7 @@ class AnalyticService {
                         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
                     };
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
-                    yield this.handleEndpointResult(result, followedEntityNode, params, referenceEpochTime);
+                    yield this.handleEndpointResult(result, followedEntityNode, configAttributes, referenceEpochTime);
                     return {
                         success: true,
                         resultValue: result,
@@ -1059,11 +1059,11 @@ class AnalyticService {
                         resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
                     };
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
-                    return yield this.handleTicketResult(result, analyticId, configAttributes, followedEntityNode, params, 'Alarm');
+                    return yield this.handleTicketResult(result, analyticId, configAttributes, followedEntityNode, 'Alarm');
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
                     return yield this.handleSMSResult(result, analyticId, configAttributes, followedEntityNode);
                 case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
-                    console.log(`LOG : ${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} \t|\t Result : ${result}`);
+                    console.log(`LOG : ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME]} \t|\t Result : ${result}`);
                     return {
                         success: true,
                         resultValue: result,
@@ -1092,7 +1092,7 @@ class AnalyticService {
      * @return {*}  {Promise<void>}
      * @memberof AnalyticService
      */
-    handleTicketResult(result, analyticId, configAttributes, followedEntityNode, params, ticketType // Alarm or Ticket
+    handleTicketResult(result, analyticId, configAttributes, followedEntityNode, ticketType // Alarm or Ticket
     ) {
         return __awaiter(this, void 0, void 0, function* () {
             if (result == false)
@@ -1109,7 +1109,7 @@ class AnalyticService {
             if (!analyticContextId)
                 return { success: false, error: ' Analytic context id not found' };
             const ticketInfo = {
-                name: `${params[CONSTANTS.ATTRIBUTE_RESULT_NAME]} : ${followedEntityNode.name.get()}`,
+                name: `${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME]} : ${followedEntityNode.name.get()}`,
             };
             (0, utils_1.addTicketAlarm)(ticketInfo, configAttributes, analyticContextId, outputNode.id.get(), followedEntityNode.id.get(), ticketType);
             return {
@@ -1130,9 +1130,9 @@ class AnalyticService {
      * @return {*}  {Promise<void>}
      * @memberof AnalyticService
      */
-    handleControlEndpointResult(result, followedEntityNode, params, referenceEpochTime) {
+    handleControlEndpointResult(result, followedEntityNode, configAttributes, referenceEpochTime) {
         return __awaiter(this, void 0, void 0, function* () {
-            const controlEndpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.CONTROL_ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+            const controlEndpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.CONTROL_ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
             if (!controlEndpointNode)
                 return { success: false, error: ' Control endpoint node not found' };
             const controlEndpoint = yield controlEndpointNode.element.load();
@@ -1156,13 +1156,13 @@ class AnalyticService {
      * @return {*}  {Promise<void>}
      * @memberof AnalyticService
      */
-    handleEndpointResult(result, followedEntityNode, params, referenceEpochTime) {
+    handleEndpointResult(result, followedEntityNode, configAttributes, referenceEpochTime) {
         return __awaiter(this, void 0, void 0, function* () {
-            let endpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
-            if (!endpointNode && !params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST])
+            let endpointNode = yield (0, utils_1.findEndpoint)(followedEntityNode.id.get(), configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+            if (!endpointNode && !configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST])
                 return { success: false, error: 'Endpoint node not found' };
             if (!endpointNode) {
-                endpointNode = yield (0, utils_1.createEndpoint)(referenceEpochTime, followedEntityNode.id.get(), params[CONSTANTS.ATTRIBUTE_RESULT_NAME], result, params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_UNIT], params[CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS]);
+                endpointNode = yield (0, utils_1.createEndpoint)(referenceEpochTime, followedEntityNode.id.get(), configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME], result, configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ENDPOINT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_UNIT], configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ENDPOINT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS]);
                 if (!endpointNode)
                     return { success: false, error: 'Failed endpoint creation' };
             }
