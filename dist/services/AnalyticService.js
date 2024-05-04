@@ -1137,7 +1137,9 @@ class AnalyticService {
                 return { success: false, error: ' Control endpoint node not found' };
             const controlEndpoint = yield controlEndpointNode.element.load();
             controlEndpoint.currentValue.set(result);
-            this.spinalServiceTimeseries.insertFromEndpoint(controlEndpointNode.id.get(), result, referenceEpochTime);
+            const bool = yield this.spinalServiceTimeseries.insertFromEndpoint(controlEndpointNode.id.get(), result, referenceEpochTime);
+            if (!bool)
+                return { success: false, error: 'Failed to insert data in timeseries' };
             return {
                 success: true,
                 resultValue: result,
@@ -1168,7 +1170,9 @@ class AnalyticService {
             }
             const endpoint = yield endpointNode.element.load();
             endpoint.currentValue.set(result);
-            this.spinalServiceTimeseries.insertFromEndpoint(endpointNode.id.get(), result, referenceEpochTime);
+            const bool = yield this.spinalServiceTimeseries.insertFromEndpoint(endpointNode.id.get(), result, referenceEpochTime);
+            if (!bool)
+                return { success: false, error: 'Failed to insert data in timeseries' };
             return {
                 success: true,
                 resultValue: result,

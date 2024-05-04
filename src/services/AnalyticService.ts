@@ -1588,11 +1588,13 @@ export default class AnalyticService {
 
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
-    this.spinalServiceTimeseries.insertFromEndpoint(
+    const bool = await this.spinalServiceTimeseries.insertFromEndpoint(
       controlEndpointNode.id.get(),
       result,
       referenceEpochTime
     );
+    if(!bool) return { success: false, error: 'Failed to insert data in timeseries' };
+    console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`)
     return {
       success: true,
       resultValue: result,
@@ -1642,11 +1644,12 @@ export default class AnalyticService {
     }
     const endpoint = await endpointNode.element.load();
     endpoint.currentValue.set(result);
-    this.spinalServiceTimeseries.insertFromEndpoint(
+    const bool = await this.spinalServiceTimeseries.insertFromEndpoint(
       endpointNode.id.get(),
       result,
       referenceEpochTime
     );
+    if(!bool) return { success: false, error: 'Failed to insert data in timeseries' };
     return {
       success: true,
       resultValue: result,
