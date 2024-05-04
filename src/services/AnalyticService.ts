@@ -1593,7 +1593,7 @@ export default class AnalyticService {
       result,
       referenceEpochTime
     );
-    if(!bool) return { success: false, error: 'Failed to insert data in timeseries' };
+    if(!bool) throw new Error('Failed to insert data in timeseries');
     console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`)
     return {
       success: true,

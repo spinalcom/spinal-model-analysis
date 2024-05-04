@@ -1139,7 +1139,7 @@ class AnalyticService {
             controlEndpoint.currentValue.set(result);
             const bool = yield this.spinalServiceTimeseries.insertFromEndpoint(controlEndpointNode.id.get(), result, referenceEpochTime);
             if (!bool)
-                return { success: false, error: 'Failed to insert data in timeseries' };
+                throw new Error('Failed to insert data in timeseries');
             console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`);
             return {
                 success: true,
