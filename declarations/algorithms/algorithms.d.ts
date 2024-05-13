@@ -4,8 +4,8 @@ import { SpinalDateValue } from 'spinal-model-timeseries';
 interface IParameters {
     [key: string]: string | number | boolean;
 }
-declare type PrimitiveInput = number | string | boolean;
-declare type IInput = PrimitiveInput | SpinalDateValue[];
+type PrimitiveInput = number | string | boolean;
+type IInput = PrimitiveInput | SpinalDateValue[];
 declare class Algorithm implements IAlgorithm {
     name: string;
     inputTypes: string[];

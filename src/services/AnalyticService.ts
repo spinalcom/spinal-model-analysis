@@ -51,6 +51,15 @@ import axios from 'axios';
 import { stringify } from 'qs';
 import { ExitAnalyticError } from '../classes/Errors';
 
+
+
+// Logging function
+function logMessage(message: string): void {
+  if (process.env.ADVANCED_LOGGING === 'true') {
+    console.log(message);
+  }
+}
+
 /**
  * This class handles most of the logic for analytics. It provides methods for creating and retrieving analytics, entities, and contexts.
  * It also provides methods for applying tracking methods to followed entities and applying algorithms to inputs.
@@ -1594,7 +1603,8 @@ export default class AnalyticService {
       referenceEpochTime
     );
     if(!bool) throw new Error('Failed to insert data in timeseries');
-    console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`)
+    logMessage(`CP ${controlEndpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()}`)
+    //console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`)
     return {
       success: true,
       resultValue: result,
@@ -1650,6 +1660,7 @@ export default class AnalyticService {
       referenceEpochTime
     );
     if(!bool) return { success: false, error: 'Failed to insert data in timeseries' };
+    logMessage(`EP ${endpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()}`)
     return {
       success: true,
       resultValue: result,
