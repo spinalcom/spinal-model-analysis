@@ -50,6 +50,7 @@ import { ALGORITHMS } from '../algorithms/algorithms';
 import axios from 'axios';
 import { stringify } from 'qs';
 import { ExitAnalyticError } from '../classes/Errors';
+import * as cronParser from 'cron-parser';
 
 
 
@@ -1342,7 +1343,7 @@ export default class AnalyticService {
           algoParams,
           executionTime);
           
-        return await this.applyResult(result, analyticId, configAttributes, entity);
+        return await this.applyResult(result, analyticId, configAttributes, entity, executionTime);
     } catch (error) {
       const analyticInfo = SpinalGraphService.getInfo(analyticId);
       const positionString =
@@ -1378,20 +1379,30 @@ export default class AnalyticService {
     
     const lastExecutionTime = parseInt(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME]);
     const shouldCatchUpMissedExecutions : boolean = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS]
-    let missingExecutionsTimes : number[] = [];
+    let executionsTimes : number[] = [];
+
     if(shouldCatchUpMissedExecutions){
       if(triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON){
-        missingExecutionsTimes = getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
+        executionsTimes = getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
       }
       if(triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.INTERVAL_TIME){
-        missingExecutionsTimes = getIntervalTimeMissingExecutionTimes(parseInt(triggerObject.triggerValue), lastExecutionTime);
+        executionsTimes = getIntervalTimeMissingExecutionTimes(parseInt(triggerObject.triggerValue), lastExecutionTime);
       }
     }
-    missingExecutionsTimes.push(Date.now());
+    executionsTimes.push(Date.now());
+
+    // Adjust the last execution time for cron triggers to match the exact time
+    if (triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
+    const interval = cronParser.parseExpression(triggerObject.triggerValue);
+    const nextExecutionTime = interval.prev().getTime();
+    executionsTimes[executionsTimes.length - 1] = nextExecutionTime;
+  }
+
+    logMessage(`executionsTimes : ${executionsTimes}`)
     
     const analysisPromises = entities.map((entity) =>
-      missingExecutionsTimes.map((missingExecutionsTime) => 
-      this.doAnalysisOnEntity(analyticId, entity,configAttributes, missingExecutionsTime))
+      executionsTimes.map((executionTime) => 
+      this.doAnalysisOnEntity(analyticId, entity,configAttributes, executionTime))
       
     );
     const results = await Promise.all(analysisPromises.flat());
@@ -1603,7 +1614,7 @@ export default class AnalyticService {
       referenceEpochTime
     );
     if(!bool) throw new Error('Failed to insert data in timeseries');
-    logMessage(`CP ${controlEndpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()}`)
+    logMessage(`CP ${controlEndpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()} at ${referenceEpochTime}`)
     //console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`)
     return {
       success: true,
@@ -1660,7 +1671,7 @@ export default class AnalyticService {
       referenceEpochTime
     );
     if(!bool) return { success: false, error: 'Failed to insert data in timeseries' };
-    logMessage(`EP ${endpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()}`)
+    logMessage(`EP ${endpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()} at ${referenceEpochTime}`)
     return {
       success: true,
       resultValue: result,

@@ -26,6 +26,7 @@ const algorithms_1 = require("../algorithms/algorithms");
 const axios_1 = require("axios");
 const qs_1 = require("qs");
 const Errors_1 = require("../classes/Errors");
+const cronParser = require("cron-parser");
 // Logging function
 function logMessage(message) {
     if (process.env.ADVANCED_LOGGING === 'true') {
@@ -969,7 +970,7 @@ class AnalyticService {
                 const algoParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS];
                 const R = ioDependencies['R'];
                 const result = yield this.recExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams, executionTime);
-                return yield this.applyResult(result, analyticId, configAttributes, entity);
+                return yield this.applyResult(result, analyticId, configAttributes, entity, executionTime);
             }
             catch (error) {
                 const analyticInfo = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
@@ -1006,17 +1007,24 @@ class AnalyticService {
             const configAttributes = yield this.getAllCategoriesAndAttributesFromNode(configNode.id.get());
             const lastExecutionTime = parseInt(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME]);
             const shouldCatchUpMissedExecutions = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS];
-            let missingExecutionsTimes = [];
+            let executionsTimes = [];
             if (shouldCatchUpMissedExecutions) {
                 if (triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
-                    missingExecutionsTimes = (0, utils_1.getCronMissingExecutionTimes)(triggerObject.triggerValue, lastExecutionTime);
+                    executionsTimes = (0, utils_1.getCronMissingExecutionTimes)(triggerObject.triggerValue, lastExecutionTime);
                 }
                 if (triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.INTERVAL_TIME) {
-                    missingExecutionsTimes = (0, utils_1.getIntervalTimeMissingExecutionTimes)(parseInt(triggerObject.triggerValue), lastExecutionTime);
+                    executionsTimes = (0, utils_1.getIntervalTimeMissingExecutionTimes)(parseInt(triggerObject.triggerValue), lastExecutionTime);
                 }
             }
-            missingExecutionsTimes.push(Date.now());
-            const analysisPromises = entities.map((entity) => missingExecutionsTimes.map((missingExecutionsTime) => this.doAnalysisOnEntity(analyticId, entity, configAttributes, missingExecutionsTime)));
+            executionsTimes.push(Date.now());
+            // Adjust the last execution time for cron triggers to match the exact time
+            if (triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
+                const interval = cronParser.parseExpression(triggerObject.triggerValue);
+                const nextExecutionTime = interval.prev().getTime();
+                executionsTimes[executionsTimes.length - 1] = nextExecutionTime;
+            }
+            logMessage(`executionsTimes : ${executionsTimes}`);
+            const analysisPromises = entities.map((entity) => executionsTimes.map((executionTime) => this.doAnalysisOnEntity(analyticId, entity, configAttributes, executionTime)));
             const results = yield Promise.all(analysisPromises.flat());
             return results;
         });
@@ -1146,7 +1154,7 @@ class AnalyticService {
             const bool = yield this.spinalServiceTimeseries.insertFromEndpoint(controlEndpointNode.id.get(), result, referenceEpochTime);
             if (!bool)
                 throw new Error('Failed to insert data in timeseries');
-            logMessage(`CP ${controlEndpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()}`);
+            logMessage(`CP ${controlEndpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()} at ${referenceEpochTime}`);
             //console.log(`CP ${controlEndpointNode.name.get()} updated with value : , ${result},  on , ${followedEntityNode.name.get()}`)
             return {
                 success: true,
@@ -1181,7 +1189,7 @@ class AnalyticService {
             const bool = yield this.spinalServiceTimeseries.insertFromEndpoint(endpointNode.id.get(), result, referenceEpochTime);
             if (!bool)
                 return { success: false, error: 'Failed to insert data in timeseries' };
-            logMessage(`EP ${endpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()}`);
+            logMessage(`EP ${endpointNode.name.get()} updated with value : ${result} on ${followedEntityNode.name.get()} at ${referenceEpochTime}`);
             return {
                 success: true,
                 resultValue: result,
