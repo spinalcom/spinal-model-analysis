@@ -798,7 +798,9 @@ class AnalyticService {
                 let data = injectLastValueBeforeStart ?
                     yield spinalTs.getFromIntervalTime(start, end, true) :
                     yield spinalTs.getFromIntervalTime(start, end);
-                data = (0, utils_1.timeseriesPreProcessing)(start, end, data); // tidy up the data mainly at start and end
+                if (injectLastValueBeforeStart) {
+                    data = (0, utils_1.timeseriesPreProcessing)(start, end, data); // tidy up the data mainly at start and end
+                }
                 return data;
             }
         });
@@ -977,7 +979,9 @@ class AnalyticService {
                 const positionString = ' on ' +
                     entity.name.get() +
                     ' in analytic : ' +
-                    analyticInfo.name.get();
+                    analyticInfo.name.get() +
+                    ' at ' +
+                    Date.now();
                 if (error instanceof Error || error instanceof Errors_1.ExitAnalyticError) {
                     return { success: false, error: error.message + positionString };
                 }

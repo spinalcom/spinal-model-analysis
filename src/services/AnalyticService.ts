@@ -1099,11 +1099,12 @@ export default class AnalyticService {
       const end = referenceEpochTime;
       const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
       const injectLastValueBeforeStart : boolean = trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
-      let data = injectLastValueBeforeStart ? 
+      let data = injectLastValueBeforeStart ?
                     await spinalTs.getFromIntervalTime(start, end,true) :
                     await spinalTs.getFromIntervalTime(start, end);
-      
-      data = timeseriesPreProcessing(start,end,data) // tidy up the data mainly at start and end
+      if(injectLastValueBeforeStart){
+        data = timeseriesPreProcessing(start,end,data) // tidy up the data mainly at start and end
+      }
       return data;
     }
   }
@@ -1350,7 +1351,9 @@ export default class AnalyticService {
         ' on ' +
         entity.name.get() +
         ' in analytic : ' +
-        analyticInfo.name.get();
+        analyticInfo.name.get() +
+        ' at ' +
+        Date.now();
       if (error instanceof Error || error instanceof ExitAnalyticError) {
         return { success: false, error: error.message + positionString };
       } else {
