@@ -467,7 +467,7 @@ export default class AnalyticService {
     const configNode = await this.getConfig(analyticId);
     if (!configNode) throw Error('Config node not found');
     const realNode = SpinalGraphService.getRealNode(configNode.id.get());
-    const attr = await attributeService.addAttributeByCategoryName(
+    await attributeService.addAttributeByCategoryName(
       realNode,
       CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS,
       CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME,

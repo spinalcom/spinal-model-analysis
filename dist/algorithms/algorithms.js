@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.EXIT = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.EXIT = exports.RANDOM_BOOLEAN = exports.RANDOM_BOOLEAN_NUMBER = exports.RANDOM_INTEGER = exports.RANDOM_NUMBER = exports.SUBTRACT_BY = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -127,7 +127,8 @@ exports.THRESHOLD_ZSCORE = new Algorithm('THRESHOLD_ZSCORE', `This algorithm is 
     if (dataInput.length === 0)
         throw new Error('Timeseries is empty');
     const threshold = params['p1'];
-    const mean = dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
+    const mean = dataInput.reduce((acc, current) => acc + current.value, 0) /
+        dataInput.length;
     const variance = dataInput.reduce((acc, current) => acc + Math.pow(current.value - mean, 2), 0) / dataInput.length;
     const stdDev = Math.sqrt(variance);
     const zScore = (dataInput[dataInput.length - 1].value - mean) / stdDev;
@@ -140,9 +141,16 @@ exports.TIMESERIES_AVERAGE = new Algorithm('TIMESERIES_AVERAGE', 'This algorithm
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
     if (dataInput.length === 0)
         throw new Error('Timeseries is empty');
-    return dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
+    return (dataInput.reduce((acc, current) => acc + current.value, 0) /
+        dataInput.length);
 });
-exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm('TIMESERIES_TIME_WEIGHTED_AVERAGE', 'This algorithm calculates the time-weighted average value of a timeseries. It takes into account the time intervals between successive data points to compute the average.', ['Timeseries'], 'number', [{ name: 'p1', type: 'string', description: " 'normal' (default) => No interpolation , 'linear' => linear interpolation for two successive points" }], (input, params) => {
+exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm('TIMESERIES_TIME_WEIGHTED_AVERAGE', 'This algorithm calculates the time-weighted average value of a timeseries. It takes into account the time intervals between successive data points to compute the average.', ['Timeseries'], 'number', [
+    {
+        name: 'p1',
+        type: 'string',
+        description: " 'normal' (default) => No interpolation , 'linear' => linear interpolation for two successive points",
+    },
+], (input, params) => {
     const linearInterpolation = params && params['p1'] === 'linear';
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
     if (dataInput.length < 2) {
@@ -195,11 +203,9 @@ exports.TIMESERIES_BOOLEAN_RATE = new Algorithm('TIMESERIES_BOOLEAN_RATE', 'This
         sum += dataInput[i].value * deltaTime;
     }
     if (!percentageResult)
-        return (sum / (dataInput[dataInput.length - 1].date - dataInput[0].date));
+        return sum / (dataInput[dataInput.length - 1].date - dataInput[0].date);
     else
-        return ((sum /
-            (dataInput[dataInput.length - 1].date - dataInput[0].date)) *
-            100);
+        return ((sum / (dataInput[dataInput.length - 1].date - dataInput[0].date)) * 100);
 });
 exports.TIMESERIES_IS_EMPTY = new Algorithm('TIMESERIES_IS_EMPTY', 'This algorithm returns true if the input is an empty timeseries', ['Timeseries'], 'boolean', [], (input) => {
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
@@ -271,6 +277,32 @@ exports.SUBTRACT_BY = new Algorithm('SUBTRACT_BY', 'This algorithm returns the r
         throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
     return input[0] - params['p1'];
 });
+exports.RANDOM_NUMBER = new Algorithm('RANDOM_NUMBER', 'This algorithm returns a random number between the two values set by the user', ['number'], 'number', [
+    { name: 'p1', type: 'number', description: 'the minimum value' },
+    { name: 'p2', type: 'number', description: 'the maximum value' },
+], (input, params) => {
+    if (!params)
+        throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number' || typeof params['p2'] !== 'number')
+        throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']} or ${typeof params['p2']}`);
+    return Math.random() * (params['p2'] - params['p1']) + params['p1'];
+});
+exports.RANDOM_INTEGER = new Algorithm('RANDOM_INTEGER', 'This algorithm returns a random integer between the two values set by the user', ['number'], 'number', [
+    { name: 'p1', type: 'number', description: 'the minimum value' },
+    { name: 'p2', type: 'number', description: 'the maximum value' },
+], (input, params) => {
+    if (!params)
+        throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number' || typeof params['p2'] !== 'number')
+        throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']} or ${typeof params['p2']}`);
+    return Math.floor(Math.random() * (params['p2'] - params['p1'] + 1) + params['p1']);
+});
+exports.RANDOM_BOOLEAN_NUMBER = new Algorithm('RANDOM_BOOLEAN_NUMBER', 'This algorithm returns a random boolean value 0 | 1', [], 'number', [], () => {
+    return Math.round(Math.random());
+});
+exports.RANDOM_BOOLEAN = new Algorithm('RANDOM_BOOLEAN', 'This algorithm returns a random boolean value true | false', [], 'boolean', [], () => {
+    return Math.random() < 0.5;
+});
 exports.EXIT = new Algorithm('EXIT', 'This algorithm is used to stop the execution of the workflow if the first input is true', ['boolean'], 'void', [], (input) => {
     return input[0];
 });
@@ -304,6 +336,10 @@ exports.ALGORITHMS = {
     CURRENT_EPOCH_TIME: exports.CURRENT_EPOCH_TIME,
     SUBTRACT: exports.SUBTRACT,
     SUBTRACT_BY: exports.SUBTRACT_BY,
-    EXIT: exports.EXIT
+    RANDOM_NUMBER: exports.RANDOM_NUMBER,
+    RANDOM_BOOLEAN_NUMBER: exports.RANDOM_BOOLEAN_NUMBER,
+    RANDOM_BOOLEAN: exports.RANDOM_BOOLEAN,
+    RANDOM_INTEGER: exports.RANDOM_INTEGER,
+    EXIT: exports.EXIT,
 };
 //# sourceMappingURL=algorithms.js.map

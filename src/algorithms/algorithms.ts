@@ -3,7 +3,6 @@ import { IAlgorithm } from '../interfaces/IAlgorithm';
 import { IRequiredParameter } from '../interfaces/IRequiredParameter';
 import { SpinalDateValue } from 'spinal-model-timeseries';
 
-
 interface IParameters {
   [key: string]: string | number | boolean;
 }
@@ -47,7 +46,7 @@ export const PUTVALUE = new Algorithm(
     params: IParameters | undefined
   ): string | number | boolean => {
     if (!params) throw new Error('No parameters provided');
-    if(params['p1'] === undefined) throw new Error('No value provided');
+    if (params['p1'] === undefined) throw new Error('No value provided');
     return params['p1'];
   }
 );
@@ -239,12 +238,13 @@ export const THRESHOLD_ZSCORE = new Algorithm(
         `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
       );
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
-    if(dataInput.length === 0) throw new Error('Timeseries is empty');
+    if (dataInput.length === 0) throw new Error('Timeseries is empty');
     const threshold = params['p1'];
     const mean =
-    dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
+      dataInput.reduce((acc, current) => acc + current.value, 0) /
+      dataInput.length;
     const variance =
-    dataInput.reduce(
+      dataInput.reduce(
         (acc, current) => acc + Math.pow(current.value - mean, 2),
         0
       ) / dataInput.length;
@@ -253,7 +253,6 @@ export const THRESHOLD_ZSCORE = new Algorithm(
     return zScore > threshold;
   }
 );
-
 
 export const AVERAGE = new Algorithm(
   'AVERAGE',
@@ -274,8 +273,11 @@ export const TIMESERIES_AVERAGE = new Algorithm(
   [],
   (input: SpinalDateValue[][]): number => {
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
-    if(dataInput.length === 0) throw new Error('Timeseries is empty');
-    return dataInput.reduce((acc, current) => acc + current.value, 0) / dataInput.length;
+    if (dataInput.length === 0) throw new Error('Timeseries is empty');
+    return (
+      dataInput.reduce((acc, current) => acc + current.value, 0) /
+      dataInput.length
+    );
   }
 );
 
@@ -284,17 +286,25 @@ export const TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm(
   'This algorithm calculates the time-weighted average value of a timeseries. It takes into account the time intervals between successive data points to compute the average.',
   ['Timeseries'],
   'number',
-  [{ name: 'p1', type: 'string', description: " 'normal' (default) => No interpolation , 'linear' => linear interpolation for two successive points" }],
-  (input: SpinalDateValue[][], params : IParameters | undefined): number => {
-    
+  [
+    {
+      name: 'p1',
+      type: 'string',
+      description:
+        " 'normal' (default) => No interpolation , 'linear' => linear interpolation for two successive points",
+    },
+  ],
+  (input: SpinalDateValue[][], params: IParameters | undefined): number => {
     const linearInterpolation = params && params['p1'] === 'linear';
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
     if (dataInput.length < 2) {
-      throw new Error('Insufficient data. At least two timeseries data points are required.');
+      throw new Error(
+        'Insufficient data. At least two timeseries data points are required.'
+      );
     }
     dataInput.sort((a, b) => a.date - b.date);
     let sum = 0;
-    for (let i =0 ; i < dataInput.length - 1; i++) {
+    for (let i = 0; i < dataInput.length - 1; i++) {
       const timeInterval = dataInput[i + 1].date - dataInput[i].date;
       if (linearInterpolation) {
         // For linear interpolation, take the average value of the current and next point
@@ -305,86 +315,86 @@ export const TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm(
         sum += dataInput[i].value * timeInterval;
       }
     }
-    const totalTimeInterval = dataInput[dataInput.length - 1].date - dataInput[0].date;
+    const totalTimeInterval =
+      dataInput[dataInput.length - 1].date - dataInput[0].date;
     if (totalTimeInterval <= 0) {
-      throw new Error('Invalid date range. Ensure data is correctly ordered and spans a positive time interval.');
+      throw new Error(
+        'Invalid date range. Ensure data is correctly ordered and spans a positive time interval.'
+      );
     }
     const average = sum / totalTimeInterval;
     return average;
-  });
+  }
+);
 
-  export const TIMESERIES_BOOLEAN_RATE = new Algorithm(
-    'TIMESERIES_BOOLEAN_RATE',
-    'This algorithm calculates a rate on boolean timeseries (0 | 1).',
-    ['Timeseries'],
-    'number',
-    [
-      {
-        name: 'p1',
-        type: 'string',
-        description:
-          'Ratio || Percentage   (write one of the two, Ratio will be used by default)',
-      },
-    ],
-    (input: SpinalDateValue[][], params: IParameters | undefined): number => {
-      if (!params) throw new Error('No parameters provided');
-      if (typeof params['p1'] !== 'string')
-        throw new Error(
-          `Invalid p1 parameter type. Expected string, got ${typeof params['p1']}`
-        );
-      const percentageResult = params['p1'] === 'Percentage';
-      const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
-      if(dataInput.length === 0) throw new Error('Timeseries is empty');
-      // Ensure input is sorted by time
-      dataInput.sort((a, b) => a.date - b.date);
-      let sum = 0;
-      for (let i = 0; i < dataInput.length-1; i++) {
-        // Calculate the difference in time
-        const deltaTime = dataInput[i+1].date - dataInput[i].date;
-  
-        // Calculate the average value between two points
-        //const avgValue = (dataInput[i+1].value + dataInput[i].value) / 2;
-  
-        sum +=  dataInput[i].value * deltaTime;
-      }
-  
-      if (!percentageResult)
-        return (
-          sum / (dataInput[dataInput.length - 1].date - dataInput[0].date)
-        );
-      else
-        return (
-          (sum /
-            (dataInput[dataInput.length - 1].date - dataInput[0].date)) *
-          100
-        );
-    }
-  );
+export const TIMESERIES_BOOLEAN_RATE = new Algorithm(
+  'TIMESERIES_BOOLEAN_RATE',
+  'This algorithm calculates a rate on boolean timeseries (0 | 1).',
+  ['Timeseries'],
+  'number',
+  [
+    {
+      name: 'p1',
+      type: 'string',
+      description:
+        'Ratio || Percentage   (write one of the two, Ratio will be used by default)',
+    },
+  ],
+  (input: SpinalDateValue[][], params: IParameters | undefined): number => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'string')
+      throw new Error(
+        `Invalid p1 parameter type. Expected string, got ${typeof params['p1']}`
+      );
+    const percentageResult = params['p1'] === 'Percentage';
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0) throw new Error('Timeseries is empty');
+    // Ensure input is sorted by time
+    dataInput.sort((a, b) => a.date - b.date);
+    let sum = 0;
+    for (let i = 0; i < dataInput.length - 1; i++) {
+      // Calculate the difference in time
+      const deltaTime = dataInput[i + 1].date - dataInput[i].date;
 
-  export const TIMESERIES_IS_EMPTY = new Algorithm(
-    'TIMESERIES_IS_EMPTY',
-    'This algorithm returns true if the input is an empty timeseries',
-    ['Timeseries'],
-    'boolean',
-    [],
-    (input: SpinalDateValue[][]): boolean => {
-      const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
-      return dataInput.length === 0;
-    }
-  );
+      // Calculate the average value between two points
+      //const avgValue = (dataInput[i+1].value + dataInput[i].value) / 2;
 
-  export const TIMESERIES_SUM = new Algorithm(
-    'TIMESERIES_SUM',
-    'This algorithm returns the sum of the timeseries',
-    ['Timeseries'],
-    'number',
-    [],
-    (input: SpinalDateValue[][]): number => {
-      const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
-      if(dataInput.length === 0) throw new Error('Timeseries is empty');
-      return dataInput.reduce((acc, current) => acc + current.value, 0);
+      sum += dataInput[i].value * deltaTime;
     }
-  );
+
+    if (!percentageResult)
+      return sum / (dataInput[dataInput.length - 1].date - dataInput[0].date);
+    else
+      return (
+        (sum / (dataInput[dataInput.length - 1].date - dataInput[0].date)) * 100
+      );
+  }
+);
+
+export const TIMESERIES_IS_EMPTY = new Algorithm(
+  'TIMESERIES_IS_EMPTY',
+  'This algorithm returns true if the input is an empty timeseries',
+  ['Timeseries'],
+  'boolean',
+  [],
+  (input: SpinalDateValue[][]): boolean => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    return dataInput.length === 0;
+  }
+);
+
+export const TIMESERIES_SUM = new Algorithm(
+  'TIMESERIES_SUM',
+  'This algorithm returns the sum of the timeseries',
+  ['Timeseries'],
+  'number',
+  [],
+  (input: SpinalDateValue[][]): number => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0) throw new Error('Timeseries is empty');
+    return dataInput.reduce((acc, current) => acc + current.value, 0);
+  }
+);
 
 export const AND = new Algorithm(
   'AND',
@@ -439,8 +449,6 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
     return false;
   }
 );
-
-
 
 export const STANDARD_DEVIATION = new Algorithm(
   'STANDARD_DEVIATION',
@@ -544,6 +552,69 @@ export const SUBTRACT_BY = new Algorithm(
   }
 );
 
+export const RANDOM_NUMBER = new Algorithm(
+  'RANDOM_NUMBER',
+  'This algorithm returns a random number between the two values set by the user',
+  ['number'],
+  'number',
+  [
+    { name: 'p1', type: 'number', description: 'the minimum value' },
+    { name: 'p2', type: 'number', description: 'the maximum value' },
+  ],
+  (input: number[], params: IParameters | undefined): number => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number' || typeof params['p2'] !== 'number')
+      throw new Error(
+        `Invalid parameter type. Expected number, got ${typeof params[
+          'p1'
+        ]} or ${typeof params['p2']}`
+      );
+    return Math.random() * (params['p2'] - params['p1']) + params['p1'];
+  }
+);
+
+export const RANDOM_INTEGER = new Algorithm(
+  'RANDOM_INTEGER',
+  'This algorithm returns a random integer between the two values set by the user',
+  ['number'],
+  'number',
+  [
+    { name: 'p1', type: 'number', description: 'the minimum value' },
+    { name: 'p2', type: 'number', description: 'the maximum value' },
+  ],
+  (input: number[], params: IParameters | undefined): number => {
+    if (!params) throw new Error('No parameters provided');
+    if (typeof params['p1'] !== 'number' || typeof params['p2'] !== 'number')
+      throw new Error(
+        `Invalid parameter type. Expected number, got ${typeof params[
+          'p1'
+        ]} or ${typeof params['p2']}`
+      );
+    return Math.floor(Math.random() * (params['p2'] - params['p1'] + 1) + params['p1']);
+  }
+);
+export const RANDOM_BOOLEAN_NUMBER = new Algorithm(
+  'RANDOM_BOOLEAN_NUMBER',
+  'This algorithm returns a random boolean value 0 | 1',
+  [],
+  'number',
+  [],
+  (): number => {
+    return Math.round(Math.random());
+  });
+
+export const RANDOM_BOOLEAN = new Algorithm(
+  'RANDOM_BOOLEAN',
+  'This algorithm returns a random boolean value true | false',
+  [],
+  'boolean',
+  [],
+  (): boolean => {
+    return Math.random() < 0.5;
+  });
+
+
+
 export const EXIT = new Algorithm(
   'EXIT',
   'This algorithm is used to stop the execution of the workflow if the first input is true',
@@ -553,9 +624,7 @@ export const EXIT = new Algorithm(
   (input: boolean[]): boolean => {
     return input[0];
   }
-); 
-
-
+);
 
 export const ALGORITHMS: { [key: string]: Algorithm } = {
   PUTVALUE,
@@ -587,5 +656,9 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   CURRENT_EPOCH_TIME,
   SUBTRACT,
   SUBTRACT_BY,
-  EXIT
+  RANDOM_NUMBER,
+  RANDOM_BOOLEAN_NUMBER,
+  RANDOM_BOOLEAN,
+  RANDOM_INTEGER,
+  EXIT,
 };
