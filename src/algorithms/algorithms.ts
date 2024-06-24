@@ -396,6 +396,19 @@ export const TIMESERIES_SUM = new Algorithm(
   }
 );
 
+export const TIMESERIES_EDGE_SUBSTRACT = new Algorithm(
+  'TIMESERIES_EDGE_SUBSTRACT',
+  'This algorithm returns the difference between the last and first value of the timeseries',
+  ['Timeseries'],
+  'number',
+  [],
+  (input: SpinalDateValue[][]): number => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length < 2) throw new Error('Timeseries should contain at least two values');
+    return dataInput[dataInput.length - 1].value - dataInput[0].value;
+  }
+);
+
 export const AND = new Algorithm(
   'AND',
   'This algorithm returns true if all the inputs are true',

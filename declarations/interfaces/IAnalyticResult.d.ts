@@ -25,7 +25,7 @@ export interface IGChatCardResult extends IResultSuccess {
 export interface IGChatOrganCardResult extends IGChatCardResult {
     resultType: ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD;
 }
-export type IResult = IResultResponse | IResultSuccess | IGChatMessageResult | IGChatCardResult;
+export declare type IResult = IResultResponse | IResultSuccess | IGChatMessageResult | IGChatCardResult;
 export interface IGChatCard {
     header: IGChatCardHeader;
     sections: IGChatCardSection[];
