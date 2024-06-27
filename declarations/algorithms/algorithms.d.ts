@@ -44,6 +44,7 @@ export declare const CONV_BOOLEAN_TO_NUMBER: Algorithm;
 export declare const CONV_NUMBER_TO_BOOLEAN: Algorithm;
 export declare const CURRENT_EPOCH_TIME: Algorithm;
 export declare const SUBTRACT: Algorithm;
+export declare const SUM: Algorithm;
 export declare const SUBTRACT_BY: Algorithm;
 export declare const RANDOM_NUMBER: Algorithm;
 export declare const RANDOM_INTEGER: Algorithm;

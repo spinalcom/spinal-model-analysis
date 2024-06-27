@@ -548,6 +548,16 @@ export const SUBTRACT = new Algorithm(
     return input[0] - input[1];
   }
 );
+export const SUM = new Algorithm(
+  'SUM',
+  'This algorithm returns the result of the sum of the inputs',
+  ['number'],
+  'number',
+  [],
+  (input: number[]): number => {
+    return input.reduce((acc, current) => acc + current, 0);
+  }
+);
 
 export const SUBTRACT_BY = new Algorithm(
   'SUBTRACT_BY',
@@ -670,6 +680,7 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   CURRENT_EPOCH_TIME,
   SUBTRACT,
   SUBTRACT_BY,
+  SUM,
   RANDOM_NUMBER,
   RANDOM_BOOLEAN_NUMBER,
   RANDOM_BOOLEAN,
