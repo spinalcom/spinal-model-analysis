@@ -35,6 +35,7 @@ import {
 
 import {
   findEndpoint,
+  findEndpoints,
   findAttribute,
   addTicketAlarm,
   getValueModelFromEntry,
@@ -710,11 +711,24 @@ export default class AnalyticService {
     filterValue: string,
     depth: number,
     strictDepth: boolean,
-    authorizedRelations: string[]
-  ): Promise<SpinalNodeRef | SpinalAttribute | undefined> {
+    authorizedRelations: string[],
+    multipleModels = false
+  ): Promise< SpinalNodeRef[] | SpinalNodeRef  | SpinalAttribute | undefined> {
     if (followedEntity) {
       switch (trackMethod) {
         case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
+          if(multipleModels){
+            const endpoints = await findEndpoints(
+              followedEntity.id.get(),
+              filterValue,
+              depth,
+              strictDepth,
+              authorizedRelations,
+              CONSTANTS.ENDPOINT_RELATIONS,
+              CONSTANTS.ENDPOINT_NODE_TYPE
+            );
+            return endpoints;
+          }
           const endpoint = await findEndpoint(
             followedEntity.id.get(),
             filterValue,
@@ -727,6 +741,18 @@ export default class AnalyticService {
           return endpoint;
         }
         case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
+          if(multipleModels) {
+            const controlEndpoints= await findEndpoints(
+              followedEntity.id.get(),
+              filterValue,
+              depth,
+              strictDepth,
+              authorizedRelations,
+              CONSTANTS.CONTROL_ENDPOINT_RELATIONS,
+              CONSTANTS.ENDPOINT_NODE_TYPE
+            );
+            return controlEndpoints;
+          }
           const controlEndpoint = await findEndpoint(
             followedEntity.id.get(),
             filterValue,
@@ -1042,8 +1068,9 @@ export default class AnalyticService {
   public async getEntryDataModelByInputIndex(
     analyticId: string,
     followedEntity: SpinalNodeRef,
-    inputIndex: string
-  ): Promise<SpinalNodeRef | SpinalAttribute | undefined> {
+    inputIndex: string,
+    multipleModels = false
+  ): Promise<SpinalNodeRef[] |SpinalNodeRef | SpinalAttribute | undefined> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     if (!trackingMethod) return undefined;
 
@@ -1060,7 +1087,9 @@ export default class AnalyticService {
       inputParams[CONSTANTS.ATTRIBUTE_STRICT_DEPTH],
       inputParams[CONSTANTS.ATTRIBUTE_SEARCH_RELATIONS].split(
         CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
-      )
+      ),
+      multipleModels
+
     );
   }
 
@@ -1069,30 +1098,50 @@ export default class AnalyticService {
     followedEntity: SpinalNodeRef,
     inputIndex: string,
     referenceEpochTime: number = Date.now()
-  ): Promise<SpinalDateValue[] | string | boolean | number | undefined> {
-    const entryDataModel = await this.getEntryDataModelByInputIndex(
-      analyticId,
-      followedEntity,
-      inputIndex
-    );
-    if (!entryDataModel) return undefined;
+  ): Promise< boolean[] | string [] | number [] | SpinalDateValue[] | string | boolean | number | undefined> {
     const trackingMethod = await this.getTrackingMethod(analyticId);
     if (!trackingMethod) return undefined;
     const trackingParams = await this.getAttributesFromNode(
       trackingMethod.id.get(),
       inputIndex
     );
+
+    const entryDataModel = await this.getEntryDataModelByInputIndex(
+      analyticId,
+      followedEntity,
+      inputIndex,
+      trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false
+    );
+
+    if (!entryDataModel) return undefined;
     if (
       !trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
       trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0
     ) {
+
+      //test if entryDataModel is array ( spinalNodeRed[] )
+      if(Array.isArray(entryDataModel)){
+        const res : any = [];
+        for(const entry of entryDataModel){
+          const currentValue = await getValueModelFromEntry(entry);
+          const assertedValue: string | number | boolean = currentValue.get() as
+            | string
+            | number
+            | boolean;
+
+          res.push(assertedValue);
+        }
+        return res;
+      }
       const currentValue = await getValueModelFromEntry(entryDataModel);
       const assertedValue: string | number | boolean = currentValue.get() as
         | string
         | number
         | boolean;
       return assertedValue;
+
     } else {
+      if(Array.isArray(entryDataModel)){ throw new Error('Does not support multiple timeseries in 1 input')}
       const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
         entryDataModel.id.get()
       );
@@ -1275,7 +1324,11 @@ export default class AnalyticService {
         if (inputData == undefined) {
           throw new Error(`Input data ${dependency} could not be retrieved`);
         }
-        inputs.push(inputData);
+        if (Array.isArray(inputData)) {
+          inputs.push(...inputData);
+        } else {
+          inputs.push(inputData);
+        }
       }
     }
     // after the inputs are ready we can execute the algorithm
@@ -1287,8 +1340,9 @@ export default class AnalyticService {
     const result = ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
     if (result == undefined)
       throw new Error(`Algorithm ${algorithm_name} returned undefined`);
-    if (algorithm_name === 'EXIT' && result === true)
+    if (algorithm_name === 'EXIT' && result === true){
       throw new ExitAnalyticError('EXIT algorithm triggered');
+    }
     return result;
   }
 

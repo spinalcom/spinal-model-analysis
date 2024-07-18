@@ -531,15 +531,23 @@ class AnalyticService {
      * @returns {*} {Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethodWithParams(followedEntity, trackMethod, filterValue, depth, strictDepth, authorizedRelations) {
+    applyTrackingMethodWithParams(followedEntity, trackMethod, filterValue, depth, strictDepth, authorizedRelations, multipleModels = false) {
         return __awaiter(this, void 0, void 0, function* () {
             if (followedEntity) {
                 switch (trackMethod) {
                     case CONSTANTS.TRACK_METHOD.ENDPOINT_NAME_FILTER: {
+                        if (multipleModels) {
+                            const endpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue, depth, strictDepth, authorizedRelations, CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+                            return endpoints;
+                        }
                         const endpoint = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), filterValue, depth, strictDepth, authorizedRelations, CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
                         return endpoint;
                     }
                     case CONSTANTS.TRACK_METHOD.CONTROL_ENDPOINT_NAME_FILTER: {
+                        if (multipleModels) {
+                            const controlEndpoints = yield (0, utils_1.findEndpoints)(followedEntity.id.get(), filterValue, depth, strictDepth, authorizedRelations, CONSTANTS.CONTROL_ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
+                            return controlEndpoints;
+                        }
                         const controlEndpoint = yield (0, utils_1.findEndpoint)(followedEntity.id.get(), filterValue, depth, strictDepth, authorizedRelations, CONSTANTS.CONTROL_ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
                         return controlEndpoint;
                     }
@@ -766,31 +774,44 @@ class AnalyticService {
             return [];
         });
     }
-    getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex) {
+    getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex, multipleModels = false) {
         return __awaiter(this, void 0, void 0, function* () {
             const trackingMethod = yield this.getTrackingMethod(analyticId);
             if (!trackingMethod)
                 return undefined;
             const inputParams = yield this.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
-            return yield this.applyTrackingMethodWithParams(followedEntity, inputParams[CONSTANTS.ATTRIBUTE_TRACKING_METHOD], inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE], inputParams[CONSTANTS.ATTRIBUTE_SEARCH_DEPTH], inputParams[CONSTANTS.ATTRIBUTE_STRICT_DEPTH], inputParams[CONSTANTS.ATTRIBUTE_SEARCH_RELATIONS].split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR));
+            return yield this.applyTrackingMethodWithParams(followedEntity, inputParams[CONSTANTS.ATTRIBUTE_TRACKING_METHOD], inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE], inputParams[CONSTANTS.ATTRIBUTE_SEARCH_DEPTH], inputParams[CONSTANTS.ATTRIBUTE_STRICT_DEPTH], inputParams[CONSTANTS.ATTRIBUTE_SEARCH_RELATIONS].split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR), multipleModels);
         });
     }
     getFormattedInputDataByIndex(analyticId, followedEntity, inputIndex, referenceEpochTime = Date.now()) {
         return __awaiter(this, void 0, void 0, function* () {
-            const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex);
-            if (!entryDataModel)
-                return undefined;
             const trackingMethod = yield this.getTrackingMethod(analyticId);
             if (!trackingMethod)
                 return undefined;
             const trackingParams = yield this.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
+            const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex, trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false);
+            if (!entryDataModel)
+                return undefined;
             if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
                 trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+                //test if entryDataModel is array ( spinalNodeRed[] )
+                if (Array.isArray(entryDataModel)) {
+                    const res = [];
+                    for (const entry of entryDataModel) {
+                        const currentValue = yield (0, utils_1.getValueModelFromEntry)(entry);
+                        const assertedValue = currentValue.get();
+                        res.push(assertedValue);
+                    }
+                    return res;
+                }
                 const currentValue = yield (0, utils_1.getValueModelFromEntry)(entryDataModel);
                 const assertedValue = currentValue.get();
                 return assertedValue;
             }
             else {
+                if (Array.isArray(entryDataModel)) {
+                    throw new Error('Does not support multiple timeseries in 1 input');
+                }
                 const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
                 const end = referenceEpochTime;
                 const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
@@ -924,7 +945,12 @@ class AnalyticService {
                     if (inputData == undefined) {
                         throw new Error(`Input data ${dependency} could not be retrieved`);
                     }
-                    inputs.push(inputData);
+                    if (Array.isArray(inputData)) {
+                        inputs.push(...inputData);
+                    }
+                    else {
+                        inputs.push(inputData);
+                    }
                 }
             }
             // after the inputs are ready we can execute the algorithm
@@ -933,8 +959,9 @@ class AnalyticService {
             const result = algorithms_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
             if (result == undefined)
                 throw new Error(`Algorithm ${algorithm_name} returned undefined`);
-            if (algorithm_name === 'EXIT' && result === true)
+            if (algorithm_name === 'EXIT' && result === true) {
                 throw new Errors_1.ExitAnalyticError('EXIT algorithm triggered');
+            }
             return result;
         });
     }

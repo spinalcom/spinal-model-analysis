@@ -266,7 +266,7 @@ export default class AnalyticService {
      * @returns {*} {Promise<SpinalNodeRef[] | SpinalNodeRef | undefined>} - A Promise that resolves with the results of the applied Tracking Method.
      * @memberof AnalyticService
      */
-    applyTrackingMethodWithParams(followedEntity: SpinalNodeRef, trackMethod: string, filterValue: string, depth: number, strictDepth: boolean, authorizedRelations: string[]): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
+    applyTrackingMethodWithParams(followedEntity: SpinalNodeRef, trackMethod: string, filterValue: string, depth: number, strictDepth: boolean, authorizedRelations: string[], multipleModels?: boolean): Promise<SpinalNodeRef[] | SpinalNodeRef | SpinalAttribute | undefined>;
     /**
      * Adds a link between an input and a followed entity.
      * @param {string} contextId - The id of the context where the link will be created.
@@ -341,8 +341,8 @@ export default class AnalyticService {
      */
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
     getWorkingFollowedEntitiesWithParam(followedEntity: SpinalNodeRef, entityType: string): Promise<SpinalNodeRef[]>;
-    getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string): Promise<SpinalNodeRef | SpinalAttribute | undefined>;
-    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, referenceEpochTime?: number): Promise<SpinalDateValue[] | string | boolean | number | undefined>;
+    getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, multipleModels?: boolean): Promise<SpinalNodeRef[] | SpinalNodeRef | SpinalAttribute | undefined>;
+    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, referenceEpochTime?: number): Promise<boolean[] | string[] | number[] | SpinalDateValue[] | string | boolean | number | undefined>;
     getAnalyticDetails(analyticId: string): Promise<IAnalyticDetails>;
     findExecutionOrder(dependencies: any): string[] | null;
     private filterAlgorithmParametersAttributesByIndex;

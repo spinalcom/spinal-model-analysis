@@ -74,11 +74,12 @@ export const ATTRIBUTE_VALUE_SEPARATOR = ',';
 export const ATTRIBUTE_LAST_EXECUTION_TIME = 'lastExecutionTime';
 export const ATTRIBUTE_TRACKING_METHOD = 'Tracking method';
 export const ATTRIBUTE_FILTER_VALUE = 'Filter value';
-export const ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime';
+export const ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime'; 
 export const ATTRIBUTE_SEARCH_DEPTH = 'Search depth';
 export const ATTRIBUTE_STRICT_DEPTH = 'Strict depth';
 export const ATTRIBUTE_SEARCH_RELATIONS = 'Search relations';
 export const ATTRIBUTE_TIMESERIES_VALUE_AT_START = 'Get timeseries value at start'
+export const ATTRIBUTE_MULTIPLE_MODELS = 'Capture multiple models' 
 
 export const ATTRIBUTE_RESULT_TYPE = 'Result type';
 export const ATTRIBUTE_RESULT_NAME = 'Result name';
