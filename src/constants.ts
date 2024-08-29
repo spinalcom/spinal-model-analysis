@@ -78,8 +78,9 @@ export const ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime';
 export const ATTRIBUTE_SEARCH_DEPTH = 'Search depth';
 export const ATTRIBUTE_STRICT_DEPTH = 'Strict depth';
 export const ATTRIBUTE_SEARCH_RELATIONS = 'Search relations';
-export const ATTRIBUTE_TIMESERIES_VALUE_AT_START = 'Get timeseries value at start'
-export const ATTRIBUTE_MULTIPLE_MODELS = 'Capture multiple models' 
+export const ATTRIBUTE_TIMESERIES_VALUE_AT_START = 'Get timeseries value at start';
+export const ATTRIBUTE_AGGREGATE_EXECUTION_TIME = 'Aggregate execution time';
+export const ATTRIBUTE_MULTIPLE_MODELS = 'Capture multiple models';
 
 export const ATTRIBUTE_RESULT_TYPE = 'Result type';
 export const ATTRIBUTE_RESULT_NAME = 'Result name';

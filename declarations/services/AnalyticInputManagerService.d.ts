@@ -27,7 +27,6 @@ export default class AnalyticInputManagerService {
     getWorkingFollowedEntities(analyticId: string): Promise<SpinalNodeRef[] | undefined>;
     getWorkingFollowedEntitiesWithParam(followedEntity: SpinalNodeRef, entityType: string): Promise<SpinalNodeRef[]>;
     getEntryDataModelByInputIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, multipleModels?: boolean): Promise<SpinalNodeRef[] | SpinalNodeRef | SpinalAttribute | undefined>;
-    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, referenceEpochTime?: number): Promise<boolean[] | string[] | number[] | SpinalDateValue[] | string | boolean | number | undefined>;
     private getRelationsWithDepth;
     private getChoiceRelationsWithDepth;
     getAvailableData(trackMethod: CONSTANTS.TRACK_METHOD, nodeId: string, filterValue: string, depth: number, stricDepth: boolean, authorizedRelations: string[]): Promise<string[]>;
@@ -42,5 +41,9 @@ export default class AnalyticInputManagerService {
     getValueModelFromEntry(entryDataModel: SpinalNodeRef | SpinalAttribute): Promise<spinal.Model>;
     formatTrackingMethodsToList(obj: any): any[];
     filterAlgorithmParametersAttributesByIndex(algoParams: any, indexName: string): {};
+    getFormattedInputDataByIndex(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, referenceEpochTime?: number): Promise<boolean[] | string[] | number[] | SpinalDateValue[] | string | boolean | number | undefined>;
+    getFormattedInputData(analyticId: string, followedEntity: SpinalNodeRef, inputIndex: string, executionTimes?: number[]): Promise<any>;
+    getAllDataFromAnalyticConfiguration(analyticId: string, entity: SpinalNodeRef, ioDependencies: any, executionTimes: number[]): Promise<any>;
     private timeseriesPreProcessing;
+    private timeseriesPreProcessingData;
 }

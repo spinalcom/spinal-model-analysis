@@ -18,6 +18,7 @@ import { TrackingMethodModel } from '../models/TrackingMethodModel';
 import { EntityModel } from '../models/EntityModel';
 import { IEntity } from '../interfaces/IEntity';
 import { IInputs } from '../interfaces/IInputs';
+import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
 import { InputsModel } from '../models/InputsModel';
 import { IOutputs } from '../interfaces/IOutputs';
 import { OutputsModel } from '../models/OutputsModel';
@@ -801,7 +802,7 @@ export default class AnalyticNodeManagerService {
     return undefined;
   }
 
-  public async getAllCategoriesAndAttributesFromNode(nodeId: string) {
+  public async getAllCategoriesAndAttributesFromNode(nodeId: string) : Promise<IAnalyticConfig> {
     const node = SpinalGraphService.getRealNode(nodeId);
     const res = {};
     const categories = await attributeService.getCategory(node);

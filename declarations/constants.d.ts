@@ -44,6 +44,7 @@ export declare const ATTRIBUTE_SEARCH_DEPTH = "Search depth";
 export declare const ATTRIBUTE_STRICT_DEPTH = "Strict depth";
 export declare const ATTRIBUTE_SEARCH_RELATIONS = "Search relations";
 export declare const ATTRIBUTE_TIMESERIES_VALUE_AT_START = "Get timeseries value at start";
+export declare const ATTRIBUTE_AGGREGATE_EXECUTION_TIME = "Aggregate execution time";
 export declare const ATTRIBUTE_MULTIPLE_MODELS = "Capture multiple models";
 export declare const ATTRIBUTE_RESULT_TYPE = "Result type";
 export declare const ATTRIBUTE_RESULT_NAME = "Result name";

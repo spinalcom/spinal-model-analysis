@@ -524,7 +524,131 @@ export default class AnalyticOutputManagerService {
     return resultInfo;
   }
 
-  // ticket creation
+  /**
+   * Applies the result of an algorithm.
+   *
+   * @param {*} result The result of the algorithm used.
+   * @param {string} analyticId The ID of the analytic.
+   * @param {SpinalNodeRef} configNode The SpinalNodeRef of the configuration of the analytic.
+   * @param {SpinalNodeRef} followedEntityNode The SpinalNodeRef of the entity.
+   * @return {*}
+   * @memberof AnalyticService
+   */
+  public async applyResult(
+    result: number | string | boolean,
+    analyticId: string,
+    configAttributes: any,
+    followedEntityNode: SpinalNodeRef,
+    referenceEpochTime: number = Date.now()
+  ): Promise<IResult> {
+    if (result === undefined)
+      return { success: false, error: 'Result is undefined' };
+
+    
+    //const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
+    switch (
+      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
+        CONSTANTS.ATTRIBUTE_RESULT_TYPE
+      ]
+    ) {
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
+        await this.handleTicketResult(
+          result,
+          analyticId,
+          configAttributes,
+          followedEntityNode,
+          'Ticket'
+        );
+        return {
+          success: true,
+          resultValue: result,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
+        };
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
+        await this.handleControlEndpointResult(
+          result,
+          followedEntityNode,
+          configAttributes,
+          referenceEpochTime
+        );
+        return {
+          success: true,
+          resultValue: result,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
+        };
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
+        await this.handleEndpointResult(
+          result,
+          followedEntityNode,
+          configAttributes,
+          referenceEpochTime
+        );
+        return {
+          success: true,
+          resultValue: result,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
+        };
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
+        return await this.handleTicketResult(
+          result,
+          analyticId,
+          configAttributes,
+          followedEntityNode,
+          'Alarm'
+        );
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
+        return await this.handleSMSResult(
+          result,
+          analyticId,
+          configAttributes,
+          followedEntityNode
+        );
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
+        console.log(
+          `LOG | ${followedEntityNode.name.get()}: ${
+            configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
+              CONSTANTS.ATTRIBUTE_RESULT_NAME
+            ]
+          } \t|\t Result : ${result}`
+        );
+        return {
+          success: true,
+          resultValue: result,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.LOG,
+        };
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
+        return this.handleGChatMessageResult(
+          result,
+          analyticId,
+          configAttributes,
+          followedEntityNode
+        );
+
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
+        return this.handleGChatOrganCardResult(
+          result,
+          analyticId,
+          configAttributes,
+          followedEntityNode
+        );
+
+      default:
+        return { success: false, error: 'Result type not recognized' };
+    }
+  }
+
+  
+  // #region Private methods
+
+
   /**
    * Gets the ticket context that has the corresponding contextId
    *

@@ -232,81 +232,8 @@ export default class AnalyticInputManagerService {
       multipleModels
     );
   }
-
-  public async getFormattedInputDataByIndex(
-    analyticId: string,
-    followedEntity: SpinalNodeRef,
-    inputIndex: string,
-    referenceEpochTime: number = Date.now()
-  ): Promise<
-    | boolean[]
-    | string[]
-    | number[]
-    | SpinalDateValue[]
-    | string
-    | boolean
-    | number
-    | undefined
-  > {
-    const trackingMethod =
-      await this.analyticNodeManagerService.getTrackingMethod(analyticId);
-    if (!trackingMethod) return undefined;
-    const trackingParams =
-      await this.analyticNodeManagerService.getAttributesFromNode(
-        trackingMethod.id.get(),
-        inputIndex
-      );
-
-    const entryDataModel = await this.getEntryDataModelByInputIndex(
-      analyticId,
-      followedEntity,
-      inputIndex,
-      trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false
-    );
-
-    if (!entryDataModel) return undefined;
-    if (
-      !trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
-      trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0
-    ) {
-      //test if entryDataModel is array ( spinalNodeRed[] )
-      if (Array.isArray(entryDataModel)) {
-        const res: any = [];
-        for (const entry of entryDataModel) {
-          const currentValue = await this.getValueModelFromEntry(entry);
-          const assertedValue: string | number | boolean =
-            currentValue.get() as string | number | boolean;
-
-          res.push(assertedValue);
-        }
-        return res;
-      }
-      const currentValue = await this.getValueModelFromEntry(entryDataModel);
-      const assertedValue: string | number | boolean = currentValue.get() as
-        | string
-        | number
-        | boolean;
-      return assertedValue;
-    } else {
-      if (Array.isArray(entryDataModel)) {
-        throw new Error('Does not support multiple timeseries in 1 input');
-      }
-      const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
-        entryDataModel.id.get()
-      );
-      const end = referenceEpochTime;
-      const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
-      const injectLastValueBeforeStart: boolean =
-        trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
-      let data = injectLastValueBeforeStart
-        ? await spinalTs.getFromIntervalTime(start, end, true)
-        : await spinalTs.getFromIntervalTime(start, end);
-      if (injectLastValueBeforeStart) {
-        data = this.timeseriesPreProcessing(start, end, data); // tidy up the data mainly at start and end
-      }
-      return data;
-    }
-  }
+ 
+ 
 
   private async getRelationsWithDepth(
     nodeId: string,
@@ -729,6 +656,192 @@ export default class AnalyticInputManagerService {
     return result;
   }
 
+  public async getFormattedInputDataByIndex(
+    analyticId: string,
+    followedEntity: SpinalNodeRef,
+    inputIndex: string,
+    referenceEpochTime: number = Date.now()
+  ): Promise<
+    | boolean[]
+    | string[]
+    | number[]
+    | SpinalDateValue[]
+    | string
+    | boolean
+    | number
+    | undefined
+  > {
+    const trackingMethod =
+      await this.analyticNodeManagerService.getTrackingMethod(analyticId);
+    if (!trackingMethod) return undefined;
+    const trackingParams =
+      await this.analyticNodeManagerService.getAttributesFromNode(
+        trackingMethod.id.get(),
+        inputIndex
+      );
+
+    const entryDataModel = await this.getEntryDataModelByInputIndex(
+      analyticId,
+      followedEntity,
+      inputIndex,
+      trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false
+    );
+
+    if (!entryDataModel) return undefined;
+    if (
+      !trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
+      trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0
+    ) {
+      //test if entryDataModel is array ( spinalNodeRed[] )
+      if (Array.isArray(entryDataModel)) {
+        const res: any = [];
+        for (const entry of entryDataModel) {
+          const currentValue = await this.getValueModelFromEntry(entry);
+          const assertedValue: string | number | boolean =
+            currentValue.get() as string | number | boolean;
+
+          res.push(assertedValue);
+        }
+        return res;
+      }
+      const currentValue = await this.getValueModelFromEntry(entryDataModel);
+      const assertedValue: string | number | boolean = currentValue.get() as
+        | string
+        | number
+        | boolean;
+      return assertedValue;
+    } else {
+      if (Array.isArray(entryDataModel)) {
+        throw new Error('Does not support multiple timeseries in 1 input');
+      }
+      const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
+        entryDataModel.id.get()
+      );
+      const end = referenceEpochTime;
+      const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+      const injectLastValueBeforeStart: boolean =
+        trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
+      let data = injectLastValueBeforeStart
+        ? await spinalTs.getFromIntervalTime(start, end, true)
+        : await spinalTs.getFromIntervalTime(start, end);
+      if (injectLastValueBeforeStart) {
+        data = this.timeseriesPreProcessing(start, end, data); // tidy up the data mainly at start and end
+      }
+      return data;
+    }
+  }
+
+  public async getFormattedInputData(
+    analyticId: string,
+    followedEntity: SpinalNodeRef,
+    inputIndex: string,
+    executionTimes: number [] = [Date.now()]
+  ): Promise<
+    any
+   >{
+    const inputData = {};
+    const trackingMethod =
+      await this.analyticNodeManagerService.getTrackingMethod(analyticId);
+    if (!trackingMethod) return undefined;
+    const trackingParams =
+      await this.analyticNodeManagerService.getAttributesFromNode(
+        trackingMethod.id.get(),
+        inputIndex
+    );
+    const entryDataModel = await this.getEntryDataModelByInputIndex(
+      analyticId,
+      followedEntity,
+      inputIndex,
+      trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false
+    );
+    if (!entryDataModel) return undefined;
+    if( trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] <0) {
+      throw new Error('Timeseries intervalTime cannot be negative');
+    }
+    if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES]== 0) {
+      //add the current value for each executionTime
+      if (Array.isArray(entryDataModel)) {
+        const res: any = [];
+        for (const entry of entryDataModel) {
+          const currentValue = await this.getValueModelFromEntry(entry);
+          const assertedValue: string | number | boolean =
+            currentValue.get() as string | number | boolean;
+
+          res.push(assertedValue);
+        }
+        for(const execTime of executionTimes){
+          inputData[execTime] = res;
+        }
+      }
+      else {
+        const currentValue = await this.getValueModelFromEntry(entryDataModel);
+        const assertedValue: string | number | boolean = currentValue.get() as
+          | string
+          | number
+          | boolean;
+          for(const execTime of executionTimes){
+            inputData[execTime] = assertedValue;
+          }
+      }
+    }
+
+    else {
+      if(Array.isArray(entryDataModel)) {
+        throw new Error('Timeseries and multiple input capture is not compatible');
+      }
+      // add the timeseries data for each executionTime
+      const oldestTime = Math.min(...executionTimes);
+      const closestTime = Math.max(...executionTimes);
+      
+      const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
+        entryDataModel.id.get()
+      );
+      const end = closestTime;
+      const start = oldestTime - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+      const injectLastValueBeforeStart: boolean =
+        trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
+      const data =  await spinalTs.getFromIntervalTime(start, end, injectLastValueBeforeStart)
+      
+      for(const execTime of executionTimes) {
+        const execTimeStart = execTime - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+        const processedData =this.timeseriesPreProcessingData(execTimeStart, execTime, data,injectLastValueBeforeStart);
+        inputData[execTime] = processedData;
+      }
+    }
+    return inputData;
+  }
+
+  public async getAllDataFromAnalyticConfiguration(
+    analyticId : string,
+    entity: SpinalNodeRef,
+    ioDependencies : any,
+    executionTimes : number[]
+  ): Promise<any>{
+    const resultData = {};
+    // Get all the inputs (I0, I1, I2, ...)
+    const inputs : string [] = [];
+    const keys = Object.keys(ioDependencies)
+    for (const key of keys) {
+      const myDependencies =
+      ioDependencies[key]?.split(
+        CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
+      ) ?? [];
+      for (const dep of myDependencies) {
+        if(dep.startsWith('I')){
+          inputs.push(dep);
+        }
+      }
+    } // end for
+    for( const input of inputs){
+      const data = await this.getFormattedInputData(analyticId, entity, input, executionTimes);
+      if(data){
+        resultData[input] = data;
+      }
+    }
+    return resultData;
+  }
+
+
   private timeseriesPreProcessing(
     start: number,
     end: number,
@@ -748,4 +861,38 @@ export default class AnalyticInputManagerService {
     });
     return timeseries;
   }
+
+  private timeseriesPreProcessingData(
+    startTime: number,
+    endTime: number,
+    timeseries: SpinalDateValue[],
+    injectLastValueBeforeStart: boolean
+  ): SpinalDateValue[] {
+    let hasInjectedValue = false;
+    const resultTimeseries: SpinalDateValue[] = [];
+    if (timeseries.length === 0) return [];
+    for( const timeserie of timeseries){
+      if(timeserie.date == startTime){
+        hasInjectedValue = true;
+        resultTimeseries.push(timeserie);
+      }
+      else if (timeserie.date > startTime && timeserie.date < endTime){
+        resultTimeseries.push(timeserie);
+      } 
+    } // end for
+
+    if(!hasInjectedValue && injectLastValueBeforeStart){
+      for(let i = timeseries.length - 1; i >= 0; i--){
+        if(timeseries[i].date < startTime){
+          resultTimeseries.unshift({date : startTime, value : timeseries[i].value});
+          break;
+        }
+      }
+    }
+    if(resultTimeseries.length!=0 && resultTimeseries[resultTimeseries.length - 1].date < endTime){
+      resultTimeseries.push({date : endTime, value : resultTimeseries[resultTimeseries.length - 1].value});
+    }
+    return resultTimeseries;
+  }
+
 }

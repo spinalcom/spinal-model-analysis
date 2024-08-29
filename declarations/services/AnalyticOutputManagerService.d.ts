@@ -60,6 +60,17 @@ export default class AnalyticOutputManagerService {
     handleGChatMessageResult(result: any, analyticId: string, configAttributes: any, followedEntityNode: SpinalNodeRef): Promise<IResult>;
     handleGChatOrganCardResult(result: any, analyticId: string, configAttributes: any, followedEntityNode: SpinalNodeRef): Promise<IResult>;
     /**
+     * Applies the result of an algorithm.
+     *
+     * @param {*} result The result of the algorithm used.
+     * @param {string} analyticId The ID of the analytic.
+     * @param {SpinalNodeRef} configNode The SpinalNodeRef of the configuration of the analytic.
+     * @param {SpinalNodeRef} followedEntityNode The SpinalNodeRef of the entity.
+     * @return {*}
+     * @memberof AnalyticService
+     */
+    applyResult(result: number | string | boolean, analyticId: string, configAttributes: any, followedEntityNode: SpinalNodeRef, referenceEpochTime?: number): Promise<IResult>;
+    /**
      * Gets the ticket context that has the corresponding contextId
      *
      * @param {string} contextId

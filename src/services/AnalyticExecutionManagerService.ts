@@ -7,7 +7,7 @@ import * as CONSTANTS from '../constants';
 import { ITwilioCredentials } from '../interfaces/ITwilioCredentials';
 import { IResult } from '../interfaces/IAnalyticResult';
 import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
-
+import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
 import { logMessage } from './utils';
 import { ALGORITHMS } from '../algorithms/algorithms';
 import { ExitAnalyticError } from '../classes/Errors';
@@ -122,6 +122,69 @@ export default class AnalyticExecutionManagerService {
     return result;
   }
 
+
+  private async optExecuteAlgorithm(
+    analyticId: string,
+    entity: SpinalNodeRef,
+    algoIndexName: string,
+    ioDependencies: any,
+    algoIndexMapping: any,
+    algoParams: any,
+    referenceEpochTime: number = Date.now(),
+    formattedData: any
+  ): Promise<any> {
+    const inputs: any[] = [];
+    
+    const myDependencies =
+      ioDependencies[algoIndexName]?.split(
+        CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
+      ) ?? [];
+    for (const dependency of myDependencies) {
+      if (!dependency) continue; // if the dependency is empty
+
+      // if dependency is an algorithm then rec call with that algorithm
+      if (dependency.startsWith('A')) {
+        // save the result of the algorithm in the inputs array
+        const res = await this.optExecuteAlgorithm(
+          analyticId,
+          entity,
+          dependency,
+          ioDependencies,
+          algoIndexMapping,
+          algoParams,
+          referenceEpochTime,
+          formattedData
+        );
+        inputs.push(res);
+      } else {
+        // if dependency is an input then get the value of the input
+        const inputData = formattedData[dependency][referenceEpochTime];
+        if (inputData == undefined) {
+          throw new Error(`Input data ${dependency} could not be retrieved`);
+        }
+        if (Array.isArray(inputData)) {
+          inputs.push(...inputData);
+        } else {
+          inputs.push(inputData);
+        }
+      }
+    }
+    // after the inputs are ready we can execute the algorithm
+    const algorithm_name = algoIndexMapping[algoIndexName];
+    const algorithmParameters =
+      this.analyticInputManagerService.filterAlgorithmParametersAttributesByIndex(
+        algoParams,
+        algoIndexName
+      );
+    const result = ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
+    if (result == undefined)
+      throw new Error(`Algorithm ${algorithm_name} returned undefined`);
+    if (algorithm_name === 'EXIT' && result === true) {
+      throw new ExitAnalyticError('EXIT algorithm triggered');
+    }
+    return result;
+  }
+
   /**
    * Performs an analysis on an entity for an analytic.
    * @param {string} analyticId The ID of the analytic.
@@ -129,11 +192,11 @@ export default class AnalyticExecutionManagerService {
    * @returns {*} {Promise<void>}
    * @memberof AnalyticService
    */
-  public async doAnalysisOnEntity(
+  /*public async doAnalysisOnEntity(
     analyticId: string,
     entity: SpinalNodeRef,
-    configAttributes?: any,
-    executionTime: number = Date.now()
+    executionTime: number = Date.now(),
+    configAttributes?: IAnalyticConfig,
   ): Promise<IResult> {
     try {
       // Get the io dependencies of the analytic
@@ -149,18 +212,6 @@ export default class AnalyticExecutionManagerService {
           );
       }
 
-      // const ioDependencies = await this.getAttributesFromNode(
-      //   configNode.id.get(),
-      //   CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES
-      // );
-      // const algoIndexMapping = await this.getAttributesFromNode(
-      //   configNode.id.get(),
-      //   CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING
-      // );
-      // const algoParams = await this.getAttributesFromNode(
-      //   configNode.id.get(),
-      //   CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS
-      // );
       const ioDependencies =
         configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES];
 
@@ -170,7 +221,7 @@ export default class AnalyticExecutionManagerService {
       const algoParams =
         configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS];
 
-      const R = ioDependencies['R'];
+      const R = ioDependencies['R'] as string;
 
       const result = await this.recExecuteAlgorithm(
         analyticId,
@@ -182,7 +233,7 @@ export default class AnalyticExecutionManagerService {
         executionTime
       );
 
-      return await this.applyResult(
+      return await this.analyticOutputManagerService.applyResult(
         result,
         analyticId,
         configAttributes,
@@ -207,6 +258,142 @@ export default class AnalyticExecutionManagerService {
         };
       }
     }
+  }*/
+
+  public async doAnalysisOnEntity(
+    analyticId: string,
+    entity: SpinalNodeRef,
+    executionTimes: number[] = [Date.now()],
+    configAttributes?: IAnalyticConfig,
+  ): Promise<IResult[]> {
+    try {
+      // Get the io dependencies of the analytic
+      if (!configAttributes) {
+        const configNode = await this.analyticNodeManagerService.getConfig(
+          analyticId
+        );
+        if (!configNode)
+          return [{ success: false, error: 'No config node found' }];
+        configAttributes =
+          await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(
+            configNode.id.get()
+          );
+      }
+
+      const ioDependencies =
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_IO_DEPENDENCIES];
+
+      const algoIndexMapping =
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ALGORITHM_INDEX_MAPPING];
+
+      const algoParams =
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ALGORTHM_PARAMETERS];
+
+      const R = ioDependencies['R'] as string;
+      // Here we need to call a function that will get all the data required for the analysis to run
+      const formattedData = 
+      await this.analyticInputManagerService.
+      getAllDataFromAnalyticConfiguration(analyticId,
+        entity,  ioDependencies, executionTimes
+      )
+      console.log(`FORMATED DATA on ${entity.name.get()}`, formattedData);
+      const results: IResult[] = [];
+      for(const execTime of executionTimes){
+        const result = await this.optExecuteAlgorithm(
+          analyticId,
+          entity,
+          R,
+          ioDependencies,
+          algoIndexMapping,
+          algoParams,
+          execTime,
+          formattedData
+        );
+        results.push(await this.analyticOutputManagerService.applyResult(
+          result,
+          analyticId,
+          configAttributes,
+          entity,
+          execTime
+        ));
+      }
+      return results;
+
+    } catch (error) {
+      const analyticInfo = SpinalGraphService.getInfo(analyticId);
+      const positionString =
+        ' on ' +
+        entity.name.get() +
+        ' in analytic : ' +
+        analyticInfo.name.get() +
+        ' at ' +
+        Date.now();
+      if (error instanceof Error || error instanceof ExitAnalyticError) {
+        return [{ success: false, error: error.message + positionString }];
+      } else {
+        return [{
+          success: false,
+          error: 'An unknown error occurred' + positionString,
+        }];
+      }
+    }
+  }
+
+  public async doAnalysis(
+    analyticId: string,
+    triggerObject: { triggerType: string; triggerValue: string }
+  ): Promise<IResult[]>{
+    const entities =
+    await this.analyticInputManagerService.getWorkingFollowedEntities(
+      analyticId
+    );
+  if (!entities) return [{ success: false, error: 'No entities found' }];
+
+  const configNode = await this.analyticNodeManagerService.getConfig(
+    analyticId
+  );
+  if (!configNode) return [{ success: false, error: 'No config node found' }];
+
+  const configAttributes =
+    await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(
+      configNode.id.get()
+    );
+
+  const lastExecutionTime = parseInt(
+    configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
+      CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME
+    ] as string
+  );
+
+  const aggregateExecutionTime = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
+    CONSTANTS.ATTRIBUTE_AGGREGATE_EXECUTION_TIME
+  ] as string || undefined;
+  if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
+    const executionTimes =this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
+    const analysisPromises = entities.map((entity) =>
+       this.doAnalysisOnEntity(
+          analyticId,
+          entity,
+          executionTimes,
+          configAttributes
+      )
+    );
+    const results = (await Promise.all(analysisPromises)).flat();
+    return results;
+  }
+  const executionsTimes: number[] = [];
+  executionsTimes.push(Date.now());
+
+  const analysisPromises = entities.map((entity) =>
+      this.doAnalysisOnEntity(
+        analyticId,
+        entity,
+        executionsTimes,
+        configAttributes
+    )
+  );
+  const results = (await Promise.all(analysisPromises)).flat();
+  return results;
   }
 
   /**
@@ -215,7 +402,7 @@ export default class AnalyticExecutionManagerService {
    * @return {*}  {Promise<void>}
    * @memberof AnalyticService
    */
-  public async doAnalysis(
+  /*public async doAnalysis(
     analyticId: string,
     triggerObject: { triggerType: string; triggerValue: string }
   ): Promise<IResult[]> {
@@ -238,12 +425,12 @@ export default class AnalyticExecutionManagerService {
     const lastExecutionTime = parseInt(
       configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
         CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME
-      ]
+      ] as string
     );
     const shouldCatchUpMissedExecutions: boolean =
       configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
         CONSTANTS.ATTRIBUTE_ANALYTIC_PAST_EXECUTIONS
-      ];
+      ] as boolean;
     let executionsTimes: number[] = [];
 
     if (shouldCatchUpMissedExecutions) {
@@ -276,134 +463,16 @@ export default class AnalyticExecutionManagerService {
         this.doAnalysisOnEntity(
           analyticId,
           entity,
-          configAttributes,
-          executionTime
+          executionTime,
+          configAttributes
         )
       )
     );
     const results = await Promise.all(analysisPromises.flat());
     return results;
-  }
+  }*/
 
-  /**
-   * Applies the result of an algorithm.
-   *
-   * @param {*} result The result of the algorithm used.
-   * @param {string} analyticId The ID of the analytic.
-   * @param {SpinalNodeRef} configNode The SpinalNodeRef of the configuration of the analytic.
-   * @param {SpinalNodeRef} followedEntityNode The SpinalNodeRef of the entity.
-   * @return {*}
-   * @memberof AnalyticService
-   */
-  public async applyResult(
-    result: any,
-    analyticId: string,
-    configAttributes: any,
-    followedEntityNode: SpinalNodeRef,
-    referenceEpochTime: number = Date.now()
-  ): Promise<IResult> {
-    if (result === undefined)
-      return { success: false, error: 'Result is undefined' };
-
-    //const params = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
-    switch (
-      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
-        CONSTANTS.ATTRIBUTE_RESULT_TYPE
-      ]
-    ) {
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET:
-        await this.analyticOutputManagerService.handleTicketResult(
-          result,
-          analyticId,
-          configAttributes,
-          followedEntityNode,
-          'Ticket'
-        );
-        return {
-          success: true,
-          resultValue: result,
-          error: '',
-          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.TICKET,
-        };
-
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT:
-        await this.analyticOutputManagerService.handleControlEndpointResult(
-          result,
-          followedEntityNode,
-          configAttributes,
-          referenceEpochTime
-        );
-        return {
-          success: true,
-          resultValue: result,
-          error: '',
-          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
-        };
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT:
-        await this.analyticOutputManagerService.handleEndpointResult(
-          result,
-          followedEntityNode,
-          configAttributes,
-          referenceEpochTime
-        );
-        return {
-          success: true,
-          resultValue: result,
-          error: '',
-          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
-        };
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.ALARM:
-        return await this.analyticOutputManagerService.handleTicketResult(
-          result,
-          analyticId,
-          configAttributes,
-          followedEntityNode,
-          'Alarm'
-        );
-
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.SMS:
-        return await this.analyticOutputManagerService.handleSMSResult(
-          result,
-          analyticId,
-          configAttributes,
-          followedEntityNode
-        );
-
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.LOG:
-        console.log(
-          `LOG : ${
-            configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
-              CONSTANTS.ATTRIBUTE_RESULT_NAME
-            ]
-          } \t|\t Result : ${result}`
-        );
-        return {
-          success: true,
-          resultValue: result,
-          error: '',
-          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.LOG,
-        };
-
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE:
-        return this.analyticOutputManagerService.handleGChatMessageResult(
-          result,
-          analyticId,
-          configAttributes,
-          followedEntityNode
-        );
-
-      case CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD:
-        return this.analyticOutputManagerService.handleGChatOrganCardResult(
-          result,
-          analyticId,
-          configAttributes,
-          followedEntityNode
-        );
-
-      default:
-        return { success: false, error: 'Result type not recognized' };
-    }
-  }
+  
 
   public getCronMissingExecutionTimes(
     cronSyntax: string,
@@ -460,6 +529,43 @@ export default class AnalyticExecutionManagerService {
 
     return executionTimes;
   }
+
+  public getExecutionTimestamps(
+    aggregateExecutionTime: string,
+    executionTime: string,
+    lastExecutionTime: number
+): number[] {
+    // Parsing options with a current date set to the lastExecutionTime
+    const options = {
+        currentDate: new Date(lastExecutionTime),
+        tz: 'Europe/Paris' // Set to UTC or the appropriate timezone
+    };
+
+    // Initialize the parser for the aggregate execution time
+    const aggregateIterator = cronParser.parseExpression(aggregateExecutionTime, options);
+
+    // Calculate the next aggregate execution time
+    const nextAggregateExecTime = aggregateIterator.next().toDate().getTime();
+    // Modify options for regular execution time parsing
+    options.currentDate = new Date(lastExecutionTime); // Reset the currentDate
+    const executionIterator = cronParser.parseExpression(executionTime, options);
+
+    // Array to store the timestamps
+    const timestamps: number[] = [];
+    try {
+      // Iterate over the scheduled execution times and collect them
+      let nextExecTime = executionIterator.next().toDate().getTime();
+      while (nextExecTime <= nextAggregateExecTime) {
+          timestamps.push(nextExecTime);
+          nextExecTime = executionIterator.next().toDate().getTime(); 
+      }
+  } catch (err) {
+      if (!(err instanceof Error && err.message === 'Out of the timespan range')) {
+          throw err;  // Re-throw unexpected errors
+      }
+  }
+    return timestamps;
+}
 }
 
 export { AnalyticExecutionManagerService };

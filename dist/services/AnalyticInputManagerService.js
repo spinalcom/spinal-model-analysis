@@ -131,49 +131,6 @@ class AnalyticInputManagerService {
             return yield this.applyTrackingMethodWithParams(followedEntity, inputParams[CONSTANTS.ATTRIBUTE_TRACKING_METHOD], inputParams[CONSTANTS.ATTRIBUTE_FILTER_VALUE], inputParams[CONSTANTS.ATTRIBUTE_SEARCH_DEPTH], inputParams[CONSTANTS.ATTRIBUTE_STRICT_DEPTH], inputParams[CONSTANTS.ATTRIBUTE_SEARCH_RELATIONS].split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR), multipleModels);
         });
     }
-    getFormattedInputDataByIndex(analyticId, followedEntity, inputIndex, referenceEpochTime = Date.now()) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const trackingMethod = yield this.analyticNodeManagerService.getTrackingMethod(analyticId);
-            if (!trackingMethod)
-                return undefined;
-            const trackingParams = yield this.analyticNodeManagerService.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
-            const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex, trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false);
-            if (!entryDataModel)
-                return undefined;
-            if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
-                trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
-                //test if entryDataModel is array ( spinalNodeRed[] )
-                if (Array.isArray(entryDataModel)) {
-                    const res = [];
-                    for (const entry of entryDataModel) {
-                        const currentValue = yield this.getValueModelFromEntry(entry);
-                        const assertedValue = currentValue.get();
-                        res.push(assertedValue);
-                    }
-                    return res;
-                }
-                const currentValue = yield this.getValueModelFromEntry(entryDataModel);
-                const assertedValue = currentValue.get();
-                return assertedValue;
-            }
-            else {
-                if (Array.isArray(entryDataModel)) {
-                    throw new Error('Does not support multiple timeseries in 1 input');
-                }
-                const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
-                const end = referenceEpochTime;
-                const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
-                const injectLastValueBeforeStart = trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
-                let data = injectLastValueBeforeStart
-                    ? yield spinalTs.getFromIntervalTime(start, end, true)
-                    : yield spinalTs.getFromIntervalTime(start, end);
-                if (injectLastValueBeforeStart) {
-                    data = this.timeseriesPreProcessing(start, end, data); // tidy up the data mainly at start and end
-                }
-                return data;
-            }
-        });
-    }
     getRelationsWithDepth(nodeId, depth) {
         return __awaiter(this, void 0, void 0, function* () {
             const relations = spinal_env_viewer_graph_service_1.SpinalGraphService.getRelationNames(nodeId);
@@ -398,6 +355,128 @@ class AnalyticInputManagerService {
         }
         return result;
     }
+    getFormattedInputDataByIndex(analyticId, followedEntity, inputIndex, referenceEpochTime = Date.now()) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const trackingMethod = yield this.analyticNodeManagerService.getTrackingMethod(analyticId);
+            if (!trackingMethod)
+                return undefined;
+            const trackingParams = yield this.analyticNodeManagerService.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
+            const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex, trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false);
+            if (!entryDataModel)
+                return undefined;
+            if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
+                trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+                //test if entryDataModel is array ( spinalNodeRed[] )
+                if (Array.isArray(entryDataModel)) {
+                    const res = [];
+                    for (const entry of entryDataModel) {
+                        const currentValue = yield this.getValueModelFromEntry(entry);
+                        const assertedValue = currentValue.get();
+                        res.push(assertedValue);
+                    }
+                    return res;
+                }
+                const currentValue = yield this.getValueModelFromEntry(entryDataModel);
+                const assertedValue = currentValue.get();
+                return assertedValue;
+            }
+            else {
+                if (Array.isArray(entryDataModel)) {
+                    throw new Error('Does not support multiple timeseries in 1 input');
+                }
+                const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+                const end = referenceEpochTime;
+                const start = end - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+                const injectLastValueBeforeStart = trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
+                let data = injectLastValueBeforeStart
+                    ? yield spinalTs.getFromIntervalTime(start, end, true)
+                    : yield spinalTs.getFromIntervalTime(start, end);
+                if (injectLastValueBeforeStart) {
+                    data = this.timeseriesPreProcessing(start, end, data); // tidy up the data mainly at start and end
+                }
+                return data;
+            }
+        });
+    }
+    getFormattedInputData(analyticId, followedEntity, inputIndex, executionTimes = [Date.now()]) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const inputData = {};
+            const trackingMethod = yield this.analyticNodeManagerService.getTrackingMethod(analyticId);
+            if (!trackingMethod)
+                return undefined;
+            const trackingParams = yield this.analyticNodeManagerService.getAttributesFromNode(trackingMethod.id.get(), inputIndex);
+            const entryDataModel = yield this.getEntryDataModelByInputIndex(analyticId, followedEntity, inputIndex, trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false);
+            if (!entryDataModel)
+                return undefined;
+            if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] < 0) {
+                throw new Error('Timeseries intervalTime cannot be negative');
+            }
+            if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+                //add the current value for each executionTime
+                if (Array.isArray(entryDataModel)) {
+                    const res = [];
+                    for (const entry of entryDataModel) {
+                        const currentValue = yield this.getValueModelFromEntry(entry);
+                        const assertedValue = currentValue.get();
+                        res.push(assertedValue);
+                    }
+                    for (const execTime of executionTimes) {
+                        inputData[execTime] = res;
+                    }
+                }
+                else {
+                    const currentValue = yield this.getValueModelFromEntry(entryDataModel);
+                    const assertedValue = currentValue.get();
+                    for (const execTime of executionTimes) {
+                        inputData[execTime] = assertedValue;
+                    }
+                }
+            }
+            else {
+                if (Array.isArray(entryDataModel)) {
+                    throw new Error('Timeseries and multiple input capture is not compatible');
+                }
+                // add the timeseries data for each executionTime
+                const oldestTime = Math.min(...executionTimes);
+                const closestTime = Math.max(...executionTimes);
+                const spinalTs = yield this.spinalServiceTimeseries.getOrCreateTimeSeries(entryDataModel.id.get());
+                const end = closestTime;
+                const start = oldestTime - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+                const injectLastValueBeforeStart = trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
+                const data = yield spinalTs.getFromIntervalTime(start, end, injectLastValueBeforeStart);
+                for (const execTime of executionTimes) {
+                    const execTimeStart = execTime - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
+                    const processedData = this.timeseriesPreProcessingData(execTimeStart, execTime, data, injectLastValueBeforeStart);
+                    inputData[execTime] = processedData;
+                }
+            }
+            return inputData;
+        });
+    }
+    getAllDataFromAnalyticConfiguration(analyticId, entity, ioDependencies, executionTimes) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const resultData = {};
+            // Get all the inputs (I0, I1, I2, ...)
+            const inputs = [];
+            const keys = Object.keys(ioDependencies);
+            for (const key of keys) {
+                const myDependencies = (_b = (_a = ioDependencies[key]) === null || _a === void 0 ? void 0 : _a.split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR)) !== null && _b !== void 0 ? _b : [];
+                for (const dep of myDependencies) {
+                    if (dep.startsWith('I')) {
+                        inputs.push(dep);
+                    }
+                }
+            } // end for
+            for (const input of inputs) {
+                const data = yield this.getFormattedInputData(analyticId, entity, input, executionTimes);
+                if (data) {
+                    resultData[input] = data;
+                }
+            }
+            return resultData;
+        });
+    }
     timeseriesPreProcessing(start, end, timeseries) {
         if (timeseries.length === 0)
             return [];
@@ -411,6 +490,33 @@ class AnalyticInputManagerService {
             value: timeseries[timeseries.length - 1].value,
         });
         return timeseries;
+    }
+    timeseriesPreProcessingData(startTime, endTime, timeseries, injectLastValueBeforeStart) {
+        let hasInjectedValue = false;
+        const resultTimeseries = [];
+        if (timeseries.length === 0)
+            return [];
+        for (const timeserie of timeseries) {
+            if (timeserie.date == startTime) {
+                hasInjectedValue = true;
+                resultTimeseries.push(timeserie);
+            }
+            else if (timeserie.date > startTime && timeserie.date < endTime) {
+                resultTimeseries.push(timeserie);
+            }
+        } // end for
+        if (!hasInjectedValue && injectLastValueBeforeStart) {
+            for (let i = timeseries.length - 1; i >= 0; i--) {
+                if (timeseries[i].date < startTime) {
+                    resultTimeseries.unshift({ date: startTime, value: timeseries[i].value });
+                    break;
+                }
+            }
+        }
+        if (resultTimeseries.length != 0 && resultTimeseries[resultTimeseries.length - 1].date < endTime) {
+            resultTimeseries.push({ date: endTime, value: resultTimeseries[resultTimeseries.length - 1].value });
+        }
+        return resultTimeseries;
     }
 }
 exports.default = AnalyticInputManagerService;

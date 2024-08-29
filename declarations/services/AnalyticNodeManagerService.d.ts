@@ -2,6 +2,7 @@ import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-grap
 import { IAnalytic } from '../interfaces/IAnalytic';
 import { IAnalyticDetails } from '../interfaces/IAnalyticDetails';
 import { IEntity } from '../interfaces/IEntity';
+import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
 import { INodeDocumentation } from '../interfaces/IAttribute';
 export default class AnalyticNodeManagerService {
     constructor();
@@ -261,7 +262,7 @@ export default class AnalyticNodeManagerService {
      * @memberof AnalyticService
      */
     getAttributeFromNode(nodeId: string, category: string, label: string): Promise<any>;
-    getAllCategoriesAndAttributesFromNode(nodeId: string): Promise<{}>;
+    getAllCategoriesAndAttributesFromNode(nodeId: string): Promise<IAnalyticConfig>;
     private removeChild;
     safeDeleteNode(nodeId: string, shouldDeleteChildren?: boolean): Promise<void>;
 }
