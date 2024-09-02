@@ -411,7 +411,8 @@ class AnalyticInputManagerService {
             if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] < 0) {
                 throw new Error('Timeseries intervalTime cannot be negative');
             }
-            if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
+            if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
+                trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
                 //add the current value for each executionTime
                 if (Array.isArray(entryDataModel)) {
                     const res = [];
@@ -463,7 +464,7 @@ class AnalyticInputManagerService {
             for (const key of keys) {
                 const myDependencies = (_b = (_a = ioDependencies[key]) === null || _a === void 0 ? void 0 : _a.split(CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR)) !== null && _b !== void 0 ? _b : [];
                 for (const dep of myDependencies) {
-                    if (dep.startsWith('I')) {
+                    if (dep.startsWith('I') && !inputs.includes(dep)) {
                         inputs.push(dep);
                     }
                 }

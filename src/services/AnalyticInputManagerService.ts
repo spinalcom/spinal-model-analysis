@@ -758,7 +758,8 @@ export default class AnalyticInputManagerService {
     if( trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] <0) {
       throw new Error('Timeseries intervalTime cannot be negative');
     }
-    if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES]== 0) {
+    if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
+      trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES]== 0) {
       //add the current value for each executionTime
       if (Array.isArray(entryDataModel)) {
         const res: any = [];
@@ -827,7 +828,7 @@ export default class AnalyticInputManagerService {
         CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
       ) ?? [];
       for (const dep of myDependencies) {
-        if(dep.startsWith('I')){
+        if(dep.startsWith('I') && !inputs.includes(dep)){
           inputs.push(dep);
         }
       }

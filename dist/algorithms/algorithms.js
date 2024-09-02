@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.EXIT = exports.RANDOM_BOOLEAN = exports.RANDOM_BOOLEAN_NUMBER = exports.RANDOM_INTEGER = exports.RANDOM_NUMBER = exports.SUBTRACT_BY = exports.SUM = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_EDGE_SUBSTRACT = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.AVERAGE = exports.THRESHOLD_ZSCORE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.EXIT = exports.RANDOM_BOOLEAN = exports.RANDOM_BOOLEAN_NUMBER = exports.RANDOM_INTEGER = exports.RANDOM_NUMBER = exports.SUBTRACT_BY = exports.SUM = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_EDGE_SUBSTRACT = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_AVERAGE = exports.TIMESERIES_THRESHOLD_ZSCORE = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -113,7 +113,10 @@ exports.THRESHOLD_BETWEEN_OUT = new Algorithm('THRESHOLD_BETWEEN_OUT', 'This alg
     }
     return false;
 });
-exports.THRESHOLD_ZSCORE = new Algorithm('THRESHOLD_ZSCORE', `This algorithm is used to detect anomalies in a timeseries. 
+exports.AVERAGE = new Algorithm('AVERAGE', 'This algorithm returns the average of the inputs', ['number'], 'number', [], (input) => {
+    return input.reduce((acc, current) => acc + current, 0) / input.length;
+});
+exports.TIMESERIES_THRESHOLD_ZSCORE = new Algorithm('TIMESERIES_THRESHOLD_ZSCORE', `This algorithm is used to detect anomalies in a timeseries. 
    The Z-score is a measure of how many standard deviations an element is from the mean.
    It's calculated as Z = (X - mean) / stdDev 
    where X is the value, mean is the average of the timeserie and stdDev is the standard deviation of the timeserie.
@@ -133,9 +136,6 @@ exports.THRESHOLD_ZSCORE = new Algorithm('THRESHOLD_ZSCORE', `This algorithm is 
     const stdDev = Math.sqrt(variance);
     const zScore = (dataInput[dataInput.length - 1].value - mean) / stdDev;
     return zScore > threshold;
-});
-exports.AVERAGE = new Algorithm('AVERAGE', 'This algorithm returns the average of the inputs', ['number'], 'number', [], (input) => {
-    return input.reduce((acc, current) => acc + current, 0) / input.length;
 });
 exports.TIMESERIES_AVERAGE = new Algorithm('TIMESERIES_AVERAGE', 'This algorithm returns the average of the timeseries', ['Timeseries'], 'number', [], (input) => {
     const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
@@ -326,8 +326,8 @@ exports.ALGORITHMS = {
     THRESHOLD_BELOW: exports.THRESHOLD_BELOW,
     THRESHOLD_BETWEEN_IN: exports.THRESHOLD_BETWEEN_IN,
     THRESHOLD_BETWEEN_OUT: exports.THRESHOLD_BETWEEN_OUT,
-    THRESHOLD_ZSCORE: exports.THRESHOLD_ZSCORE,
     AVERAGE: exports.AVERAGE,
+    TIMESERIES_THRESHOLD_ZSCORE: exports.TIMESERIES_THRESHOLD_ZSCORE,
     TIMESERIES_IS_EMPTY: exports.TIMESERIES_IS_EMPTY,
     TIMESERIES_AVERAGE: exports.TIMESERIES_AVERAGE,
     TIMESERIES_TIME_WEIGHTED_AVERAGE: exports.TIMESERIES_TIME_WEIGHTED_AVERAGE,

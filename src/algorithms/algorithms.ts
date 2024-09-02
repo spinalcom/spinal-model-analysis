@@ -220,8 +220,21 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
   }
 );
 
-export const THRESHOLD_ZSCORE = new Algorithm(
-  'THRESHOLD_ZSCORE',
+
+
+export const AVERAGE = new Algorithm(
+  'AVERAGE',
+  'This algorithm returns the average of the inputs',
+  ['number'],
+  'number',
+  [],
+  (input: number[]): number => {
+    return input.reduce((acc, current) => acc + current, 0) / input.length;
+  }
+);
+
+export const TIMESERIES_THRESHOLD_ZSCORE = new Algorithm(
+  'TIMESERIES_THRESHOLD_ZSCORE',
   `This algorithm is used to detect anomalies in a timeseries. 
    The Z-score is a measure of how many standard deviations an element is from the mean.
    It's calculated as Z = (X - mean) / stdDev 
@@ -251,17 +264,6 @@ export const THRESHOLD_ZSCORE = new Algorithm(
     const stdDev = Math.sqrt(variance);
     const zScore = (dataInput[dataInput.length - 1].value - mean) / stdDev;
     return zScore > threshold;
-  }
-);
-
-export const AVERAGE = new Algorithm(
-  'AVERAGE',
-  'This algorithm returns the average of the inputs',
-  ['number'],
-  'number',
-  [],
-  (input: number[]): number => {
-    return input.reduce((acc, current) => acc + current, 0) / input.length;
   }
 );
 
@@ -660,8 +662,8 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   THRESHOLD_BELOW,
   THRESHOLD_BETWEEN_IN,
   THRESHOLD_BETWEEN_OUT,
-  THRESHOLD_ZSCORE,
   AVERAGE,
+  TIMESERIES_THRESHOLD_ZSCORE,
   TIMESERIES_IS_EMPTY,
   TIMESERIES_AVERAGE,
   TIMESERIES_TIME_WEIGHTED_AVERAGE,

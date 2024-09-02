@@ -102,12 +102,7 @@ class AnalyticExecutionManagerService {
                     if (inputData == undefined) {
                         throw new Error(`Input data ${dependency} could not be retrieved`);
                     }
-                    if (Array.isArray(inputData)) {
-                        inputs.push(...inputData);
-                    }
-                    else {
-                        inputs.push(inputData);
-                    }
+                    inputs.push(inputData);
                 }
             }
             // after the inputs are ready we can execute the algorithm
@@ -214,7 +209,6 @@ class AnalyticExecutionManagerService {
                 // Here we need to call a function that will get all the data required for the analysis to run
                 const formattedData = yield this.analyticInputManagerService.
                     getAllDataFromAnalyticConfiguration(analyticId, entity, ioDependencies, executionTimes);
-                console.log(`FORMATED DATA on ${entity.name.get()}`, formattedData);
                 const results = [];
                 for (const execTime of executionTimes) {
                     const result = yield this.optExecuteAlgorithm(analyticId, entity, R, ioDependencies, algoIndexMapping, algoParams, execTime, formattedData);
@@ -255,6 +249,7 @@ class AnalyticExecutionManagerService {
             const aggregateExecutionTime = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_AGGREGATE_EXECUTION_TIME] || undefined;
             if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
                 const executionTimes = this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
+                console.log(`executionTimes aggretegate feature : ${executionTimes}`);
                 const analysisPromises = entities.map((entity) => this.doAnalysisOnEntity(analyticId, entity, executionTimes, configAttributes));
                 const results = (yield Promise.all(analysisPromises)).flat();
                 return results;

@@ -161,12 +161,9 @@ export default class AnalyticExecutionManagerService {
         const inputData = formattedData[dependency][referenceEpochTime];
         if (inputData == undefined) {
           throw new Error(`Input data ${dependency} could not be retrieved`);
-        }
-        if (Array.isArray(inputData)) {
-          inputs.push(...inputData);
-        } else {
+        } 
           inputs.push(inputData);
-        }
+        
       }
     }
     // after the inputs are ready we can execute the algorithm
@@ -295,8 +292,7 @@ export default class AnalyticExecutionManagerService {
       await this.analyticInputManagerService.
       getAllDataFromAnalyticConfiguration(analyticId,
         entity,  ioDependencies, executionTimes
-      )
-      console.log(`FORMATED DATA on ${entity.name.get()}`, formattedData);
+      );
       const results: IResult[] = [];
       for(const execTime of executionTimes){
         const result = await this.optExecuteAlgorithm(
@@ -370,6 +366,7 @@ export default class AnalyticExecutionManagerService {
   ] as string || undefined;
   if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
     const executionTimes =this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
+    console.log(`executionTimes aggretegate feature : ${executionTimes}`);
     const analysisPromises = entities.map((entity) =>
        this.doAnalysisOnEntity(
           analyticId,
