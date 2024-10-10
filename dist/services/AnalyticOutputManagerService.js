@@ -225,9 +225,9 @@ class AnalyticOutputManagerService {
         });
     }
     handleGChatOrganCardResult(result, analyticId, configAttributes, followedEntityNode) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
-            console.log('Handling Google chat organ card result');
+            console.log('Handling Google chat organ message result');
             if (result == false)
                 return {
                     success: true,
@@ -235,10 +235,7 @@ class AnalyticOutputManagerService {
                     error: '',
                     resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
                 };
-            const analyticParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS];
-            const resultParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
             const gChatParams = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS];
-            const title = resultParams[CONSTANTS.ATTRIBUTE_RESULT_NAME];
             const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
             let message = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
             const variables = message.match(/[^{}]+(?=\})/g);
@@ -248,106 +245,196 @@ class AnalyticOutputManagerService {
                     message = message.replace(`{${variable}}`, '' + value);
                 }
             }
-            const analyticDescription = analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
             const lastPing = yield this.analyticInputManagerService.findEndpoint(followedEntityNode.id.get(), 'last_ping', 0, true, [], CONSTANTS.ENDPOINT_RELATIONS, CONSTANTS.ENDPOINT_NODE_TYPE);
             if (!lastPing)
                 return {
                     success: false,
                     error: 'endpoint lastPing not found on organ node',
                 };
+            const organ_attributes = yield this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(followedEntityNode.id.get);
+            const ipAddress = organ_attributes['info']['ip_adress'] || "Couldn't find the ip address";
             const lastPingValue = yield this.analyticInputManagerService.getValueModelFromEntry(lastPing);
             const lastPingDate = new Date(lastPingValue.get()).toString();
             const parents = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(followedEntityNode.id.get(), 'HasOrgan');
-            let platformName = "Couldn't find the platform name";
-            let ipAddress = "Couldn't find the ip adress";
+            let platformName = "";
+            let contact_email = "";
             for (const parent of parents) {
                 if (parent.id.get() == ((_a = followedEntityNode.platformId) === null || _a === void 0 ? void 0 : _a.get())) {
-                    platformName = (_b = parent.name) === null || _b === void 0 ? void 0 : _b.get();
-                    ipAddress = (_c = parent.ipAdress) === null || _c === void 0 ? void 0 : _c.get();
+                    const platform_attributes = yield this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(parent.id.get);
+                    platformName = platform_attributes['info']['name'] || "Couldn't find the platform name";
+                    contact_email = platform_attributes['info']['contact_email'] || "Couldn't find the contact email";
                 }
             }
-            const card = {
-                header: {
-                    title: title,
-                    subtitle: new Date().toLocaleDateString(),
-                },
-                sections: [
-                    {
-                        header: 'Analytic details',
-                        widgets: [
-                            {
-                                keyValue: {
-                                    topLabel: 'Analytic description',
-                                    content: analyticDescription,
-                                },
-                            },
-                            {
-                                keyValue: {
-                                    topLabel: 'Message',
-                                    content: message,
-                                },
-                            },
-                        ],
-                    },
-                    {
-                        header: 'Organ details',
-                        widgets: [
-                            {
-                                keyValue: {
-                                    topLabel: 'Organ name',
-                                    content: followedEntityNode.name.get(),
-                                },
-                            },
-                            {
-                                keyValue: {
-                                    topLabel: 'Organ type',
-                                    content: (_d = followedEntityNode.organType) === null || _d === void 0 ? void 0 : _d.get(),
-                                },
-                            },
-                            {
-                                keyValue: {
-                                    topLabel: 'Last ping',
-                                    content: lastPingDate,
-                                },
-                            },
-                        ],
-                    },
-                    {
-                        header: 'Platform details',
-                        widgets: [
-                            {
-                                keyValue: {
-                                    topLabel: 'Platform name',
-                                    content: platformName,
-                                },
-                            },
-                            {
-                                keyValue: {
-                                    topLabel: 'Platform id',
-                                    content: (_e = followedEntityNode.platformId) === null || _e === void 0 ? void 0 : _e.get(),
-                                },
-                            },
-                            {
-                                keyValue: {
-                                    topLabel: 'Ip Address',
-                                    content: ipAddress,
-                                },
-                            },
-                        ],
-                    },
-                ],
-            };
             const resultInfo = {
                 success: true,
                 resultValue: result,
                 error: '',
                 spaceName: spaceName,
-                resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD,
-                card: card,
+                message: 'The following message has been triggered by an analytic.\n ' +
+                    '\nMessage : ' +
+                    message + '\n' +
+                    '\n Platform name : ' + platformName +
+                    '\n Organ name : ' + followedEntityNode.name.get() +
+                    '\n Organ type : ' + ((_b = followedEntityNode.organType) === null || _b === void 0 ? void 0 : _b.get()) +
+                    '\n Contact email : ' + contact_email +
+                    '\n Ip Address : ' + ipAddress +
+                    '\n Last ping date : ' + lastPingDate,
+                resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
             };
             return resultInfo;
         });
     }
+    /*public async handleGChatOrganCardResult(
+      result: any,
+      analyticId: string,
+      configAttributes: any,
+      followedEntityNode: SpinalNodeRef
+    ): Promise<IResult> {
+      console.log('Handling Google chat organ card result');
+  
+      if (result == false)
+        return {
+          success: true,
+          resultValue: result,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
+        };
+  
+      const analyticParams =
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS];
+      const resultParams =
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS];
+      const gChatParams =
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS];
+  
+      const title = resultParams[CONSTANTS.ATTRIBUTE_RESULT_NAME];
+      const spaceName: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
+      let message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+      const variables = message.match(/[^{}]+(?=\})/g);
+      if (variables) {
+        for (const variable of variables) {
+          const value =
+            await this.analyticInputManagerService.getFormattedInputDataByIndex(
+              analyticId,
+              followedEntityNode,
+              variable
+            );
+          message = message.replace(`{${variable}}`, '' + value);
+        }
+      }
+      const analyticDescription: string =
+        analyticParams[CONSTANTS.ATTRIBUTE_ANALYTIC_DESCRIPTION];
+  
+      const lastPing = await this.analyticInputManagerService.findEndpoint(
+        followedEntityNode.id.get(),
+        'last_ping',
+        0,
+        true,
+        [],
+        CONSTANTS.ENDPOINT_RELATIONS,
+        CONSTANTS.ENDPOINT_NODE_TYPE
+      );
+      if (!lastPing)
+        return {
+          success: false,
+          error: 'endpoint lastPing not found on organ node',
+        };
+      const lastPingValue =
+        await this.analyticInputManagerService.getValueModelFromEntry(lastPing);
+      const lastPingDate = new Date(lastPingValue.get()).toString();
+      const parents = await SpinalGraphService.getParents(
+        followedEntityNode.id.get(),
+        'HasOrgan'
+      );
+      let platformName = "Couldn't find the platform name";
+      let ipAddress = "Couldn't find the ip adress";
+      for (const parent of parents) {
+        if (parent.id.get() == followedEntityNode.platformId?.get()) {
+          platformName = parent.name?.get();
+          ipAddress = parent.ipAdress?.get();
+        }
+      }
+      const card: IGChatCard = {
+        header: {
+          title: title,
+          subtitle: new Date().toLocaleDateString(),
+        },
+        sections: [
+          {
+            header: 'Analytic details',
+            widgets: [
+              {
+                keyValue: {
+                  topLabel: 'Analytic description',
+                  content: analyticDescription,
+                },
+              },
+              {
+                keyValue: {
+                  topLabel: 'Message',
+                  content: message,
+                },
+              },
+            ],
+          },
+          {
+            header: 'Organ details',
+            widgets: [
+              {
+                keyValue: {
+                  topLabel: 'Organ name',
+                  content: followedEntityNode.name.get(),
+                },
+              },
+              {
+                keyValue: {
+                  topLabel: 'Organ type',
+                  content: followedEntityNode.organType?.get(),
+                },
+              },
+              {
+                keyValue: {
+                  topLabel: 'Last ping',
+                  content: lastPingDate,
+                },
+              },
+            ],
+          },
+          {
+            header: 'Platform details',
+            widgets: [
+              {
+                keyValue: {
+                  topLabel: 'Platform name',
+                  content: platformName,
+                },
+              },
+              {
+                keyValue: {
+                  topLabel: 'Platform id',
+                  content: followedEntityNode.platformId?.get(),
+                },
+              },
+              {
+                keyValue: {
+                  topLabel: 'Ip Address',
+                  content: ipAddress,
+                },
+              },
+            ],
+          },
+        ],
+      };
+      const resultInfo: IGChatOrganCardResult = {
+        success: true,
+        resultValue: result,
+        error: '',
+        spaceName: spaceName,
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_ORGAN_CARD,
+        card: card,
+      };
+      return resultInfo;
+    }*/
     /**
      * Applies the result of an algorithm.
      *

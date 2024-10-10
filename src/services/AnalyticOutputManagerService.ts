@@ -378,6 +378,106 @@ export default class AnalyticOutputManagerService {
     configAttributes: any,
     followedEntityNode: SpinalNodeRef
   ): Promise<IResult> {
+    console.log('Handling Google chat organ message result');
+    if (result == false)
+      return {
+        success: true,
+        resultValue: result,
+        error: '',
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
+      };
+
+    const gChatParams =
+      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_GCHAT_PARAMETERS];
+
+    const spaceName = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_SPACE];
+    let message: string = gChatParams[CONSTANTS.ATTRIBUTE_GCHAT_MESSAGE];
+
+
+
+    const variables = message.match(/[^{}]+(?=\})/g);
+    if (variables) {
+      for (const variable of variables) {
+        const value =
+          await this.analyticInputManagerService.getFormattedInputDataByIndex(
+            analyticId,
+            followedEntityNode,
+            variable
+          );
+        message = message.replace(`{${variable}}`, '' + value);
+      }
+    }
+
+
+    const lastPing = await this.analyticInputManagerService.findEndpoint(
+      followedEntityNode.id.get(),
+      'last_ping',
+      0,
+      true,
+      [],
+      CONSTANTS.ENDPOINT_RELATIONS,
+      CONSTANTS.ENDPOINT_NODE_TYPE
+    ); 
+    if (!lastPing)
+      return {
+        success: false,
+        error: 'endpoint lastPing not found on organ node',
+      };
+
+      const organ_attributes = await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(followedEntityNode.id.get)
+      const ipAddress = organ_attributes['info']['ip_adress'] as string || "Couldn't find the ip address";
+      
+
+
+    const lastPingValue =
+      await this.analyticInputManagerService.getValueModelFromEntry(lastPing);
+    const lastPingDate = new Date(lastPingValue.get()).toString();
+
+    const parents = await SpinalGraphService.getParents(
+      followedEntityNode.id.get(),
+      'HasOrgan'
+    );
+    let platformName = "";
+    let contact_email = "";
+    for (const parent of parents) {
+      if (parent.id.get() == followedEntityNode.platformId?.get()) {
+        const platform_attributes = await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(parent.id.get);
+        platformName = platform_attributes['info']['name'] as string || "Couldn't find the platform name";
+        contact_email = platform_attributes['info']['contact_email'] as string || "Couldn't find the contact email";
+
+      }
+    }
+
+
+    const resultInfo: IGChatMessageResult = {
+      success: true,
+      resultValue: result,
+      error: '',
+      spaceName: spaceName,
+      message:
+        'The following message has been triggered by an analytic.\n ' +
+        '\nMessage : ' +
+        message + '\n'+
+        '\n Platform name : ' + platformName +
+        '\n Organ name : ' + followedEntityNode.name.get() +
+        '\n Organ type : ' + followedEntityNode.organType?.get() +
+        '\n Contact email : ' + contact_email +
+        '\n Ip Address : ' + ipAddress  +  
+        '\n Last ping date : ' + lastPingDate 
+        ,
+
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.GCHAT_MESSAGE,
+    };
+    return resultInfo;
+
+  }
+
+  /*public async handleGChatOrganCardResult(
+    result: any,
+    analyticId: string,
+    configAttributes: any,
+    followedEntityNode: SpinalNodeRef
+  ): Promise<IResult> {
     console.log('Handling Google chat organ card result');
 
     if (result == false)
@@ -491,7 +591,7 @@ export default class AnalyticOutputManagerService {
         {
           header: 'Platform details',
           widgets: [
-            {
+            { 
               keyValue: {
                 topLabel: 'Platform name',
                 content: platformName,
@@ -522,7 +622,7 @@ export default class AnalyticOutputManagerService {
       card: card,
     };
     return resultInfo;
-  }
+  }*/
 
   /**
    * Applies the result of an algorithm.
