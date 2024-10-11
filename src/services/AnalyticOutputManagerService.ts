@@ -424,7 +424,7 @@ export default class AnalyticOutputManagerService {
         error: 'endpoint lastPing not found on organ node',
       };
 
-      const organ_attributes = await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(followedEntityNode.id.get)
+      const organ_attributes = await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(followedEntityNode.id.get())
       const ipAddress = organ_attributes['info']['ip_adress'] as string || "Couldn't find the ip address";
       
 

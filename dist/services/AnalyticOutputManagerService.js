@@ -251,7 +251,7 @@ class AnalyticOutputManagerService {
                     success: false,
                     error: 'endpoint lastPing not found on organ node',
                 };
-            const organ_attributes = yield this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(followedEntityNode.id.get);
+            const organ_attributes = yield this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(followedEntityNode.id.get());
             const ipAddress = organ_attributes['info']['ip_adress'] || "Couldn't find the ip address";
             const lastPingValue = yield this.analyticInputManagerService.getValueModelFromEntry(lastPing);
             const lastPingDate = new Date(lastPingValue.get()).toString();
