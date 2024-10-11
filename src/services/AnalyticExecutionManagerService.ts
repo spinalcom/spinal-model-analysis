@@ -158,10 +158,10 @@ export default class AnalyticExecutionManagerService {
         inputs.push(res);
       } else {
         // if dependency is an input then get the value of the input
+        if ( formattedData[dependency] == undefined || formattedData[dependency][referenceEpochTime] == undefined) {
+            throw new Error(`Input data ${dependency} could not be retrieved. Reference time : ${referenceEpochTime}`);
+        }
         const inputData = formattedData[dependency][referenceEpochTime];
-        if (inputData == undefined) {
-          throw new Error(`Input data ${dependency} could not be retrieved`);
-        } 
           inputs.push(inputData);
         
       }

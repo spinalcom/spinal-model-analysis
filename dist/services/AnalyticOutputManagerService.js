@@ -260,7 +260,7 @@ class AnalyticOutputManagerService {
             let contact_email = "";
             for (const parent of parents) {
                 if (parent.id.get() == ((_a = followedEntityNode.platformId) === null || _a === void 0 ? void 0 : _a.get())) {
-                    const platform_attributes = yield this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(parent.id.get);
+                    const platform_attributes = yield this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(parent.id.get());
                     platformName = platform_attributes['info']['name'] || "Couldn't find the platform name";
                     contact_email = platform_attributes['info']['contact_email'] || "Couldn't find the contact email";
                 }

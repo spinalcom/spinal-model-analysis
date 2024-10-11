@@ -441,7 +441,7 @@ export default class AnalyticOutputManagerService {
     let contact_email = "";
     for (const parent of parents) {
       if (parent.id.get() == followedEntityNode.platformId?.get()) {
-        const platform_attributes = await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(parent.id.get);
+        const platform_attributes = await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(parent.id.get());
         platformName = platform_attributes['info']['name'] as string || "Couldn't find the platform name";
         contact_email = platform_attributes['info']['contact_email'] as string || "Couldn't find the contact email";
 
