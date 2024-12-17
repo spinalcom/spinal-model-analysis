@@ -248,8 +248,10 @@ class AnalyticExecutionManagerService {
             const lastExecutionTime = parseInt(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME]);
             const aggregateExecutionTime = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][CONSTANTS.ATTRIBUTE_AGGREGATE_EXECUTION_TIME] || undefined;
             if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
-                const executionTimes = this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
-                console.log(`executionTimes aggretegate feature : ${executionTimes}`);
+                // const executionTimes = this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
+                const executionTimes = this.getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
+                console.log(`executionTimes aggregate feature : ${executionTimes}`);
+                console.log(`Size  : ${executionTimes.length}`);
                 const analysisPromises = entities.map((entity) => this.doAnalysisOnEntity(analyticId, entity, executionTimes, configAttributes));
                 const results = (yield Promise.all(analysisPromises)).flat();
                 return results;

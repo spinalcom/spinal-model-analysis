@@ -365,8 +365,10 @@ export default class AnalyticExecutionManagerService {
     CONSTANTS.ATTRIBUTE_AGGREGATE_EXECUTION_TIME
   ] as string || undefined;
   if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
-    const executionTimes =this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
-    console.log(`executionTimes aggretegate feature : ${executionTimes}`);
+    // const executionTimes = this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
+    const executionTimes = this.getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
+    console.log(`executionTimes aggregate feature : ${executionTimes}`);
+    console.log(`Size  : ${executionTimes.length}`);
     const analysisPromises = entities.map((entity) =>
        this.doAnalysisOnEntity(
           analyticId,
