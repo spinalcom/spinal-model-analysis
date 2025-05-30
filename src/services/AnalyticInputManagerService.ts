@@ -350,9 +350,11 @@ export default class AnalyticInputManagerService {
     trackedRelations: string[],
     nodeType: string
   ): Promise<SpinalNodeRef | undefined> {
+    const regex = new RegExp(filterNameValue); 
     const endpoints = await this.findNodes(nodeId, trackedRelations, nodeType);
+  
     return endpoints.find(
-      (endpoint) => endpoint.name.get() === filterNameValue
+      (endpoint) => regex.test(endpoint.name.get())
     );
   }
 
