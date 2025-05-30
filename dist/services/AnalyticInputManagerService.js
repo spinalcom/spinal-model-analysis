@@ -204,7 +204,8 @@ class AnalyticInputManagerService {
     findMatchingNodes(nodeId, filterNameValue, trackedRelations, nodeType) {
         return __awaiter(this, void 0, void 0, function* () {
             const endpoints = yield this.findNodes(nodeId, trackedRelations, nodeType);
-            return endpoints.filter((endpoint) => endpoint.name.get().includes(filterNameValue));
+            const regex = new RegExp(filterNameValue);
+            return endpoints.filter((endpoint) => regex.test(endpoint.name.get()));
         });
     }
     findEndpoint(nodeId, filterNameValue, depth, strictDepth, authorizedRelations, trackedRelations, nodeType) {
