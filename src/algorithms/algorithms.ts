@@ -58,7 +58,9 @@ export const COPY = new Algorithm(
   'number',
   [],
   (input: IInput[]): any => {
-    return input[0];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat[0];
   }
 );
 
@@ -69,9 +71,11 @@ export const DIVIDE = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    if (input.length < 2) throw new Error('Not enough inputs');
-    if (input[1] === 0) throw new Error('Division by zero');
-    return input[0] / input[1];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    if (flat.length < 2) throw new Error('Not enough inputs');
+    if (flat[1] === 0) throw new Error('Division by zero');
+    return flat[0] / flat[1];
   }
 );
 
@@ -88,7 +92,9 @@ export const DIVIDE_BY = new Algorithm(
       throw new Error(
         `Invalid parameter type. Expected number, got ${typeof params['p1']}`
       );
-    return input[0] / params['p1'];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat[0] / params['p1'];
   }
 );
 
@@ -104,7 +110,9 @@ export const MULTIPLY_BY = new Algorithm(
       throw new Error(
         `Invalid parameter type. Expected number, got ${typeof params['p1']}`
       );
-    return input[0] * params['p1'];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat[0] * params['p1'];
   }
 );
 
@@ -115,8 +123,9 @@ export const MULTIPLY = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    if (input.length < 2) throw new Error('Not enough inputs');
-    return input[0] * input[1];
+    const flat = input.flat(Infinity);
+    if (flat.length < 2) throw new Error('Not enough inputs');
+    return flat[0] * flat[1];
   }
 );
 
@@ -133,7 +142,9 @@ export const THRESHOLD_ABOVE = new Algorithm(
         `Invalid parameter type. Expected number, got ${typeof params['p1']}`
       );
     const treshold = params['p1'];
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    for (const n of flat) {
       if (n > treshold) return true;
     }
     return false;
@@ -153,7 +164,9 @@ export const THRESHOLD_BELOW = new Algorithm(
         `Invalid parameter type. Expected number, got ${typeof params['p1']}`
       );
     const treshold = params['p1'];
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    for (const n of flat) {
       if (n < treshold) return true;
     }
     return false;
@@ -183,7 +196,9 @@ export const THRESHOLD_BETWEEN_IN = new Algorithm(
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    for (const n of flat) {
       if (n >= min && n <= max) return true;
     }
     return false;
@@ -213,7 +228,9 @@ export const THRESHOLD_BETWEEN_OUT = new Algorithm(
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    for (const n of flat) {
       if (n <= min || n >= max) return true;
     }
     return false;
@@ -229,7 +246,9 @@ export const AVERAGE = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    return input.reduce((acc, current) => acc + current, 0) / input.length;
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat.reduce((acc, current) => acc + current, 0) / flat.length;
   }
 );
 
@@ -418,7 +437,9 @@ export const AND = new Algorithm(
   'boolean',
   [],
   (input: boolean[]): boolean => {
-    return !input.includes(false);
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return !flat.includes(false);
   }
 );
 
@@ -429,7 +450,9 @@ export const OR = new Algorithm(
   'boolean',
   [],
   (input: boolean[]): boolean => {
-    return input.includes(true);
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat.includes(true);
   }
 );
 
@@ -440,7 +463,9 @@ export const NOT = new Algorithm(
   'boolean',
   [],
   (input: boolean[]): boolean => {
-    return !input.includes(true);
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return !flat.includes(true);
   }
 );
 
@@ -457,8 +482,10 @@ export const DIFFERENCE_THRESHOLD = new Algorithm(
         `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
       );
     const treshold = params['p1'];
-    const first = input[0];
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+
+    const first = flat[0];
+    for (const n of flat) {
       if (Math.abs(n - first) > treshold) return true;
     }
     return false;
@@ -472,10 +499,11 @@ export const STANDARD_DEVIATION = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    const n = input.length;
-    const mean = input.reduce((a, b) => a + b) / n;
+    const flat = input.flat(Infinity);
+    const n = flat.length;
+    const mean = flat.reduce((a, b) => a + b) / n;
     return Math.sqrt(
-      input.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n
+      flat.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n
     );
   }
 );
@@ -487,8 +515,10 @@ export const EQUAL_TO = new Algorithm(
   'boolean',
   [{ name: 'p1', type: 'number', description: 'the value to compare to' }],
   (input: PrimitiveInput[], params: IParameters | undefined): boolean => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
     if (!params) throw new Error('No parameters provided');
-    for (const i of input) {
+    for (const i of flat) {
       if (i !== params['p1']) return false;
     }
     return true;
@@ -502,7 +532,8 @@ export const IS_EMPTY = new Algorithm(
   'boolean',
   [],
   (input: IInput[]): boolean => {
-    return input.length === 0;
+    const flat = input.flat(Infinity);
+    return flat.length === 0;
   }
 );
 
@@ -513,7 +544,9 @@ export const CONV_BOOLEAN_TO_NUMBER = new Algorithm(
   'number',
   [],
   (input: boolean[]): number => {
-    return input[0] ? 1 : 0;
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat[0] ? 1 : 0;
   }
 );
 
@@ -524,7 +557,9 @@ export const CONV_NUMBER_TO_BOOLEAN = new Algorithm(
   'boolean',
   [],
   (input: number[]): boolean => {
-    return input[0] !== 0;
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat[0] !== 0;
   }
 );
 
@@ -547,7 +582,9 @@ export const SUBTRACT = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    return input[0] - input[1];
+    const flat = input.flat(Infinity);
+    if (flat.length < 2) throw new Error('Not enough inputs');
+    return flat[0] - flat[1];
   }
 );
 export const SUM = new Algorithm(
@@ -557,7 +594,8 @@ export const SUM = new Algorithm(
   'number',
   [],
   (input: number[]): number => {
-    return input.reduce((acc, current) => acc + current, 0);
+    const flat = input.flat(Infinity);
+    return flat.reduce((acc, current) => acc + current, 0);
   }
 );
 
@@ -573,7 +611,10 @@ export const SUBTRACT_BY = new Algorithm(
       throw new Error(
         `Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`
       );
-    return input[0] - params['p1'];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    
+    return flat[0] - params['p1'];
   }
 );
 
@@ -618,6 +659,7 @@ export const RANDOM_INTEGER = new Algorithm(
     return Math.floor(Math.random() * (params['p2'] - params['p1'] + 1) + params['p1']);
   }
 );
+
 export const RANDOM_BOOLEAN_NUMBER = new Algorithm(
   'RANDOM_BOOLEAN_NUMBER',
   'This algorithm returns a random boolean value 0 | 1',
@@ -647,7 +689,9 @@ export const EXIT = new Algorithm(
   'void',
   [],
   (input: boolean[]): boolean => {
-    return input[0];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return flat[0];
   }
 );
 

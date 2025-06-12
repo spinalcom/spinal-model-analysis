@@ -163,9 +163,9 @@ export default class AnalyticExecutionManagerService {
         }
         const inputData = formattedData[dependency][referenceEpochTime];
           inputs.push(inputData);
-        
       }
     }
+    console.log(`inputs for ${algoIndexName} : ${JSON.stringify(inputs)}`);
     // after the inputs are ready we can execute the algorithm
     const algorithm_name = algoIndexMapping[algoIndexName];
     const algorithmParameters =

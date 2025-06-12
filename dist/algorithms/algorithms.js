@@ -19,14 +19,20 @@ exports.PUTVALUE = new Algorithm('PUTVALUE', 'This algorithm returns the value s
     return params['p1'];
 });
 exports.COPY = new Algorithm('COPY', 'This algorithm returns the value of first input', ['number'], 'number', [], (input) => {
-    return input[0];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0];
 });
 exports.DIVIDE = new Algorithm('DIVIDE', 'This algorithm returns the result of the division of the first input by the second input', ['number'], 'number', [], (input) => {
-    if (input.length < 2)
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    if (flat.length < 2)
         throw new Error('Not enough inputs');
-    if (input[1] === 0)
+    if (flat[1] === 0)
         throw new Error('Division by zero');
-    return input[0] / input[1];
+    return flat[0] / flat[1];
 });
 exports.DIVIDE_BY = new Algorithm('DIVIDE_BY', 'This algorithm returns the result of the division of the first input by the value set by the user (p1)', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to divide by' }], (input, params) => {
     if (!params)
@@ -35,19 +41,26 @@ exports.DIVIDE_BY = new Algorithm('DIVIDE_BY', 'This algorithm returns the resul
         throw new Error('Division by zero');
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
-    return input[0] / params['p1'];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0] / params['p1'];
 });
 exports.MULTIPLY_BY = new Algorithm('MULTIPLY_BY', 'This algorithm returns the result of the multiplication of the first input by the value set by the user (p1)', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to multiply by' }], (input, params) => {
     if (!params)
         throw new Error('No parameters provided');
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
-    return input[0] * params['p1'];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0] * params['p1'];
 });
 exports.MULTIPLY = new Algorithm('MULTIPLY', 'This algorithm returns the result of the multiplication of the first input by the second input', ['number'], 'number', [], (input) => {
-    if (input.length < 2)
+    const flat = input.flat(Infinity);
+    if (flat.length < 2)
         throw new Error('Not enough inputs');
-    return input[0] * input[1];
+    return flat[0] * flat[1];
 });
 exports.THRESHOLD_ABOVE = new Algorithm('THRESHOLD_ABOVE', 'This algorithm returns true if the input is above the threshold set by the user', ['number'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
     if (!params)
@@ -55,7 +68,10 @@ exports.THRESHOLD_ABOVE = new Algorithm('THRESHOLD_ABOVE', 'This algorithm retur
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
     const treshold = params['p1'];
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    for (const n of flat) {
         if (n > treshold)
             return true;
     }
@@ -67,7 +83,10 @@ exports.THRESHOLD_BELOW = new Algorithm('THRESHOLD_BELOW', 'This algorithm retur
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid parameter type. Expected number, got ${typeof params['p1']}`);
     const treshold = params['p1'];
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    for (const n of flat) {
         if (n < treshold)
             return true;
     }
@@ -87,7 +106,10 @@ exports.THRESHOLD_BETWEEN_IN = new Algorithm('THRESHOLD_BETWEEN_IN', 'This algor
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    for (const n of flat) {
         if (n >= min && n <= max)
             return true;
     }
@@ -107,14 +129,20 @@ exports.THRESHOLD_BETWEEN_OUT = new Algorithm('THRESHOLD_BETWEEN_OUT', 'This alg
     const p2 = params['p2'];
     const min = Math.min(p1, p2);
     const max = Math.max(p1, p2);
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    for (const n of flat) {
         if (n <= min || n >= max)
             return true;
     }
     return false;
 });
 exports.AVERAGE = new Algorithm('AVERAGE', 'This algorithm returns the average of the inputs', ['number'], 'number', [], (input) => {
-    return input.reduce((acc, current) => acc + current, 0) / input.length;
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat.reduce((acc, current) => acc + current, 0) / flat.length;
 });
 exports.TIMESERIES_THRESHOLD_ZSCORE = new Algorithm('TIMESERIES_THRESHOLD_ZSCORE', `This algorithm is used to detect anomalies in a timeseries. 
    The Z-score is a measure of how many standard deviations an element is from the mean.
@@ -224,13 +252,22 @@ exports.TIMESERIES_EDGE_SUBSTRACT = new Algorithm('TIMESERIES_EDGE_SUBSTRACT', '
     return dataInput[dataInput.length - 1].value - dataInput[0].value;
 });
 exports.AND = new Algorithm('AND', 'This algorithm returns true if all the inputs are true', ['boolean'], 'boolean', [], (input) => {
-    return !input.includes(false);
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return !flat.includes(false);
 });
 exports.OR = new Algorithm('OR', 'This algorithm returns true if at least one of the inputs is true', ['boolean'], 'boolean', [], (input) => {
-    return input.includes(true);
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat.includes(true);
 });
 exports.NOT = new Algorithm('NOT', 'This algorithm returns true if all the inputs are false', ['boolean'], 'boolean', [], (input) => {
-    return !input.includes(true);
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return !flat.includes(true);
 });
 exports.DIFFERENCE_THRESHOLD = new Algorithm('DIFFERENCE_THRESHOLD', 'This algorithm returns true if the difference between the first and any other input is above the threshold set by the user', ['number'], 'boolean', [{ name: 'p1', type: 'number', description: 'the threshold value' }], (input, params) => {
     if (!params)
@@ -238,35 +275,47 @@ exports.DIFFERENCE_THRESHOLD = new Algorithm('DIFFERENCE_THRESHOLD', 'This algor
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
     const treshold = params['p1'];
-    const first = input[0];
-    for (const n of input) {
+    const flat = input.flat(Infinity);
+    const first = flat[0];
+    for (const n of flat) {
         if (Math.abs(n - first) > treshold)
             return true;
     }
     return false;
 });
 exports.STANDARD_DEVIATION = new Algorithm('STANDARD_DEVIATION', 'This algorithm returns the standard deviation of the inputs', ['number'], 'number', [], (input) => {
-    const n = input.length;
-    const mean = input.reduce((a, b) => a + b) / n;
-    return Math.sqrt(input.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+    const flat = input.flat(Infinity);
+    const n = flat.length;
+    const mean = flat.reduce((a, b) => a + b) / n;
+    return Math.sqrt(flat.map((x) => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
 });
 exports.EQUAL_TO = new Algorithm('EQUAL_TO', 'This algorithm returns true if all inputs are equal to the parameter', ['number', 'string', 'boolean'], 'boolean', [{ name: 'p1', type: 'number', description: 'the value to compare to' }], (input, params) => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
     if (!params)
         throw new Error('No parameters provided');
-    for (const i of input) {
+    for (const i of flat) {
         if (i !== params['p1'])
             return false;
     }
     return true;
 });
 exports.IS_EMPTY = new Algorithm('IS_EMPTY', 'This algorithm returns true if the input is an empty list', ['number', 'string', 'boolean'], 'boolean', [], (input) => {
-    return input.length === 0;
+    const flat = input.flat(Infinity);
+    return flat.length === 0;
 });
 exports.CONV_BOOLEAN_TO_NUMBER = new Algorithm('CONV_BOOLEAN_TO_NUMBER', 'This algorithm converts a boolean to a number. True becomes 1, false becomes 0', ['boolean'], 'number', [], (input) => {
-    return input[0] ? 1 : 0;
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0] ? 1 : 0;
 });
 exports.CONV_NUMBER_TO_BOOLEAN = new Algorithm('CONV_NUMBER_TO_BOOLEAN', 'This algorithm converts a number to a boolean (0 is false, everything else is true)', ['number'], 'boolean', [], (input) => {
-    return input[0] !== 0;
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0] !== 0;
 });
 exports.CURRENT_EPOCH_TIME = new Algorithm('CURRENT_EPOCH_TIME', 'This algorithm returns the current epoch time', [], 'number', [], 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -274,17 +323,24 @@ exports.CURRENT_EPOCH_TIME = new Algorithm('CURRENT_EPOCH_TIME', 'This algorithm
     return Date.now();
 });
 exports.SUBTRACT = new Algorithm('SUBTRACT', 'This algorithm returns the result of the subtraction of the first input by the second input', ['number'], 'number', [], (input) => {
-    return input[0] - input[1];
+    const flat = input.flat(Infinity);
+    if (flat.length < 2)
+        throw new Error('Not enough inputs');
+    return flat[0] - flat[1];
 });
 exports.SUM = new Algorithm('SUM', 'This algorithm returns the result of the sum of the inputs', ['number'], 'number', [], (input) => {
-    return input.reduce((acc, current) => acc + current, 0);
+    const flat = input.flat(Infinity);
+    return flat.reduce((acc, current) => acc + current, 0);
 });
 exports.SUBTRACT_BY = new Algorithm('SUBTRACT_BY', 'This algorithm returns the result of the subtraction of the first input by the value set by the user (p1)', ['number'], 'number', [{ name: 'p1', type: 'number', description: 'the value to subtract by' }], (input, params) => {
     if (!params)
         throw new Error('No parameters provided');
     if (typeof params['p1'] !== 'number')
         throw new Error(`Invalid p1 parameter type. Expected number, got ${typeof params['p1']}`);
-    return input[0] - params['p1'];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0] - params['p1'];
 });
 exports.RANDOM_NUMBER = new Algorithm('RANDOM_NUMBER', 'This algorithm returns a random number between the two values set by the user', ['number'], 'number', [
     { name: 'p1', type: 'number', description: 'the minimum value' },
@@ -313,7 +369,10 @@ exports.RANDOM_BOOLEAN = new Algorithm('RANDOM_BOOLEAN', 'This algorithm returns
     return Math.random() < 0.5;
 });
 exports.EXIT = new Algorithm('EXIT', 'This algorithm is used to stop the execution of the workflow if the first input is true', ['boolean'], 'void', [], (input) => {
-    return input[0];
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return flat[0];
 });
 exports.ALGORITHMS = {
     PUTVALUE: exports.PUTVALUE,
