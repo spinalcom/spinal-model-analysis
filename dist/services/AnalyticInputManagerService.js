@@ -75,48 +75,69 @@ class AnalyticInputManagerService {
             const trackingMethod = yield this.analyticNodeManagerService.getTrackingMethod(analyticId);
             const config = yield this.analyticNodeManagerService.getConfig(analyticId);
             const entityInfo = yield this.analyticNodeManagerService.getEntityFromAnalytic(analyticId);
-            if (!entityInfo)
+            if (!entityInfo || !followedEntity || !trackingMethod || !config)
                 return;
             const entityType = entityInfo.entityType.get();
-            if (followedEntity && trackingMethod && config) {
-                if (entityType == followedEntity.type.get()) {
-                    // we can continue as planned
-                    return [followedEntity];
-                }
-                if (followedEntity.type.get().includes('group') ||
-                    followedEntity.type.get().includes('Group')) {
-                    console.log('Anchor entity is a group, trying to find the correct entities with the relation name: ', CONSTANTS.GROUP_RELATION_PREFIX + entityType);
-                    return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [
-                        CONSTANTS.GROUP_RELATION_PREFIX + entityType,
-                    ]);
-                }
-                if (followedEntity.type.get().includes('context') ||
-                    followedEntity.type.get().includes('Context')) {
-                    console.log('Anchor entity is a context, trying to find the correct entities');
-                    return yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContextByType(followedEntity.id.get(), followedEntity.id.get(), entityType);
-                }
-                console.log('Failed to deduct the correct entities from the anchor entity');
-                return [];
-            }
-        });
-    }
-    getWorkingFollowedEntitiesWithParam(followedEntity, entityType) {
-        return __awaiter(this, void 0, void 0, function* () {
+            const followedType = followedEntity.type.get();
             if (entityType == followedEntity.type.get()) {
                 // we can continue as planned
                 return [followedEntity];
             }
-            if (followedEntity.type.get().includes('group') ||
-                followedEntity.type.get().includes('Group')) {
+            // there is a mismatch between the followed entity type and the entity type of the analytic
+            // we need to find the correct entities to work on, based on the followed entity type
+            if (/group/i.test(followedType)) {
                 console.log('Anchor entity is a group, trying to find the correct entities with the relation name: ', CONSTANTS.GROUP_RELATION_PREFIX + entityType);
                 return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [
                     CONSTANTS.GROUP_RELATION_PREFIX + entityType,
                 ]);
             }
-            if (followedEntity.type.get().includes('context') ||
-                followedEntity.type.get().includes('Context')) {
+            if (/context/i.test(followedType)) {
                 console.log('Anchor entity is a context, trying to find the correct entities');
                 return yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContextByType(followedEntity.id.get(), followedEntity.id.get(), entityType);
+            }
+            // Handle known hardcoded parent-child type mappings
+            const typeRelationMap = {
+                geographicFloor: { parent: 'geographicBuilding', relation: 'hasGeographicFloor' },
+                geographicRoom: { parent: 'geographicFloor', relation: 'hasGeographicRoom' },
+                BIMObject: { parent: 'geographicRoom', relation: 'hasBimObject' }
+            };
+            for (const [childType, { parent, relation }] of Object.entries(typeRelationMap)) {
+                if (entityType === childType && followedType === parent) {
+                    console.log(`Mapping from parent (${followedType}) to child (${entityType}) using relation: ${relation}`);
+                    return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relation]);
+                }
+            }
+            console.log('Failed to deduct the correct entities from the anchor entity');
+            return [];
+        });
+    }
+    getWorkingFollowedEntitiesWithParam(followedEntity, entityType) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const followedType = followedEntity.type.get();
+            if (entityType == followedType) {
+                // we can continue as planned
+                return [followedEntity];
+            }
+            if (/group/i.test(followedType)) {
+                console.log('Anchor entity is a group, trying to find the correct entities with the relation name: ', CONSTANTS.GROUP_RELATION_PREFIX + entityType);
+                return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [
+                    CONSTANTS.GROUP_RELATION_PREFIX + entityType,
+                ]);
+            }
+            if (/context/i.test(followedType)) {
+                console.log('Anchor entity is a context, trying to find the correct entities');
+                return yield spinal_env_viewer_graph_service_1.SpinalGraphService.findInContextByType(followedEntity.id.get(), followedEntity.id.get(), entityType);
+            }
+            const typeRelationMap = {
+                geographicFloor: { parent: 'geographicBuilding', relation: 'hasGeographicFloor' },
+                geographicRoom: { parent: 'geographicFloor', relation: 'hasGeographicRoom' },
+                BIMObject: { parent: 'geographicRoom', relation: 'hasBimObject' }
+            };
+            for (const [childType, { parent, relation }] of Object.entries(typeRelationMap)) {
+                if (entityType === childType && followedType === parent) {
+                    console.log(`Mapping from parent (${followedType}) to child (${entityType}) using relation: ${relation}`);
+                    return yield spinal_env_viewer_graph_service_1.SpinalGraphService.getChildren(followedEntity.id.get(), [relation]);
+                }
             }
             console.log('Failed to deduct the correct entities from the anchor entity');
             return [];
