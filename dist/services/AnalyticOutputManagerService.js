@@ -182,10 +182,10 @@ class AnalyticOutputManagerService {
      */
     handleAttributeResult(result, followedEntityNode, configAttributes) {
         return __awaiter(this, void 0, void 0, function* () {
-            const categoryName = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_CATEGORY_NAME];
+            const categoryName = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_CATEGORY_NAME];
             if (!categoryName)
                 return { success: false, error: 'Category name is required' };
-            const shouldCreateAttributeIfNotExist = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_CREATE_ATTRIBUTE_IF_NOT_EXIST];
+            const shouldCreateAttributeIfNotExist = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_CREATE_ATTRIBUTE_IF_NOT_EXIST];
             const attributeNode = yield this.analyticInputManagerService.findAttribute(followedEntityNode.id.get(), categoryName, configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME], 0, true, []);
             if (attributeNode == -1) {
                 if (!shouldCreateAttributeIfNotExist) {

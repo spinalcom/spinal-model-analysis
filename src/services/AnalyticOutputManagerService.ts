@@ -309,13 +309,13 @@ export default class AnalyticOutputManagerService {
 
 
     const categoryName :string  = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
-      CONSTANTS.ATTRIBUTE_CATEGORY_NAME
+      CONSTANTS.ATTRIBUTE_RESULT_CATEGORY_NAME
     ];
     if (!categoryName)
       return { success: false, error: 'Category name is required' };
 
     const shouldCreateAttributeIfNotExist = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
-      CONSTANTS.ATTRIBUTE_CREATE_ATTRIBUTE_IF_NOT_EXIST
+      CONSTANTS.ATTRIBUTE_RESULT_CREATE_ATTRIBUTE_IF_NOT_EXIST
     ];
 
     const attributeNode = await this.analyticInputManagerService.findAttribute(
