@@ -91,10 +91,13 @@ export const ATTRIBUTE_GCHAT_MESSAGE = 'Google chat message';
 export const ATTRIBUTE_TICKET_CONTEXT_ID = 'Ticket context id';
 export const ATTRIBUTE_TICKET_PROCESS_ID = 'Ticket category id';
 export const ATTRIBUTE_ALARM_PRIORITY = 'Alarm priority';
-export const ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST = 'Create endpoint if not exist';
-export const ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS = 'Number of days the timeseries are stored'
-export const ATTRIBUTE_CREATE_ENDPOINT_UNIT = 'Unit of the endpoint'
+export const ATTRIBUTE_MODIFY_ATTR_INSTEAD = 'Modify attribute instead of current value';
 
+export const ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST = 'Create endpoint if not exist';
+export const ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS = 'Number of days the timeseries are stored';
+export const ATTRIBUTE_CREATE_ENDPOINT_UNIT = 'Unit of the endpoint';
+export const ATTRIBUTE_CATEGORY_NAME = 'Category name';
+export const ATTRIBUTE_CREATE_ATTRIBUTE_IF_NOT_EXIST = 'Create attribute if not exist'; 
 export const ATTRIBUTE_ANALYTIC_STATUS = 'Status';
 export const ATTRIBUTE_ANALYTIC_DESCRIPTION = 'Description';
 export const ATTRIBUTE_TRIGGER_AT_START = 'Trigger at start';
@@ -135,6 +138,7 @@ export enum ANALYTIC_RESULT_TYPE {
   GCHAT_MESSAGE = 'gChatMessage',
   GCHAT_ORGAN_CARD = 'gChatOrganCard',
   GCHAT_PLATFORM_CARD = 'gChatPlatformCard',
+  ATTRIBUTE_CREATE_OR_MOD = "attributeCreateOrModification"
 }
 
 export enum TRACK_METHOD {

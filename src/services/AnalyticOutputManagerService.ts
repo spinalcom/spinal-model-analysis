@@ -157,8 +157,27 @@ export default class AnalyticOutputManagerService {
         CONSTANTS.CONTROL_ENDPOINT_RELATIONS,
         CONSTANTS.ENDPOINT_NODE_TYPE
       );
+    
+    
     if (!controlEndpointNode)
       return { success: false, error: ' Control endpoint node not found' };
+
+
+    if(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]) {
+      const cpRealNode = SpinalGraphService.getRealNode(controlEndpointNode.id.get());
+      const attributes = await attributeService.getAllAttributes( cpRealNode) ;
+      const attributeToUpdate = attributes.find(attr => attr.label.get() === configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]);
+      if(!attributeToUpdate) {
+        return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
+      }
+      attributeToUpdate.value.set(result);
+      return {
+        success: true,
+        resultValue: result,
+        error: '',
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.CONTROL_ENDPOINT,
+      };
+    }
 
     const controlEndpoint = await controlEndpointNode.element.load();
     controlEndpoint.currentValue.set(result);
@@ -235,6 +254,23 @@ export default class AnalyticOutputManagerService {
       if (!endpointNode)
         return { success: false, error: 'Failed endpoint creation' };
     }
+
+    if(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]) {
+      const cpRealNode = SpinalGraphService.getRealNode(endpointNode.id.get());
+      const attributes = await attributeService.getAllAttributes(cpRealNode);
+      const attributeToUpdate = attributes.find(attr => attr.label.get() === configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]);
+      if(!attributeToUpdate) {
+        return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
+      }
+      attributeToUpdate.value.set(result);
+      return {
+        success: true,
+        resultValue: result,
+        error: '',
+        resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
+      };
+    }
+
     const endpoint = await endpointNode.element.load();
     endpoint.currentValue.set(result);
     const bool = await this.spinalServiceTimeseries.insertFromEndpoint(
@@ -252,6 +288,72 @@ export default class AnalyticOutputManagerService {
       resultValue: result,
       error: '',
       resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ENDPOINT,
+    };
+  }
+
+  /**
+   * Handles the result of an algorithm that creates or modifies an attribute.
+   *
+   * @private
+   * @param {*} result
+   * @param {SpinalNodeRef} followedEntityNode
+   * @param {*} params
+   * @return {*}  {Promise<void>}
+   * @memberof AnalyticService
+   */
+  public async handleAttributeResult(
+    result: any,
+    followedEntityNode: SpinalNodeRef,
+    configAttributes: any,
+  ): Promise<IResult> {
+
+
+    const categoryName :string  = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
+      CONSTANTS.ATTRIBUTE_CATEGORY_NAME
+    ];
+    if (!categoryName)
+      return { success: false, error: 'Category name is required' };
+
+    const shouldCreateAttributeIfNotExist = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
+      CONSTANTS.ATTRIBUTE_CREATE_ATTRIBUTE_IF_NOT_EXIST
+    ];
+
+    const attributeNode = await this.analyticInputManagerService.findAttribute(
+      followedEntityNode.id.get(),
+      categoryName,
+      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
+        CONSTANTS.ATTRIBUTE_RESULT_NAME
+      ],
+      0,
+      true,
+      []
+    );
+
+    if(attributeNode  == -1){
+      if(!shouldCreateAttributeIfNotExist){
+        return { success: false, error: 'Attribute node not found' };
+      }
+
+      const realNode = SpinalGraphService.getRealNode(followedEntityNode.id.get());
+
+      await attributeService.addAttributeByCategoryName(realNode, categoryName,
+        configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
+          CONSTANTS.ATTRIBUTE_RESULT_NAME
+        ],
+        result);
+    }
+
+    else {
+      const realNode = SpinalGraphService.getRealNode(followedEntityNode.id.get());
+      await attributeService.updateAttribute(realNode, categoryName, result , { value: result});
+    }
+    
+   
+    return {
+      success: true,
+      resultValue: result,
+      error: '',
+      resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ATTRIBUTE_CREATE_OR_MOD,
     };
   }
 
@@ -471,6 +573,8 @@ export default class AnalyticOutputManagerService {
     return resultInfo;
 
   }
+
+
 
   /*public async handleGChatOrganCardResult(
     result: any,
@@ -739,6 +843,19 @@ export default class AnalyticOutputManagerService {
           configAttributes,
           followedEntityNode
         );
+      
+      case CONSTANTS.ANALYTIC_RESULT_TYPE.ATTRIBUTE_CREATE_OR_MOD:
+        await this.handleAttributeResult(
+          result,
+          followedEntityNode,
+          configAttributes,
+        );
+        return {
+          success: true,
+          resultValue: result,
+          error: '',
+          resultType: CONSTANTS.ANALYTIC_RESULT_TYPE.ATTRIBUTE_CREATE_OR_MOD,
+        };
 
       default:
         return { success: false, error: 'Result type not recognized' };
@@ -746,6 +863,9 @@ export default class AnalyticOutputManagerService {
   }
 
   
+
+
+
   // #region Private methods
 
 

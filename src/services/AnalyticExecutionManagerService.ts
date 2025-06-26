@@ -156,6 +156,7 @@ export default class AnalyticExecutionManagerService {
           formattedData
         );
         inputs.push(res);
+
       } else {
         // if dependency is an input then get the value of the input
         if ( formattedData[dependency] == undefined || formattedData[dependency][referenceEpochTime] == undefined) {

@@ -47,6 +47,17 @@ export default class AnalyticOutputManagerService {
      */
     handleEndpointResult(result: any, followedEntityNode: SpinalNodeRef, configAttributes: any, referenceEpochTime: number): Promise<IResult>;
     /**
+     * Handles the result of an algorithm that creates or modifies an attribute.
+     *
+     * @private
+     * @param {*} result
+     * @param {SpinalNodeRef} followedEntityNode
+     * @param {*} params
+     * @return {*}  {Promise<void>}
+     * @memberof AnalyticService
+     */
+    handleAttributeResult(result: any, followedEntityNode: SpinalNodeRef, configAttributes: any): Promise<IResult>;
+    /**
      * Handles the result of an algorithm that sends an SMS.
      *
      * @private
