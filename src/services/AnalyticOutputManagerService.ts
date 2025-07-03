@@ -171,6 +171,7 @@ export default class AnalyticOutputManagerService {
         return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
       }
       attributeToUpdate.value.set(result);
+      cpRealNode.info.directModificationDate.set(Date.now());
       return {
         success: true,
         resultValue: result,
@@ -263,6 +264,7 @@ export default class AnalyticOutputManagerService {
         return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
       }
       attributeToUpdate.value.set(result);
+      cpRealNode.info.directModificationDate.set(Date.now());
       return {
         success: true,
         resultValue: result,
@@ -307,7 +309,6 @@ export default class AnalyticOutputManagerService {
     configAttributes: any,
   ): Promise<IResult> {
 
-
     const categoryName :string  = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][
       CONSTANTS.ATTRIBUTE_RESULT_CATEGORY_NAME
     ];
@@ -341,11 +342,8 @@ export default class AnalyticOutputManagerService {
           CONSTANTS.ATTRIBUTE_RESULT_NAME
         ],
         result);
-    }
-
-    else {
-      const realNode = SpinalGraphService.getRealNode(followedEntityNode.id.get());
-      await attributeService.updateAttribute(realNode, categoryName, result , { value: result});
+    } else {
+      attributeNode.value.set(result);
     }
     
    

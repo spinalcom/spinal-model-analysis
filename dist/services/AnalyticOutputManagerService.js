@@ -98,6 +98,7 @@ class AnalyticOutputManagerService {
                     return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
                 }
                 attributeToUpdate.value.set(result);
+                cpRealNode.info.directModificationDate.set(Date.now());
                 return {
                     success: true,
                     resultValue: result,
@@ -149,6 +150,7 @@ class AnalyticOutputManagerService {
                     return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
                 }
                 attributeToUpdate.value.set(result);
+                cpRealNode.info.directModificationDate.set(Date.now());
                 return {
                     success: true,
                     resultValue: result,
@@ -195,8 +197,7 @@ class AnalyticOutputManagerService {
                 yield spinal_env_viewer_plugin_documentation_service_1.attributeService.addAttributeByCategoryName(realNode, categoryName, configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_RESULT_NAME], result);
             }
             else {
-                const realNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntityNode.id.get());
-                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.updateAttribute(realNode, categoryName, result, { value: result });
+                attributeNode.value.set(result);
             }
             return {
                 success: true,
