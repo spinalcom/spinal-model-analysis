@@ -241,16 +241,6 @@ export default class AnalyticNodeManagerService {
      * @memberof AnalyticService
      */
     addAttributesToNode(node: SpinalNode<any>, attributes: INodeDocumentation): Promise<void>;
-    /**
-     * Gets the attributes from a node.
-     *
-     * @param {string} nodeId - The ID of the node from which to retrieve the attributes.
-     * @param {string} category - The category of the attributes to retrieve.
-     * @return {*}  {Promise<any>} An object containing the attributes.
-     * @memberof AnalyticServiceimport AttributeService, {
-    attributeService,
-  } from 'spinal-env-viewer-plugin-documentation-service';
-     */
     getAttributesFromNode(nodeId: string, category: string): Promise<any>;
     /**
      * Gets the attribute from a node.

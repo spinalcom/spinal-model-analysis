@@ -590,16 +590,6 @@ class AnalyticNodeManagerService {
             }
         });
     }
-    /**
-     * Gets the attributes from a node.
-     *
-     * @param {string} nodeId - The ID of the node from which to retrieve the attributes.
-     * @param {string} category - The category of the attributes to retrieve.
-     * @return {*}  {Promise<any>} An object containing the attributes.
-     * @memberof AnalyticServiceimport AttributeService, {
-    attributeService,
-  } from 'spinal-env-viewer-plugin-documentation-service';
-     */
     getAttributesFromNode(nodeId, category) {
         return __awaiter(this, void 0, void 0, function* () {
             const node = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(nodeId);
