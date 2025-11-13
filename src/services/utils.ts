@@ -30,4 +30,19 @@ export function logMessage(message: string): void {
   }
 }
 
+export function parseValue(value: any): any {
+  if (typeof value !== 'string') return value;
+
+  const lower = value.trim().toLowerCase();
+
+  if (lower === 'true') return true;
+  if (lower === 'false') return false;
+  if (lower === 'null') return null;
+
+  // Try to parse numbers if it looks numeric
+  if (!isNaN(Number(value)) && value !== '') return Number(value);
+
+  return value;
+}
+
 

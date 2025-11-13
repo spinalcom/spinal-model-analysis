@@ -24,7 +24,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.logMessage = void 0;
+exports.parseValue = exports.logMessage = void 0;
 // Logging function
 function logMessage(message) {
     if (process.env.ADVANCED_LOGGING === 'true') {
@@ -32,4 +32,20 @@ function logMessage(message) {
     }
 }
 exports.logMessage = logMessage;
+function parseValue(value) {
+    if (typeof value !== 'string')
+        return value;
+    const lower = value.trim().toLowerCase();
+    if (lower === 'true')
+        return true;
+    if (lower === 'false')
+        return false;
+    if (lower === 'null')
+        return null;
+    // Try to parse numbers if it looks numeric
+    if (!isNaN(Number(value)) && value !== '')
+        return Number(value);
+    return value;
+}
+exports.parseValue = parseValue;
 //# sourceMappingURL=utils.js.map

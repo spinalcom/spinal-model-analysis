@@ -27,6 +27,8 @@ import AttributeService, {
   attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
 
+import { parseValue } from './utils';
+
 export default class AnalyticNodeManagerService {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
   constructor() {}
@@ -761,7 +763,7 @@ export default class AnalyticNodeManagerService {
     );
     for (const param of parameters) {
       const obj = param.get();
-      res[obj.label] = obj.value;
+      res[obj.label] = parseValue(obj.value);
     }
     return res;
   }
@@ -787,7 +789,7 @@ export default class AnalyticNodeManagerService {
     );
     for (const param of parameters) {
       const obj = param.get();
-      if (obj.label === label) return { [obj.label]: obj.value };
+      if (obj.label === label) return { [obj.label]: parseValue(obj.value) };
     }
     return undefined;
   }
@@ -805,7 +807,7 @@ export default class AnalyticNodeManagerService {
       );
       for (const attribute of attributes) {
         const obj = attribute.get();
-        res[categoryName][obj.label] = obj.value;
+        res[categoryName][obj.label] = parseValue(obj.value);
       }
     }
     return res;

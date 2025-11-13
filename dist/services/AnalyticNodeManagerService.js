@@ -19,6 +19,7 @@ const EntityModel_1 = require("../models/EntityModel");
 const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+const utils_1 = require("./utils");
 class AnalyticNodeManagerService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() { }
@@ -597,7 +598,7 @@ class AnalyticNodeManagerService {
             const parameters = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, category);
             for (const param of parameters) {
                 const obj = param.get();
-                res[obj.label] = obj.value;
+                res[obj.label] = (0, utils_1.parseValue)(obj.value);
             }
             return res;
         });
@@ -618,7 +619,7 @@ class AnalyticNodeManagerService {
             for (const param of parameters) {
                 const obj = param.get();
                 if (obj.label === label)
-                    return { [obj.label]: obj.value };
+                    return { [obj.label]: (0, utils_1.parseValue)(obj.value) };
             }
             return undefined;
         });
@@ -634,7 +635,7 @@ class AnalyticNodeManagerService {
                 const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, categoryName);
                 for (const attribute of attributes) {
                     const obj = attribute.get();
-                    res[categoryName][obj.label] = obj.value;
+                    res[categoryName][obj.label] = (0, utils_1.parseValue)(obj.value);
                 }
             }
             return res;
