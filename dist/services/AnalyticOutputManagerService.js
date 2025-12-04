@@ -144,12 +144,10 @@ class AnalyticOutputManagerService {
             }
             if (configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]) {
                 const cpRealNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(endpointNode.id.get());
-                const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAllAttributes(cpRealNode);
-                const attributeToUpdate = attributes.find(attr => attr.label.get() === configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]);
-                if (!attributeToUpdate) {
-                    return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
-                }
-                attributeToUpdate.value.set(result);
+                const attributeName = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD];
+                yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(cpRealNode, 'default', {
+                    [attributeName]: result
+                });
                 cpRealNode.info.directModificationDate.set(Date.now());
                 return {
                     success: true,
@@ -659,8 +657,7 @@ class AnalyticOutputManagerService {
                 if (process) {
                     try {
                         const ticketId = yield spinal_service_ticket_1.spinalServiceTicket.addTicket(ticketInfos, process.id.get(), context.info.id.get(), entityNodeId, ticketType);
-                        if (ticketId instanceof Error)
-                            return;
+                        // if (ticketId instanceof Error) return;
                         if (ticketType == 'Alarm') {
                             spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(outputNodeId, ticketId, analyticContextId, spinal_service_ticket_1.ALARM_RELATION_NAME, spinal_service_ticket_1.TICKET_RELATION_TYPE);
                         }

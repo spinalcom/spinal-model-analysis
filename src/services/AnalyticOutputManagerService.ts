@@ -258,12 +258,10 @@ export default class AnalyticOutputManagerService {
 
     if(configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]) {
       const cpRealNode = SpinalGraphService.getRealNode(endpointNode.id.get());
-      const attributes = await attributeService.getAllAttributes(cpRealNode);
-      const attributeToUpdate = attributes.find(attr => attr.label.get() === configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]);
-      if(!attributeToUpdate) {
-        return { success: false, error: `Attribute ${configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD]} not found` };
-      }
-      attributeToUpdate.value.set(result);
+      const attributeName = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_RESULT_PARAMETERS][CONSTANTS.ATTRIBUTE_MODIFY_ATTR_INSTEAD];
+      await attributeService.createOrUpdateAttrsAndCategories(cpRealNode, 'default',{
+      [attributeName]: result 
+      });
       cpRealNode.info.directModificationDate.set(Date.now());
       return {
         success: true,
@@ -1020,7 +1018,7 @@ export default class AnalyticOutputManagerService {
             entityNodeId,
             ticketType
           );
-          if (ticketId instanceof Error) return;
+          // if (ticketId instanceof Error) return;
           if (ticketType == 'Alarm') {
             SpinalGraphService.addChildInContext(
               outputNodeId,
