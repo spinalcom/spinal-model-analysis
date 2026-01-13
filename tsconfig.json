@@ -10,6 +10,7 @@
     "lib": ["es2019", "dom"],
     "sourceMap": true,
     "declaration": true,
+    "resolveJsonModule": true,
     "declarationDir": "./declarations",
     "forceConsistentCasingInFileNames": true,
     "strict": true,

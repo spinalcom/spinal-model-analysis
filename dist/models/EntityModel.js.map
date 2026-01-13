@@ -1,1 +1,0 @@
-{"version":3,"file":"EntityModel.js","sourceRoot":"","sources":["../../src/models/EntityModel.ts"],"names":[],"mappings":";;;AAAA,+EAAiE;AAIjE,MAAM,WAAY,SAAQ,oCAAK;IAC5B,YAAY,MAAe;QACxB,KAAK,EAAE,CAAC;QACR,IAAI,CAAC,QAAQ,CAAC,MAAM,CAAC,CAAC;IACzB,CAAC;CACH;AAOE,kCAAW;AAHd,yCAAU,CAAC,eAAe,CAAC,WAAW,CAAC,CAAC;AACxC,kBAAe,WAAW,CAAC"}
