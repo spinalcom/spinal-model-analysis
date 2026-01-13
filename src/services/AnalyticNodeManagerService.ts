@@ -28,6 +28,7 @@ import AttributeService, {
 } from 'spinal-env-viewer-plugin-documentation-service';
 
 import { parseValue } from './utils';
+import { VERSION } from '../version';
 
 export default class AnalyticNodeManagerService {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
@@ -81,6 +82,11 @@ export default class AnalyticNodeManagerService {
       undefined
     ).then((context) => {
       const contextId = context.getId().get();
+      attributeService.createOrUpdateAttrsAndCategories(context, "metadata", 
+        {
+          version: VERSION
+        }
+      )
       return SpinalGraphService.getInfo(contextId);
     });
   }

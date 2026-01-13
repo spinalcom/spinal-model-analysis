@@ -20,6 +20,7 @@ const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const utils_1 = require("./utils");
+const version_1 = require("../version");
 class AnalyticNodeManagerService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() { }
@@ -64,6 +65,9 @@ class AnalyticNodeManagerService {
             }
             return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, CONSTANTS.CONTEXT_TYPE, undefined).then((context) => {
                 const contextId = context.getId().get();
+                spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(context, "metadata", {
+                    version: version_1.VERSION
+                });
                 return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId);
             });
         });
