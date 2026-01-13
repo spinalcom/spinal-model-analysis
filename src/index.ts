@@ -4,9 +4,8 @@ import { ITrackingMethod } from './interfaces/ITrackingMethod';
 import { IConfig } from './interfaces/IConfig';
 import { AnalyticModel } from './models/AnalyticModel';
 import { TrackingMethodModel } from './models/TrackingMethodModel';
-import pkg from '../package.json';
 
-
+import { VERSION } from './version';
 
 import {
   isResultSuccess,
@@ -24,8 +23,6 @@ import AnalyticNodeManagerService from './services/AnalyticNodeManagerService';
 import AnalyticInputManagerService from './services/AnalyticInputManagerService';
 import AnalyticOutputManagerService from './services/AnalyticOutputManagerService';
 
-
-const VERSION = pkg.version;
 const spinalAnalyticNodeManagerService = new AnalyticNodeManagerService();
 const spinalAnalyticInputManagerService = new AnalyticInputManagerService(
   spinalAnalyticNodeManagerService

@@ -1,1 +1,0 @@
-{"version":3,"file":"TrackingMethodModel.js","sourceRoot":"","sources":["../../../src/models/TrackingMethodModel.ts"],"names":[],"mappings":";;;AAAA,+EAAiE;AAKjE,MAAM,mBAAoB,SAAQ,oCAAK;IACpC,YAAY,cAAmB;QAC5B,KAAK,EAAE,CAAC;QACR,IAAI,CAAC,QAAQ,CAAC,cAAc,CAAC,CAAC;IACjC,CAAC;CACH;AAOE,kDAAmB;AAHtB,yCAAU,CAAC,eAAe,CAAC,mBAAmB,CAAC,CAAC;AAChD,kBAAe,mBAAmB,CAAC"}
