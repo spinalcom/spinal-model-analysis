@@ -1,6 +1,5 @@
 import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
 import { IAnalytic } from '../interfaces/IAnalytic';
-import { IAnalyticDetails } from '../interfaces/IAnalyticDetails';
 import { IEntity } from '../interfaces/IEntity';
 import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
 import { INodeDocumentation } from '../interfaces/IAttribute';
@@ -93,7 +92,18 @@ export default class AnalyticNodeManagerService {
      */
     getAnalytic(contextId: string, analyticName: string): Promise<SpinalNodeRef | undefined>;
     deleteAnalytic(analyticId: string, shouldDeleteChildren?: boolean): Promise<void>;
-    getAnalyticDetails(analyticId: string): Promise<IAnalyticDetails>;
+    getAnalyticDetails(analyticId: string): Promise<{
+        id: number | undefined;
+        name: string;
+        type: string;
+        config: IAnalyticConfig;
+        inputs: IAnalyticConfig;
+        anchor: {
+            id: number | undefined;
+            name: string;
+            type: string;
+        };
+    }>;
     /**
      * Adds an Inputs node to the specified analytic within the specified context.
      * @async

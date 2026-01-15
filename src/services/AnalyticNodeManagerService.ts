@@ -304,52 +304,38 @@ export default class AnalyticNodeManagerService {
     if (!followedEntity) throw new Error('No followed entity node found');
     if (!entity) throw new Error('No entity node found');
 
-    const configNode = SpinalGraphService.getRealNode(config.id.get());
-    const trackingMethodNode = SpinalGraphService.getRealNode(
-      trackingMethod.id.get()
-    );
+    // Config node
+    const analyticConfigAttributes = await this.getAllCategoriesAndAttributesFromNode(config.id.get());
 
-    const configCategoryAttributes = (
-      await attributeService.getCategory(configNode)
-    ).map((el) => {
-      return el.nameCat;
-    });
-    const trackingMethodCategoryAttributes = (
-      await attributeService.getCategory(trackingMethodNode)
-    ).map((el) => {
-      return el.nameCat;
-    });
+    // Anchor node 
+    const analyticAnchorNode = SpinalGraphService.getRealNode(followedEntity.id.get());
 
-    const configInfo = {};
-    const trackingMethodInfo = {};
 
-    for (const cat of configCategoryAttributes) {
-      const attributes = await attributeService.getAttributesByCategory(
-        configNode,
-        cat
-      );
-      configInfo[cat] = attributes;
+    const inputAttributes = await this.getAllCategoriesAndAttributesFromNode(trackingMethod.id.get());
+    return {
+      id: analyticNode._server_id,
+      name: analyticNode.getName().get(),
+      type: analyticNode.getType().get(),
+      config: analyticConfigAttributes,
+      inputs : inputAttributes,
+      anchor: {
+        id: analyticAnchorNode._server_id,
+        name: analyticAnchorNode.getName().get(),
+        type: analyticAnchorNode.getType().get()
+      }
     }
 
-    for (const cat of trackingMethodCategoryAttributes) {
-      const attributes = await attributeService.getAttributesByCategory(
-        trackingMethodNode,
-        cat
-      );
-      trackingMethodInfo[cat] = attributes;
-    }
+    // const analyticDetails = SpinalGraphService.getInfo(analyticId);
 
-    const analyticDetails = SpinalGraphService.getInfo(analyticId);
-
-    const followedEntityId = followedEntity.id.get();
-    const res: IAnalyticDetails = {
-      entityNodeInfo: entity,
-      analyticName: analyticDetails.name.get(),
-      config: configInfo,
-      trackingMethod: trackingMethodInfo,
-      followedEntityId,
-    };
-    return res;
+    // const followedEntityId = followedEntity.id.get();
+    // const res: IAnalyticDetails = {
+    //   entityNodeInfo: entity,
+    //   analyticName: analyticDetails.name.get(),
+    //   config: configInfo,
+    //   trackingMethod: trackingMethodInfo,
+    //   followedEntityId,
+    // };
+    // return res;
   }
   // #endregion ANALYTIC
 
