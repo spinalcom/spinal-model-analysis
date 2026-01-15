@@ -96,6 +96,8 @@ export default class AnalyticNodeManagerService {
         id: number | undefined;
         name: string;
         type: string;
+        analyticOnEntityName: any;
+        analyticOnEntityType: any;
         config: IAnalyticConfig;
         inputs: IAnalyticConfig;
         anchor: {

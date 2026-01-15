@@ -316,6 +316,8 @@ export default class AnalyticNodeManagerService {
       id: analyticNode._server_id,
       name: analyticNode.getName().get(),
       type: analyticNode.getType().get(),
+      analyticOnEntityName : entity.name.get(),
+      analyticOnEntityType : entity.entityType.get(),
       config: analyticConfigAttributes,
       inputs : inputAttributes,
       anchor: {
