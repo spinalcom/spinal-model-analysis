@@ -771,10 +771,14 @@ export default class AnalyticNodeManagerService {
     attributes: Record<string, Record<string, string>>
   ) {
     for (const categoryName of Object.keys(attributes)) {
+
+
       attributeService.createOrUpdateAttrsAndCategories(
         node,
         categoryName,
-        attributes[categoryName]
+        {
+          ...attributes[categoryName]
+        }
       )
     }
   }

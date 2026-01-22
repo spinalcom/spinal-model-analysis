@@ -614,7 +614,7 @@ class AnalyticNodeManagerService {
     addNewAttributesToNode(node, attributes) {
         return __awaiter(this, void 0, void 0, function* () {
             for (const categoryName of Object.keys(attributes)) {
-                spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, attributes[categoryName]);
+                spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, Object.assign({}, attributes[categoryName]));
             }
         });
     }
