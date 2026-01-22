@@ -130,8 +130,11 @@ class AnalyticNodeManagerService {
                 return undefined;
             const contextNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(context.id.get());
             const entities = yield contextNode.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
-            const entitiesModels = entities.map((el) => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
-            return entitiesModels.find((entity) => entity.name.get() === entityName);
+            const foundEntityNode = entities.find((el) => el.getName().get() === entityName);
+            if (!foundEntityNode)
+                return undefined;
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(foundEntityNode);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(foundEntityNode.getId().get());
         });
     }
     /**

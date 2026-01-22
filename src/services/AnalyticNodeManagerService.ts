@@ -167,10 +167,14 @@ export default class AnalyticNodeManagerService {
     const entities = await contextNode.getChildren(
       CONSTANTS.CONTEXT_TO_ENTITY_RELATION
     );
-    const entitiesModels = entities.map((el) =>
-      SpinalGraphService.getInfo(el.info.id.get())
+    const foundEntityNode = entities.find(
+      (el) => el.getName().get() === entityName
     );
-    return entitiesModels.find((entity) => entity.name.get() === entityName);
+
+    if (!foundEntityNode) return undefined;
+
+    SpinalGraphService._addNode(foundEntityNode);
+    return SpinalGraphService.getInfo(foundEntityNode.getId().get());
   }
 
   /**
