@@ -272,6 +272,8 @@ class AnalyticNodeManagerService {
                 name: analyticDetails.name,
                 description: ''
             };
+            const anchorNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(analyticDetails.anchor.id);
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(anchorNode);
             const analyticNodeRef = yield this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
             const configRef = yield this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
             const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(configRef.id.get());
@@ -279,7 +281,7 @@ class AnalyticNodeManagerService {
             const trackingMethodRef = yield this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
             const trackingMethodNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(trackingMethodRef.id.get());
             yield this.addNewAttributesToNode(trackingMethodNode, analyticDetails.inputs);
-            yield this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticDetails.anchor, analyticNodeRef.id.get());
+            yield this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
             return this.getAnalyticDetails(analyticNodeRef.id.get());
         });
     }

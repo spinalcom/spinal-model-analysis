@@ -338,6 +338,10 @@ export default class AnalyticNodeManagerService {
       name: analyticDetails.name,
       description: ''
     };
+
+    const anchorNode = SpinalGraphService.getRealNode(analyticDetails.anchor.id);
+    SpinalGraphService._addNode(anchorNode);
+
     const analyticNodeRef = await this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
 
     const configRef = await this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
@@ -346,7 +350,7 @@ export default class AnalyticNodeManagerService {
     const trackingMethodRef = await this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
     const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
     await this.addNewAttributesToNode(trackingMethodNode, analyticDetails.inputs);
-    await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticDetails.anchor, analyticNodeRef.id.get());
+    await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
     return this.getAnalyticDetails(analyticNodeRef.id.get());
   }
 
