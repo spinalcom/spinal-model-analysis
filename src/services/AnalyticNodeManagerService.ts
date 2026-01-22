@@ -347,7 +347,6 @@ export default class AnalyticNodeManagerService {
     const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
     await this.addNewAttributesToNode(trackingMethodNode, analyticDetails.inputs);
     await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticDetails.anchor, analyticNodeRef.id.get());
-
     return this.getAnalyticDetails(analyticNodeRef.id.get());
   }
 

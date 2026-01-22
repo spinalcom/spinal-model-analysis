@@ -106,6 +106,7 @@ export default class AnalyticNodeManagerService {
             type: string;
         };
     }>;
+    createAnalytic(analyticDetails: any, contextNode: SpinalNode<any>): Promise<any>;
     /**
      * Adds an Inputs node to the specified analytic within the specified context.
      * @async
@@ -253,6 +254,7 @@ export default class AnalyticNodeManagerService {
      * @memberof AnalyticService
      */
     addAttributesToNode(node: SpinalNode<any>, attributes: INodeDocumentation): Promise<void>;
+    addNewAttributesToNode(node: SpinalNode<any>, attributes: Record<string, Record<string, string>>): Promise<void>;
     getAttributesFromNode(nodeId: string, category: string): Promise<any>;
     /**
      * Gets the attribute from a node.

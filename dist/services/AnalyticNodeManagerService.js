@@ -261,16 +261,26 @@ class AnalyticNodeManagerService {
                     type: analyticAnchorNode.getType().get()
                 }
             };
-            // const analyticDetails = SpinalGraphService.getInfo(analyticId);
-            // const followedEntityId = followedEntity.id.get();
-            // const res: IAnalyticDetails = {
-            //   entityNodeInfo: entity,
-            //   analyticName: analyticDetails.name.get(),
-            //   config: configInfo,
-            //   trackingMethod: trackingMethodInfo,
-            //   followedEntityId,
-            // };
-            // return res;
+        });
+    }
+    createAnalytic(analyticDetails, contextNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const entity = yield this.getEntity(contextNode.getName().get(), analyticDetails.analyticOnEntityName);
+            if (!entity)
+                throw new Error(`Entity ${analyticDetails.analyticOnEntityName} not found in context ${contextNode.getName().get()}`);
+            const analyticInfo = {
+                name: analyticDetails.name,
+                description: ''
+            };
+            const analyticNodeRef = yield this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
+            const configRef = yield this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
+            const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(configRef.id.get());
+            yield this.addNewAttributesToNode(configNode, analyticDetails.config);
+            const trackingMethodRef = yield this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
+            const trackingMethodNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(trackingMethodRef.id.get());
+            yield this.addNewAttributesToNode(trackingMethodNode, analyticDetails.inputs);
+            yield this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticDetails.anchor, analyticNodeRef.id.get());
+            return this.getAnalyticDetails(analyticNodeRef.id.get());
         });
     }
     // #endregion ANALYTIC
@@ -593,6 +603,13 @@ class AnalyticNodeManagerService {
                 for (const attribute of attributes[categoryName]) {
                     yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(node, categoryName, attribute.name, attribute.value, attribute.type, '');
                 }
+            }
+        });
+    }
+    addNewAttributesToNode(node, attributes) {
+        return __awaiter(this, void 0, void 0, function* () {
+            for (const categoryName of Object.keys(attributes)) {
+                spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, attributes[categoryName]);
             }
         });
     }
