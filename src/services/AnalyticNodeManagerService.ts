@@ -349,11 +349,11 @@ export default class AnalyticNodeManagerService {
     const analyticNodeRef = await this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
 
     const configRef = await this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
-    const configNode = SpinalGraphService.getRealNode(configRef.id.get());
-    await this.addNewAttributesToNode(configNode, analyticDetails.config);
+    //const configNode = SpinalGraphService.getRealNode(configRef.id.get());
+    //await this.addAttributesToNode(configNode, analyticDetails.config);
     const trackingMethodRef = await this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
-    const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
-    await this.addNewAttributesToNode(trackingMethodNode, analyticDetails.inputs);
+    //const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
+    //await this.addAttributesToNode(trackingMethodNode, analyticDetails.inputs);
     await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
     return this.getAnalyticDetails(analyticNodeRef.id.get());
   }
@@ -483,7 +483,7 @@ export default class AnalyticNodeManagerService {
    * @memberof AnalyticService
    */
   public async addConfig(
-    configAttributes: INodeDocumentation,
+    configAttributes: any,
     analyticId: string,
     contextId: string
   ): Promise<SpinalNodeRef> {
@@ -583,7 +583,7 @@ export default class AnalyticNodeManagerService {
    * @memberof AnalyticService
    */
   public async addTrackingMethod(
-    trackingMethodAttributes: INodeDocumentation,
+    trackingMethodAttributes: any,
     contextId: string,
     inputId: string
   ): Promise<SpinalNodeRef> {
@@ -739,34 +739,8 @@ export default class AnalyticNodeManagerService {
   // #endregion FOLLOWED ENTITY
 
   // #region NODE DOCUMENTATION
-  /**
-   * Adds the specified attributes to the node with the specified ID.
-   * @async
-   * @param {SpinalNode<any>} node - The node to which to add the attributes.
-   * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
-   * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-   * @memberof AnalyticService
-   */
+
   public async addAttributesToNode(
-    node: SpinalNode<any>,
-    attributes: INodeDocumentation
-  ): Promise<void> {
-    for (const categoryName of Object.keys(attributes)) {
-      for (const attribute of attributes[categoryName]) {
-        await AttributeService.addAttributeByCategoryName(
-          node,
-          categoryName,
-          attribute.name,
-          attribute.value,
-          attribute.type,
-          ''
-        );
-      }
-    }
-  }
-
-
-  public async addNewAttributesToNode(
     node: SpinalNode<any>,
     attributes: Record<string, Record<string, string>>
   ) {

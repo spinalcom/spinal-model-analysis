@@ -152,7 +152,7 @@ export default class AnalyticNodeManagerService {
      * @return {*}  {Promise<SpinalNodeRef>}
      * @memberof AnalyticService
      */
-    addConfig(configAttributes: INodeDocumentation, analyticId: string, contextId: string): Promise<SpinalNodeRef>;
+    addConfig(configAttributes: any, analyticId: string, contextId: string): Promise<SpinalNodeRef>;
     /**
      * Retrieves the Config node for the specified analytic
      *
@@ -189,7 +189,7 @@ export default class AnalyticNodeManagerService {
      * @return {*}  {Promise<SpinalNodeRef>} - A Promise that resolves to the newly created Tracking Method node.
      * @memberof AnalyticService
      */
-    addTrackingMethod(trackingMethodAttributes: INodeDocumentation, contextId: string, inputId: string): Promise<SpinalNodeRef>;
+    addTrackingMethod(trackingMethodAttributes: any, contextId: string, inputId: string): Promise<SpinalNodeRef>;
     /**
      * Removes the specified Tracking Method node from the specified Inputs node and deletes it from the graph.
      * @async
@@ -245,16 +245,7 @@ export default class AnalyticNodeManagerService {
      * @memberof AnalyticService
      */
     getFollowedEntity(analyticId: string): Promise<SpinalNodeRef | undefined>;
-    /**
-     * Adds the specified attributes to the node with the specified ID.
-     * @async
-     * @param {SpinalNode<any>} node - The node to which to add the attributes.
-     * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
-     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-     * @memberof AnalyticService
-     */
-    addAttributesToNode(node: SpinalNode<any>, attributes: INodeDocumentation): Promise<void>;
-    addNewAttributesToNode(node: SpinalNode<any>, attributes: Record<string, Record<string, string>>): Promise<void>;
+    addAttributesToNode(node: SpinalNode<any>, attributes: Record<string, Record<string, string>>): Promise<void>;
     getAttributesFromNode(nodeId: string, category: string): Promise<any>;
     /**
      * Gets the attribute from a node.

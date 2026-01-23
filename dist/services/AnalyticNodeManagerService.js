@@ -279,11 +279,11 @@ class AnalyticNodeManagerService {
             spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(anchorNode);
             const analyticNodeRef = yield this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
             const configRef = yield this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
-            const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(configRef.id.get());
-            yield this.addNewAttributesToNode(configNode, analyticDetails.config);
+            //const configNode = SpinalGraphService.getRealNode(configRef.id.get());
+            //await this.addAttributesToNode(configNode, analyticDetails.config);
             const trackingMethodRef = yield this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
-            const trackingMethodNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(trackingMethodRef.id.get());
-            yield this.addNewAttributesToNode(trackingMethodNode, analyticDetails.inputs);
+            //const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
+            //await this.addAttributesToNode(trackingMethodNode, analyticDetails.inputs);
             yield this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
             return this.getAnalyticDetails(analyticNodeRef.id.get());
         });
@@ -594,24 +594,7 @@ class AnalyticNodeManagerService {
     }
     // #endregion FOLLOWED ENTITY
     // #region NODE DOCUMENTATION
-    /**
-     * Adds the specified attributes to the node with the specified ID.
-     * @async
-     * @param {SpinalNode<any>} node - The node to which to add the attributes.
-     * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
-     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-     * @memberof AnalyticService
-     */
     addAttributesToNode(node, attributes) {
-        return __awaiter(this, void 0, void 0, function* () {
-            for (const categoryName of Object.keys(attributes)) {
-                for (const attribute of attributes[categoryName]) {
-                    yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(node, categoryName, attribute.name, attribute.value, attribute.type, '');
-                }
-            }
-        });
-    }
-    addNewAttributesToNode(node, attributes) {
         return __awaiter(this, void 0, void 0, function* () {
             for (const categoryName of Object.keys(attributes)) {
                 spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, Object.assign({}, attributes[categoryName]));
