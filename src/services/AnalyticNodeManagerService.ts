@@ -40,38 +40,37 @@ export default class AnalyticNodeManagerService {
   /**
    * Retrieves and returns all contexts
    * handled by this service (type analysisContext)
-   * @return {*}  {(SpinalNodeRef[] | undefined)}
+   * @return {*}  {SpinalNode<any>[]}
    * @memberof AnalyticService
    */
-  public getContexts(): SpinalNodeRef[] | undefined {
+  public getContexts(): SpinalNode<any>[] {
     const contexts = SpinalGraphService.getContextWithType(
-      CONSTANTS.CONTEXT_TYPE
+      CONSTANTS.CONTEXT_NODE_TYPE
     );
-    const argContexts = contexts.map((el) =>
-      SpinalGraphService.getInfo(el.info.id.get())
-    );
-    return argContexts;
+    return contexts;
   }
+
   /**
    * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
    * If multiple contexts have the same name, it returns the first one.
    * @param {string} contextName
-   * @return {*}  {(SpinalNodeRef | undefined)}
+   * @return {*}  {(SpinalNode<any> | undefined)}
    * @memberof AnalyticService
    */
-  public getContext(contextName: string): SpinalNodeRef | undefined {
+  public getContext(contextName: string): SpinalNode<any> | undefined {
     const contexts = this.getContexts();
     if (!contexts) return undefined;
     return contexts.find((context) => context.name.get() === contextName);
   }
+
   /**
    * This method creates a new context and returns the info of the newly created context.
    * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
    * @param {string} contextName
-   * @return {*}  {Promise<SpinalNodeRef>}
+   * @return {*}  {Promise<SpinalNode<any>>}
    * @memberof AnalyticService
    */
-  public async createContext(contextName: string): Promise<SpinalNodeRef> {
+  public async createContext(contextName: string): Promise<SpinalNode<any>> {
     const alreadyExists = this.getContext(contextName);
     if (alreadyExists) {
       console.error(`Context ${contextName} already exists`);
@@ -79,7 +78,7 @@ export default class AnalyticNodeManagerService {
     }
     return SpinalGraphService.addContext(
       contextName,
-      CONSTANTS.CONTEXT_TYPE,
+      CONSTANTS.CONTEXT_NODE_TYPE,
       undefined
     ).then((context) => {
       const contextId = context.getId().get();
@@ -88,150 +87,79 @@ export default class AnalyticNodeManagerService {
           version: VERSION
         }
       )
-      return SpinalGraphService.getInfo(contextId);
+      return context;
     });
   }
 
-  public getContextIdOfAnalytic(analyticId: string): string | undefined {
-    const contexts = this.getContexts();
-    if (!contexts) return undefined;
-    const analyticNode = SpinalGraphService.getRealNode(analyticId);
-
+  public getContextOfAnalytic(analyticNode: SpinalNode<any>): SpinalNode<any> {
+    if (analyticNode.getType().get() !== CONSTANTS.ANALYSIS_NODE_TYPE) {
+      throw new Error('Node is not an analysis node');
+    }
+    const contexts = this.getContexts()
     const contextId = analyticNode.getContextIds()[0];
-    return contextId;
+    const context = contexts.find(c => c.getId().get() === contextId);
+    if (!context) {
+      throw new Error('Context not found for analytic node ( should not happen since analysisNode should always be in a context)');
+    }
+    return context;
   }
 
   // #endregion CONTEXT
 
-  // #region ENTITY
+  // #region ANALYSIS
   /**
-   * This method creates a new entity and returns the info of the newly created entity.
-   *
-   * @param {IEntity} entityInfo
-   * @param {string} contextId
-   * @return {*}  {Promise<SpinalNodeRef>}
-   * @memberof AnalyticService
-   */
-  public async addEntity(
-    entityInfo: IEntity,
-    contextId: string
-  ): Promise<SpinalNodeRef> {
-    entityInfo.type = CONSTANTS.ENTITY_TYPE;
-    const entityModel = new EntityModel(entityInfo);
-    const entityNodeId = SpinalGraphService.createNode(entityInfo, entityModel);
-    await SpinalGraphService.addChildInContext(
-      contextId,
-      entityNodeId,
-      contextId,
-      CONSTANTS.CONTEXT_TO_ENTITY_RELATION,
-      SPINAL_RELATION_PTR_LST_TYPE
-    );
-    return SpinalGraphService.getInfo(entityNodeId);
-  }
-
-  /**
-   * Returns all the entities withing a context that have the specified type.
-   *
-   * @param {SpinalContext<any>} context
-   * @param {string} targetType
-   * @return {*}  {(Promise<SpinalNode<any> | undefined>)}
-   * @memberof AnalyticService
-   */
-  public async findEntityByTargetType(
-    context: SpinalContext<any>,
-    targetType: string
-  ): Promise<SpinalNode<any> | undefined> {
-    const entities = await context.getChildren(
-      CONSTANTS.CONTEXT_TO_ENTITY_RELATION
-    );
-    const result = entities.find((e) => e.info.entityType.get() == targetType);
-    (<any>SpinalGraphService)._addNode(result);
-    return result;
-  }
-
-  /**
-   * Retrieves a SpinalNodeRef for the specified entity within the specified context.
+   * Adds a new analysis node, also adds the mandatory workflow node as a child of the analysis node, and links the analysis node to the specified context.
    * @async
-   * @param {string} contextName - The name of the context to search within.
-   * @param {string} entityName - The name of the entity to retrieve.
-   * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the SpinalNodeRef for the entity, or undefined if the context or entity cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getEntity(
-    contextName: string,
-    entityName: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const context = this.getContext(contextName);
-    if (!context) return undefined;
-    const contextNode = SpinalGraphService.getRealNode(context.id.get());
-    const entities = await contextNode.getChildren(
-      CONSTANTS.CONTEXT_TO_ENTITY_RELATION
-    );
-    const foundEntityNode = entities.find(
-      (el) => el.getName().get() === entityName
-    );
-
-    if (!foundEntityNode) return undefined;
-
-    SpinalGraphService._addNode(foundEntityNode);
-    return SpinalGraphService.getInfo(foundEntityNode.getId().get());
-  }
-
-  /**
-   * Retrieves the parent entity of the specified analytic.
-   * @async
-   * @param {string} analyticId - The ID of the analytic for which to retrieve the parent entity.
-   * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the parent entity, or undefined if the parent entity cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getEntityFromAnalytic(
-    analyticId: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const nodes = await SpinalGraphService.getParents(analyticId, [
-      CONSTANTS.ENTITY_TO_ANALYTIC_RELATION,
-    ]);
-    if (nodes.length != 0) {
-      return nodes[0];
-    }
-    return undefined;
-  }
-
-  // #endregion ENTITY
-
-  // #region ANALYTIC
-  /**
-   * Adds a new analytic to the specified entity within the specified context.
-   * @async
-   * @param {IAnalytic} analyticInfo - The information for the new analytic to add.
+   * @param {IAnalytic} analysisNodeInfo - The information for the new analytic to add.
    * @param {string} contextId - The ID of the context in which to add the analytic.
-   * @param {string} entityId - The ID of the entity to which to add the analytic.
-   * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created analytic info.
+   * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
    * @memberof AnalyticService
    */
-  public async addAnalytic(
-    analyticInfo: IAnalytic,
-    contextId: string,
-    entityId: string
-  ): Promise<SpinalNodeRef> {
-    analyticInfo.type = CONSTANTS.ANALYTIC_TYPE;
-    const analyticModel = new AnalyticModel(analyticInfo);
-    const analyticNodeId = SpinalGraphService.createNode(
-      analyticInfo,
-      analyticModel
-    );
-    await SpinalGraphService.addChildInContext(
-      entityId,
-      analyticNodeId,
-      contextId,
-      CONSTANTS.ENTITY_TO_ANALYTIC_RELATION,
-      SPINAL_RELATION_PTR_LST_TYPE
-    );
+  public async addAnalysisNode(
+    analysisNodeName: string,
+    analysisNodeDescription: string,
+    contextNode: SpinalNode<any>,
+  ): Promise<SpinalNode<any>> {
 
-    await this.addInputsNode(analyticNodeId, contextId);
-    await this.addOutputsNode(analyticNodeId, contextId);
+    const analysisNodeInfo = {
+      name: analysisNodeName,
+      description: analysisNodeDescription,
+      type: CONSTANTS.ANALYSIS_NODE_TYPE,
+    };
 
-    return SpinalGraphService.getInfo(analyticNodeId);
+    const analysisNodeId = SpinalGraphService.createNode(
+      analysisNodeInfo
+    );
+    const analysisNode = SpinalGraphService.getRealNode(analysisNodeId);
+    if (!analysisNode) throw new Error('Failed to create analytic node');
+
+    await contextNode.addChildInContext(analysisNode, CONSTANTS.CONTEXT_TO_ANALYSIS_NODE_RELATION, SPINAL_RELATION_PTR_LST_TYPE, contextNode);
+    // Add workflow node
+    await this.addWorkflowNode(analysisNode, contextNode);
+    return analysisNode;
   }
+
+  public async getWorkflowNode(analysisNode: SpinalNode<any>): Promise<SpinalNode<any>> {
+    const workflowNode = await analysisNode.getChild(
+      ((child) => child.getName().get() === CONSTANTS.WORKFLOW_NODE_NAME),
+      CONSTANTS.ANALYSIS_TO_WORKFLOW_RELATION,
+      SPINAL_RELATION_PTR_LST_TYPE
+    )
+    if (!workflowNode) throw new Error('Workflow node not found for analysis node ' + analysisNode.getName().get());
+    return workflowNode;
+  }
+
+  public async addWorkflowNode(analysisNode: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<SpinalNode<any>> {
+    const workflowNodeId = SpinalGraphService.createNode({
+      name: CONSTANTS.WORKFLOW_NODE_NAME
+    });
+    const workflowNode = SpinalGraphService.getRealNode(workflowNodeId);
+    if (!workflowNode) throw new Error('Failed to create workflow node');
+
+    await analysisNode.addChildInContext(workflowNode, CONSTANTS.ANALYSIS_TO_WORKFLOW_RELATION, SPINAL_RELATION_PTR_LST_TYPE, contextNode);
+    return workflowNode;
+  }
+
 
   /**
    * Retrieves all analytics within the specified context.
@@ -240,63 +168,51 @@ export default class AnalyticNodeManagerService {
    * @returns {Promise<SpinalNodeRef[]>} A Promise that resolves to an array of SpinalNodeRefs for all analytics in the context.
    * @memberof AnalyticService
    */
-  public async getAllAnalytics(contextId: string): Promise<SpinalNodeRef[]> {
-    const analytics = await SpinalGraphService.findInContext(
-      contextId,
-      contextId,
-      (node: SpinalNode<any>) => {
-        if (node.getType().get() === CONSTANTS.ANALYTIC_TYPE) {
-          (<any>SpinalGraphService)._addNode(node);
-          return true;
-        }
-        return false;
-      }
-    );
-    return analytics;
+  public async getAnalysisNodesByContextName(contextName: string): Promise<SpinalNode<any>[]> {
+    const context = this.getContext(contextName);
+    if (!context) throw new Error(`Context with name ${contextName} not found`);
+    const analysisNodes = await context.getChildren(CONSTANTS.CONTEXT_TO_ANALYSIS_NODE_RELATION);
+    return analysisNodes;
   }
+
 
   /**
-   * Retrieves the SpinalNodeRef for the specified analytic within the specified context.
+   * Retrieves the SpinalNode for the specified analytic within the specified context.
    * @async
-   * @param {string} contextId - The ID of the context in which to search for the analytic.
+   * @param {string} contextName - The name of the context in which to search for the analytic.
    * @param {string} analyticName - The name of the analytic to retrieve.
-   * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the SpinalNodeRef for the analytic, or undefined if the analytic cannot be found.
+   * @returns {Promise<SpinalNode<any> | undefined>} A Promise that resolves to the SpinalNode for the analytic, or undefined if the analytic cannot be found.
    * @memberof AnalyticService
    */
-  public async getAnalytic(
-    contextId: string,
+  public async getAnalysisNode(
+    contextName: string,
     analyticName: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const analytics = await SpinalGraphService.findInContext(
-      contextId,
-      contextId,
-      (node: SpinalNode<any>) => {
-        if (node.getType().get() === CONSTANTS.ANALYTIC_TYPE) {
-          (<any>SpinalGraphService)._addNode(node);
-          return true;
-        }
-        return false;
-      }
+  ): Promise<SpinalNode<any> | undefined> {
+
+    const analysisNodes = await this.getAnalysisNodesByContextName(contextName);
+    const analysisNode = analysisNodes.find(
+      (node) => node.getName().get() === analyticName
     );
-    const analytic = analytics.find(
-      (el: SpinalNode<any>) => el.info.name.get() == analyticName
-    );
-    return SpinalGraphService.getInfo(analytic.id.get());
+    if (!analysisNode) return undefined;
+    return analysisNode;
   }
 
-  public async deleteAnalytic(
-    analyticId: string,
+  public async deleteAnalysis(
+    analysisNode: SpinalNode<any>,
     shouldDeleteChildren = false
   ): Promise<void> {
-    const inputsNode = await this.getInputsNode(analyticId);
-    const outputsNode = await this.getOutputsNode(analyticId);
-    if (inputsNode) await this.safeDeleteNode(inputsNode.id.get());
-    if (outputsNode)
-      await this.safeDeleteNode(outputsNode.id.get(), shouldDeleteChildren);
+    const workflowNode = await this.getWorkflowNode(analysisNode);
+    if (workflowNode) await this.safeDeleteNode(workflowNode, true);
 
-    await this.safeDeleteNode(analyticId);
+    await this.safeDeleteNode(analysisNode);
   }
 
+  // #endregion ANALYSIS
+
+
+  // #region ANALYSIS DETAILS
+
+  /*
   public async getAnalyticDetails(analyticId: string) {
     const config = await this.getConfig(analyticId);
     const trackingMethod = await this.getTrackingMethod(analyticId);
@@ -356,257 +272,10 @@ export default class AnalyticNodeManagerService {
     //await this.addAttributesToNode(trackingMethodNode, analyticDetails.inputs);
     await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
     return this.getAnalyticDetails(analyticNodeRef.id.get());
-  }
+    }
+    */
 
-
-  // #endregion ANALYTIC
-
-  // #region INPUTS/OUTPUTS
-
-  /**
-   * Adds an Inputs node to the specified analytic within the specified context.
-   * @async
-   * @param {string} analyticId - The ID of the analytic to which to add the Inputs node.
-   * @param {string} contextId - The ID of the context in which to add the Inputs node.
-   * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Inputs node.
-   * @memberof AnalyticService
-   */
-  private async addInputsNode(
-    analyticId: string,
-    contextId: string
-  ): Promise<SpinalNodeRef> {
-    const inputsInfo: IInputs = {
-      name: 'Inputs',
-      description: '',
-      type: CONSTANTS.INPUTS_TYPE,
-    };
-    const inputsModel = new InputsModel(inputsInfo);
-    const inputsId = SpinalGraphService.createNode(inputsInfo, inputsModel);
-    await SpinalGraphService.addChildInContext(
-      analyticId,
-      inputsId,
-      contextId,
-      CONSTANTS.ANALYTIC_TO_INPUTS_RELATION,
-      SPINAL_RELATION_PTR_LST_TYPE
-    );
-    return SpinalGraphService.getInfo(inputsId);
-  }
-
-  /**
-   * Adds an Outputs node to the specified analytic within the specified context.
-   * @async
-   * @param {string} analyticId - The ID of the analytic to which to add the Outputs node.
-   * @param {string} contextId - The ID of the context in which to add the Outputs node.
-   * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created Outputs node.
-   * @memberof AnalyticService
-   */
-  private async addOutputsNode(
-    analyticId: string,
-    contextId: string
-  ): Promise<SpinalNodeRef> {
-    const outputsInfo: IOutputs = {
-      name: 'Outputs',
-      description: '',
-      type: CONSTANTS.OUTPUTS_TYPE,
-    };
-    const outputsModel = new OutputsModel(outputsInfo);
-    const outputsId = SpinalGraphService.createNode(outputsInfo, outputsModel);
-    await SpinalGraphService.addChildInContext(
-      analyticId,
-      outputsId,
-      contextId,
-      CONSTANTS.ANALYTIC_TO_OUTPUTS_RELATION,
-      SPINAL_RELATION_PTR_LST_TYPE
-    );
-    return SpinalGraphService.getInfo(outputsId);
-  }
-
-  /**
-   * Retrieves the Inputs node for the specified analytic.
-   * @async
-   * @param {string} analyticId - The ID of the analytic for which to retrieve the Inputs node.
-   * @return {*}  {(Promise<SpinalNodeRef | undefined>)} - A Promise that resolves to the Inputs node, or undefined if the Inputs node cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getInputsNode(
-    analyticId: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const nodes = await SpinalGraphService.getChildren(analyticId, [
-      CONSTANTS.ANALYTIC_TO_INPUTS_RELATION,
-    ]);
-    if (nodes.length === 0) return undefined;
-    return SpinalGraphService.getInfo(nodes[0].id.get());
-  }
-
-  /**
-   * Retrieves the Outputs node for the specified analytic.
-   * @async
-   * @param {string} analyticId - The ID of the analytic for which to retrieve the Outputs node.
-   * @returns {*} {(Promise<SpinalNodeRef | undefined>)} - A Promise that resolves to the Outputs node, or undefined if the Outputs node cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getOutputsNode(
-    analyticId: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const nodes = await SpinalGraphService.getChildren(analyticId, [
-      CONSTANTS.ANALYTIC_TO_OUTPUTS_RELATION,
-    ]);
-    if (nodes.length === 0) return undefined;
-    return SpinalGraphService.getInfo(nodes[0].id.get());
-  }
-
-  public async deleteInputsNode(analyticId: string): Promise<void> {
-    const inputsNode = await this.getInputsNode(analyticId);
-    if (inputsNode) await this.safeDeleteNode(inputsNode.id.get(), false);
-  }
-
-  public async deleteOutputsNode(
-    analyticId: string,
-    shouldDeleteChildren = false
-  ): Promise<void> {
-    const outputsNode = await this.getOutputsNode(analyticId);
-    if (outputsNode)
-      await this.safeDeleteNode(outputsNode.id.get(), shouldDeleteChildren);
-  }
-
-  // #endregion INPUTS/OUTPUTS
-
-  // #region CONFIG
-
-  /**
-   * Adds a new Config node to the specified analytic within the specified context, with the specified attributes.
-   *
-   * @param {INodeDocumentation} configAttributes - The attributes to add to the Config node.
-   * @param {string} analyticId - The ID of the analytic to which to add the Config node.
-   * @param {string} contextId - The ID of the context in which to add the Config node.
-   * @return {*}  {Promise<SpinalNodeRef>}
-   * @memberof AnalyticService
-   */
-  public async addConfig(
-    configAttributes: any,
-    analyticId: string,
-    contextId: string
-  ): Promise<SpinalNodeRef> {
-    const configNodeInfo = { name: 'Config', type: CONSTANTS.CONFIG_TYPE };
-    const configModel = new ConfigModel(configNodeInfo);
-    const configId = SpinalGraphService.createNode(configNodeInfo, configModel);
-    const configNode = await SpinalGraphService.addChildInContext(
-      analyticId,
-      configId,
-      contextId,
-      CONSTANTS.ANALYTIC_TO_CONFIG_RELATION,
-      SPINAL_RELATION_PTR_LST_TYPE
-    );
-    this.addAttributesToNode(configNode, configAttributes);
-    return SpinalGraphService.getInfo(configId);
-  }
-
-  /**
-   * Retrieves the Config node for the specified analytic
-   *
-   * @async
-   * @param {string} analyticId - The ID of the analytic for which to retrieve the Config node.
-   * @return {*}  {(Promise<SpinalNodeRef | undefined>)} A Promise that resolves to the Config node, or undefined if the Config node cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getConfig(
-    analyticId: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const nodes = await SpinalGraphService.getChildren(analyticId, [
-      CONSTANTS.ANALYTIC_TO_CONFIG_RELATION,
-    ]);
-    if (nodes.length === 0) return undefined;
-    return SpinalGraphService.getInfo(nodes[0].id.get());
-  }
-
-  public async deleteConfigNode(analyticId: string): Promise<void> {
-    const configNode = await this.getConfig(analyticId);
-    if (configNode) await this.safeDeleteNode(configNode.id.get());
-  }
-  // #endregion CONFIG
-
-  // #region TRACKING METHOD
-  public async addInputTrackingMethod(
-    trackingMethodAttributes: INodeDocumentation,
-    contextId: string,
-    analyticId: string
-  ): Promise<SpinalNodeRef> {
-    const inputs = await this.getInputsNode(analyticId);
-    if (inputs === undefined) throw Error('Inputs node not found');
-    return this.addTrackingMethod(
-      trackingMethodAttributes,
-      contextId,
-      inputs.id.get()
-    );
-  }
-
-  /**
-   * Retrieves all Tracking Method nodes associated with the Inputs node of the specified analytic.
-   * @async
-   * @param {string} analyticId - The ID of the analytic for which to retrieve the Tracking Method nodes.
-   * @returns {Promise<SpinalNodeRef[]|undefined>} A Promise that resolves to an array of Tracking Method nodes, or undefined if the Inputs node or Tracking Method nodes cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getTrackingMethods(
-    analyticId: string
-  ): Promise<SpinalNodeRef[] | undefined> {
-    const inputs = await this.getInputsNode(analyticId);
-    if (inputs === undefined) return undefined;
-    const nodes = await SpinalGraphService.getChildren(inputs.id.get(), [
-      CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION,
-    ]);
-    return nodes;
-  }
-
-  /**
-   * Retrieves the first Tracking Method node associated with the Inputs node of the specified analytic.
-   * @async
-   * @param {string} analyticId - The ID of the analytic for which to retrieve the Tracking Method node.
-   * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the first Tracking Method node, or undefined if the Inputs node or Tracking Method nodes cannot be found.
-   * @memberof AnalyticService
-   */
-  public async getTrackingMethod(
-    analyticId: string
-  ): Promise<SpinalNodeRef | undefined> {
-    const trackingMethods = await this.getTrackingMethods(analyticId);
-    if (trackingMethods === undefined) return undefined;
-    return trackingMethods[0];
-  }
-
-  /**
-   * Adds a new Tracking Method node to the specified Input node within the specified context.
-   * @async
-   * @param {INodeDocumentation} trackingMethodAttributes
-   * @param {string} contextId - The ID of the context in which to add the Tracking Method node.
-   * @param {string} inputId - The ID of the Input node to which to add the Tracking Method node.
-   * @return {*}  {Promise<SpinalNodeRef>} - A Promise that resolves to the newly created Tracking Method node.
-   * @memberof AnalyticService
-   */
-  public async addTrackingMethod(
-    trackingMethodAttributes: any,
-    contextId: string,
-    inputId: string
-  ): Promise<SpinalNodeRef> {
-    const trackingMethodNodeInfo = {
-      name: 'TrackingMethod',
-      type: CONSTANTS.TRACKING_METHOD_TYPE,
-    };
-    const trackingMethodModel = new TrackingMethodModel(trackingMethodNodeInfo);
-    const trackingMethodNodeId = SpinalGraphService.createNode(
-      trackingMethodNodeInfo,
-      trackingMethodModel
-    );
-    const createdNode = await SpinalGraphService.addChildInContext(
-      inputId,
-      trackingMethodNodeId,
-      contextId,
-      CONSTANTS.ANALYTIC_INPUTS_TO_TRACKING_METHOD_RELATION,
-      SPINAL_RELATION_PTR_LST_TYPE
-    );
-
-    this.addAttributesToNode(createdNode, trackingMethodAttributes);
-    return SpinalGraphService.getInfo(trackingMethodNodeId);
-  }
+  // #endregion ANALYSIS DETAILS
 
   /**
    * Removes the specified Tracking Method node from the specified Inputs node and deletes it from the graph.
@@ -844,19 +513,18 @@ export default class AnalyticNodeManagerService {
   }
 
   public async safeDeleteNode(
-    nodeId: string,
+    node: SpinalNode<any>,
     shouldDeleteChildren = false
   ): Promise<void> {
-    const realNode = SpinalGraphService.getRealNode(nodeId);
-    const relations = realNode.getRelationNames();
+    const relations = node.getRelationNames();
     for (const relation of relations) {
-      const children = await realNode.getChildren(relation);
+      const children = await node.getChildren(relation);
       for (const child of children) {
-        await this.removeChild(realNode, child, relation);
+        await this.removeChild(node, child, relation);
         if (shouldDeleteChildren) await child.removeFromGraph();
       }
     }
-    await realNode.removeFromGraph();
+    await node.removeFromGraph();
   }
   // #endregion NODE GLOBAL
 }

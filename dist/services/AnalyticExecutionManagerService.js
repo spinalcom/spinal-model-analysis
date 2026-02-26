@@ -14,7 +14,7 @@ exports.AnalyticExecutionManagerService = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const CONSTANTS = require("../constants");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
-const algorithms_1 = require("../algorithms/algorithms");
+const algorithms_old_1 = require("../algorithms/algorithms.old");
 const Errors_1 = require("../classes/Errors");
 const cronParser = require("cron-parser");
 /**
@@ -73,7 +73,7 @@ class AnalyticExecutionManagerService {
             // after the inputs are ready we can execute the algorithm
             const algorithm_name = algoIndexMapping[algoIndexName];
             const algorithmParameters = this.analyticInputManagerService.filterAlgorithmParametersAttributesByIndex(algoParams, algoIndexName);
-            const result = algorithms_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
+            const result = algorithms_old_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
             if (result == undefined)
                 throw new Error(`Algorithm ${algorithm_name} returned undefined`);
             if (algorithm_name === 'EXIT' && result === true) {
@@ -108,7 +108,7 @@ class AnalyticExecutionManagerService {
             // after the inputs are ready we can execute the algorithm
             const algorithm_name = algoIndexMapping[algoIndexName];
             const algorithmParameters = this.analyticInputManagerService.filterAlgorithmParametersAttributesByIndex(algoParams, algoIndexName);
-            const result = algorithms_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
+            const result = algorithms_old_1.ALGORITHMS[algorithm_name].run(inputs, algorithmParameters);
             if (result == undefined)
                 throw new Error(`Algorithm ${algorithm_name} returned undefined`);
             if (algorithm_name === 'EXIT' && result === true) {

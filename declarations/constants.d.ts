@@ -1,12 +1,10 @@
-export declare const CONTEXT_TYPE = "analysisContext";
-export declare const ENTITY_TYPE = "entity";
-export declare const ANALYTIC_TYPE = "analytic";
+export declare const CONTEXT_NODE_TYPE = "analysisContext";
+export declare const ANALYSIS_NODE_TYPE = "analysisNode";
 export declare const TRACKING_METHOD_TYPE = "trackingMethod";
 export declare const INPUTS_TYPE = "analyticInputs";
 export declare const OUTPUTS_TYPE = "analyticOutputs";
 export declare const CONFIG_TYPE = "analyticConfig";
-export declare const CONTEXT_TO_ENTITY_RELATION = "hasEntity";
-export declare const ENTITY_TO_ANALYTIC_RELATION = "hasAnalytics";
+export declare const CONTEXT_TO_ANALYSIS_NODE_RELATION = "hasAnalysisNode";
 export declare const ANALYTIC_TO_INPUTS_RELATION = "hasInputs";
 export declare const ANALYTIC_TO_OUTPUTS_RELATION = "hasOutputs";
 export declare const ANALYTIC_TO_CONFIG_RELATION = "hasConfig";

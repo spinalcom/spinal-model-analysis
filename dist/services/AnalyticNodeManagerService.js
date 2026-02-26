@@ -13,9 +13,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const CONSTANTS = require("../constants");
 const ConfigModel_1 = require("../models/ConfigModel");
-const AnalyticModel_1 = require("../models/AnalyticModel");
 const TrackingMethodModel_1 = require("../models/TrackingMethodModel");
-const EntityModel_1 = require("../models/EntityModel");
 const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
@@ -28,19 +26,18 @@ class AnalyticNodeManagerService {
     /**
      * Retrieves and returns all contexts
      * handled by this service (type analysisContext)
-     * @return {*}  {(SpinalNodeRef[] | undefined)}
+     * @return {*}  {SpinalNode<any>[]}
      * @memberof AnalyticService
      */
     getContexts() {
-        const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(CONSTANTS.CONTEXT_TYPE);
-        const argContexts = contexts.map((el) => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
-        return argContexts;
+        const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(CONSTANTS.CONTEXT_NODE_TYPE);
+        return contexts;
     }
     /**
      * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
      * If multiple contexts have the same name, it returns the first one.
      * @param {string} contextName
-     * @return {*}  {(SpinalNodeRef | undefined)}
+     * @return {*}  {(SpinalNode<any> | undefined)}
      * @memberof AnalyticService
      */
     getContext(contextName) {
@@ -53,7 +50,7 @@ class AnalyticNodeManagerService {
      * This method creates a new context and returns the info of the newly created context.
      * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
      * @param {string} contextName
-     * @return {*}  {Promise<SpinalNodeRef>}
+     * @return {*}  {Promise<SpinalNode<any>>}
      * @memberof AnalyticService
      */
     createContext(contextName) {
@@ -63,118 +60,58 @@ class AnalyticNodeManagerService {
                 console.error(`Context ${contextName} already exists`);
                 return alreadyExists;
             }
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, CONSTANTS.CONTEXT_TYPE, undefined).then((context) => {
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, CONSTANTS.CONTEXT_NODE_TYPE, undefined).then((context) => {
                 const contextId = context.getId().get();
                 spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(context, "metadata", {
                     version: version_1.VERSION
                 });
-                return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId);
+                return context;
             });
         });
     }
-    getContextIdOfAnalytic(analyticId) {
+    getContextOfAnalytic(analyticNode) {
+        if (analyticNode.getType().get() !== CONSTANTS.ANALYSIS_NODE_TYPE) {
+            throw new Error('Node is not an analysis node');
+        }
         const contexts = this.getContexts();
-        if (!contexts)
-            return undefined;
-        const analyticNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(analyticId);
         const contextId = analyticNode.getContextIds()[0];
-        return contextId;
+        const context = contexts.find(c => c.getId().get() === contextId);
+        if (!context) {
+            throw new Error('Context not found for analytic node ( should not happen since analysisNode should always be in a context)');
+        }
+        return context;
     }
     // #endregion CONTEXT
-    // #region ENTITY
-    /**
-     * This method creates a new entity and returns the info of the newly created entity.
-     *
-     * @param {IEntity} entityInfo
-     * @param {string} contextId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addEntity(entityInfo, contextId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            entityInfo.type = CONSTANTS.ENTITY_TYPE;
-            const entityModel = new EntityModel_1.EntityModel(entityInfo);
-            const entityNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(entityInfo, entityModel);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(contextId, entityNodeId, contextId, CONSTANTS.CONTEXT_TO_ENTITY_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(entityNodeId);
-        });
-    }
-    /**
-     * Returns all the entities withing a context that have the specified type.
-     *
-     * @param {SpinalContext<any>} context
-     * @param {string} targetType
-     * @return {*}  {(Promise<SpinalNode<any> | undefined>)}
-     * @memberof AnalyticService
-     */
-    findEntityByTargetType(context, targetType) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const entities = yield context.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
-            const result = entities.find((e) => e.info.entityType.get() == targetType);
-            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(result);
-            return result;
-        });
-    }
-    /**
-     * Retrieves a SpinalNodeRef for the specified entity within the specified context.
-     * @async
-     * @param {string} contextName - The name of the context to search within.
-     * @param {string} entityName - The name of the entity to retrieve.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the SpinalNodeRef for the entity, or undefined if the context or entity cannot be found.
-     * @memberof AnalyticService
-     */
-    getEntity(contextName, entityName) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const context = this.getContext(contextName);
-            if (!context)
-                return undefined;
-            const contextNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(context.id.get());
-            const entities = yield contextNode.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
-            const foundEntityNode = entities.find((el) => el.getName().get() === entityName);
-            if (!foundEntityNode)
-                return undefined;
-            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(foundEntityNode);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(foundEntityNode.getId().get());
-        });
-    }
-    /**
-     * Retrieves the parent entity of the specified analytic.
-     * @async
-     * @param {string} analyticId - The ID of the analytic for which to retrieve the parent entity.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the parent entity, or undefined if the parent entity cannot be found.
-     * @memberof AnalyticService
-     */
-    getEntityFromAnalytic(analyticId) {
-        return __awaiter(this, void 0, void 0, function* () {
-            const nodes = yield spinal_env_viewer_graph_service_1.SpinalGraphService.getParents(analyticId, [
-                CONSTANTS.ENTITY_TO_ANALYTIC_RELATION,
-            ]);
-            if (nodes.length != 0) {
-                return nodes[0];
-            }
-            return undefined;
-        });
-    }
-    // #endregion ENTITY
-    // #region ANALYTIC
+    // #region ANALYSIS
     /**
      * Adds a new analytic to the specified entity within the specified context.
      * @async
-     * @param {IAnalytic} analyticInfo - The information for the new analytic to add.
+     * @param {IAnalytic} analysisNodeInfo - The information for the new analytic to add.
      * @param {string} contextId - The ID of the context in which to add the analytic.
-     * @param {string} entityId - The ID of the entity to which to add the analytic.
-     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created analytic info.
+     * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalytic(analyticInfo, contextId, entityId) {
+    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode) {
         return __awaiter(this, void 0, void 0, function* () {
-            analyticInfo.type = CONSTANTS.ANALYTIC_TYPE;
-            const analyticModel = new AnalyticModel_1.AnalyticModel(analyticInfo);
-            const analyticNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(analyticInfo, analyticModel);
-            yield spinal_env_viewer_graph_service_1.SpinalGraphService.addChildInContext(entityId, analyticNodeId, contextId, CONSTANTS.ENTITY_TO_ANALYTIC_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            const analysisNodeInfo = {
+                name: analysisNodeName,
+                description: analysisNodeDescription,
+                type: CONSTANTS.ANALYSIS_NODE_TYPE,
+            };
+            const analysisNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(analysisNodeInfo);
+            const analysisNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(analysisNodeId);
+            if (!analysisNode)
+                throw new Error('Failed to create analytic node');
+            yield contextNode.addChildInContext(analysisNode, CONSTANTS.CONTEXT_TO_ANALYSIS_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
+            // Add workNodeResolver node
+            const workNodeResolverNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({
+                name: 'WorkNodeResolver',
+                description: 'Node that will contain algorithms to resolve the workNodes the analysis will execute on'
+            });
+            // Add workflow node
+            return analysisNode;
             yield this.addInputsNode(analyticNodeId, contextId);
             yield this.addOutputsNode(analyticNodeId, contextId);
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticNodeId);
         });
     }
     /**
@@ -288,7 +225,7 @@ class AnalyticNodeManagerService {
             return this.getAnalyticDetails(analyticNodeRef.id.get());
         });
     }
-    // #endregion ANALYTIC
+    // #endregion ANALYSIS
     // #region INPUTS/OUTPUTS
     /**
      * Adds an Inputs node to the specified analytic within the specified context.

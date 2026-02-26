@@ -1,6 +1,4 @@
-import { SpinalNodeRef, SpinalNode, SpinalContext } from 'spinal-env-viewer-graph-service';
-import { IAnalytic } from '../interfaces/IAnalytic';
-import { IEntity } from '../interfaces/IEntity';
+import { SpinalNodeRef, SpinalNode } from 'spinal-env-viewer-graph-service';
 import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
 import { INodeDocumentation } from '../interfaces/IAttribute';
 export default class AnalyticNodeManagerService {
@@ -8,72 +6,36 @@ export default class AnalyticNodeManagerService {
     /**
      * Retrieves and returns all contexts
      * handled by this service (type analysisContext)
-     * @return {*}  {(SpinalNodeRef[] | undefined)}
+     * @return {*}  {SpinalNode<any>[]}
      * @memberof AnalyticService
      */
-    getContexts(): SpinalNodeRef[] | undefined;
+    getContexts(): SpinalNode<any>[];
     /**
      * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
      * If multiple contexts have the same name, it returns the first one.
      * @param {string} contextName
-     * @return {*}  {(SpinalNodeRef | undefined)}
+     * @return {*}  {(SpinalNode<any> | undefined)}
      * @memberof AnalyticService
      */
-    getContext(contextName: string): SpinalNodeRef | undefined;
+    getContext(contextName: string): SpinalNode<any> | undefined;
     /**
      * This method creates a new context and returns the info of the newly created context.
      * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
      * @param {string} contextName
-     * @return {*}  {Promise<SpinalNodeRef>}
+     * @return {*}  {Promise<SpinalNode<any>>}
      * @memberof AnalyticService
      */
-    createContext(contextName: string): Promise<SpinalNodeRef>;
-    getContextIdOfAnalytic(analyticId: string): string | undefined;
-    /**
-     * This method creates a new entity and returns the info of the newly created entity.
-     *
-     * @param {IEntity} entityInfo
-     * @param {string} contextId
-     * @return {*}  {Promise<SpinalNodeRef>}
-     * @memberof AnalyticService
-     */
-    addEntity(entityInfo: IEntity, contextId: string): Promise<SpinalNodeRef>;
-    /**
-     * Returns all the entities withing a context that have the specified type.
-     *
-     * @param {SpinalContext<any>} context
-     * @param {string} targetType
-     * @return {*}  {(Promise<SpinalNode<any> | undefined>)}
-     * @memberof AnalyticService
-     */
-    findEntityByTargetType(context: SpinalContext<any>, targetType: string): Promise<SpinalNode<any> | undefined>;
-    /**
-     * Retrieves a SpinalNodeRef for the specified entity within the specified context.
-     * @async
-     * @param {string} contextName - The name of the context to search within.
-     * @param {string} entityName - The name of the entity to retrieve.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the SpinalNodeRef for the entity, or undefined if the context or entity cannot be found.
-     * @memberof AnalyticService
-     */
-    getEntity(contextName: string, entityName: string): Promise<SpinalNodeRef | undefined>;
-    /**
-     * Retrieves the parent entity of the specified analytic.
-     * @async
-     * @param {string} analyticId - The ID of the analytic for which to retrieve the parent entity.
-     * @returns {Promise<SpinalNodeRef|undefined>} A Promise that resolves to the parent entity, or undefined if the parent entity cannot be found.
-     * @memberof AnalyticService
-     */
-    getEntityFromAnalytic(analyticId: string): Promise<SpinalNodeRef | undefined>;
+    createContext(contextName: string): Promise<SpinalNode<any>>;
+    getContextOfAnalytic(analyticNode: SpinalNode<any>): SpinalNode<any>;
     /**
      * Adds a new analytic to the specified entity within the specified context.
      * @async
-     * @param {IAnalytic} analyticInfo - The information for the new analytic to add.
+     * @param {IAnalytic} analysisNodeInfo - The information for the new analytic to add.
      * @param {string} contextId - The ID of the context in which to add the analytic.
-     * @param {string} entityId - The ID of the entity to which to add the analytic.
-     * @returns {Promise<SpinalNodeRef>} A Promise that resolves to the newly created analytic info.
+     * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalytic(analyticInfo: IAnalytic, contextId: string, entityId: string): Promise<SpinalNodeRef>;
+    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;
     /**
      * Retrieves all analytics within the specified context.
      * @async

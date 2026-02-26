@@ -9,7 +9,7 @@ import { IResult } from '../interfaces/IAnalyticResult';
 import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
 import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
 import { logMessage } from './utils';
-import { ALGORITHMS } from '../algorithms/algorithms';
+import { ALGORITHMS } from '../algorithms/algorithms.old';
 import { ExitAnalyticError } from '../classes/Errors';
 import * as cronParser from 'cron-parser';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
@@ -134,7 +134,7 @@ export default class AnalyticExecutionManagerService {
     formattedData: any
   ): Promise<any> {
     const inputs: any[] = [];
-    
+
     const myDependencies =
       ioDependencies[algoIndexName]?.split(
         CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
@@ -159,11 +159,11 @@ export default class AnalyticExecutionManagerService {
 
       } else {
         // if dependency is an input then get the value of the input
-        if ( formattedData[dependency] == undefined || formattedData[dependency][referenceEpochTime] == undefined) {
-            throw new Error(`Input data ${dependency} could not be retrieved. Reference time : ${referenceEpochTime}`);
+        if (formattedData[dependency] == undefined || formattedData[dependency][referenceEpochTime] == undefined) {
+          throw new Error(`Input data ${dependency} could not be retrieved. Reference time : ${referenceEpochTime}`);
         }
         const inputData = formattedData[dependency][referenceEpochTime];
-          inputs.push(inputData);
+        inputs.push(inputData);
       }
     }
     // after the inputs are ready we can execute the algorithm
@@ -288,13 +288,13 @@ export default class AnalyticExecutionManagerService {
 
       const R = ioDependencies['R'] as string;
       // Here we need to call a function that will get all the data required for the analysis to run
-      const formattedData = 
-      await this.analyticInputManagerService.
-      getAllDataFromAnalyticConfiguration(analyticId,
-        entity,  ioDependencies, executionTimes
-      );
+      const formattedData =
+        await this.analyticInputManagerService.
+          getAllDataFromAnalyticConfiguration(analyticId,
+            entity, ioDependencies, executionTimes
+          );
       const results: IResult[] = [];
-      for(const execTime of executionTimes){
+      for (const execTime of executionTimes) {
         const result = await this.optExecuteAlgorithm(
           analyticId,
           entity,
@@ -338,61 +338,61 @@ export default class AnalyticExecutionManagerService {
   public async doAnalysis(
     analyticId: string,
     triggerObject: { triggerType: string; triggerValue: string }
-  ): Promise<IResult[]>{
+  ): Promise<IResult[]> {
     const entities =
-    await this.analyticInputManagerService.getWorkingFollowedEntities(
+      await this.analyticInputManagerService.getWorkingFollowedEntities(
+        analyticId
+      );
+    if (!entities) return [{ success: false, error: 'No entities found' }];
+
+    const configNode = await this.analyticNodeManagerService.getConfig(
       analyticId
     );
-  if (!entities) return [{ success: false, error: 'No entities found' }];
+    if (!configNode) return [{ success: false, error: 'No config node found' }];
 
-  const configNode = await this.analyticNodeManagerService.getConfig(
-    analyticId
-  );
-  if (!configNode) return [{ success: false, error: 'No config node found' }];
+    const configAttributes =
+      await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(
+        configNode.id.get()
+      );
 
-  const configAttributes =
-    await this.analyticNodeManagerService.getAllCategoriesAndAttributesFromNode(
-      configNode.id.get()
+    const lastExecutionTime = parseInt(
+      configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
+      CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME
+      ] as string
     );
 
-  const lastExecutionTime = parseInt(
-    configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
-      CONSTANTS.ATTRIBUTE_LAST_EXECUTION_TIME
-    ] as string
-  );
-
-  const aggregateExecutionTime = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
-    CONSTANTS.ATTRIBUTE_AGGREGATE_EXECUTION_TIME
-  ] as string || undefined;
-  if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
-    // const executionTimes = this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
-    const executionTimes = this.getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
-    console.log(`executionTimes aggregate feature : ${executionTimes}`);
-    console.log(`Size  : ${executionTimes.length}`);
-    const analysisPromises = entities.map((entity) =>
-       this.doAnalysisOnEntity(
+    const aggregateExecutionTime = configAttributes[CONSTANTS.CATEGORY_ATTRIBUTE_ANALYTIC_PARAMETERS][
+      CONSTANTS.ATTRIBUTE_AGGREGATE_EXECUTION_TIME
+    ] as string || undefined;
+    if (aggregateExecutionTime && triggerObject.triggerType === CONSTANTS.TRIGGER_TYPE.CRON) {
+      // const executionTimes = this.getExecutionTimestamps(aggregateExecutionTime, triggerObject.triggerValue, lastExecutionTime);
+      const executionTimes = this.getCronMissingExecutionTimes(triggerObject.triggerValue, lastExecutionTime);
+      console.log(`executionTimes aggregate feature : ${executionTimes}`);
+      console.log(`Size  : ${executionTimes.length}`);
+      const analysisPromises = entities.map((entity) =>
+        this.doAnalysisOnEntity(
           analyticId,
           entity,
           executionTimes,
           configAttributes
-      )
-    );
-    const results = (await Promise.all(analysisPromises)).flat();
-    return results;
-  }
-  const executionsTimes: number[] = [];
-  executionsTimes.push(Date.now());
+        )
+      );
+      const results = (await Promise.all(analysisPromises)).flat();
+      return results;
+    }
+    const executionsTimes: number[] = [];
+    executionsTimes.push(Date.now());
 
-  const analysisPromises = entities.map((entity) =>
+    const analysisPromises = entities.map((entity) =>
       this.doAnalysisOnEntity(
         analyticId,
         entity,
         executionsTimes,
         configAttributes
-    )
-  );
-  const results = (await Promise.all(analysisPromises)).flat();
-  return results;
+      )
+    );
+    const results = (await Promise.all(analysisPromises)).flat();
+    return results;
   }
 
   /**
@@ -471,7 +471,7 @@ export default class AnalyticExecutionManagerService {
     return results;
   }*/
 
-  
+
 
   public getCronMissingExecutionTimes(
     cronSyntax: string,
@@ -533,11 +533,11 @@ export default class AnalyticExecutionManagerService {
     aggregateExecutionTime: string,
     executionTime: string,
     lastExecutionTime: number
-): number[] {
+  ): number[] {
     // Parsing options with a current date set to the lastExecutionTime
     const options = {
-        currentDate: new Date(lastExecutionTime),
-        tz: 'Europe/Paris' // Set to UTC or the appropriate timezone
+      currentDate: new Date(lastExecutionTime),
+      tz: 'Europe/Paris' // Set to UTC or the appropriate timezone
     };
 
     // Initialize the parser for the aggregate execution time
@@ -555,16 +555,16 @@ export default class AnalyticExecutionManagerService {
       // Iterate over the scheduled execution times and collect them
       let nextExecTime = executionIterator.next().toDate().getTime();
       while (nextExecTime <= nextAggregateExecTime) {
-          timestamps.push(nextExecTime);
-          nextExecTime = executionIterator.next().toDate().getTime(); 
+        timestamps.push(nextExecTime);
+        nextExecTime = executionIterator.next().toDate().getTime();
       }
-  } catch (err) {
+    } catch (err) {
       if (!(err instanceof Error && err.message === 'Out of the timespan range')) {
-          throw err;  // Re-throw unexpected errors
+        throw err;  // Re-throw unexpected errors
       }
-  }
+    }
     return timestamps;
-}
+  }
 }
 
 export { AnalyticExecutionManagerService };

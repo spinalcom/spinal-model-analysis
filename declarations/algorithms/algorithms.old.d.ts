@@ -1,0 +1,63 @@
+import { IAlgorithm } from '../interfaces/IAlgorithm';
+import { IAlgorithmParameter } from '../interfaces/IAlgorithmParameter';
+import { SpinalDateValue } from 'spinal-model-timeseries';
+import { SpinalNode } from 'spinal-env-viewer-graph-service';
+interface IParameters {
+    [key: string]: string | number | boolean;
+}
+type PrimitiveInput = number | string | boolean;
+type NodeInput = SpinalNode<any>;
+type IInput = PrimitiveInput | SpinalDateValue[] | NodeInput;
+type AlgorithmResult = string | number | boolean | NodeInput | NodeInput[];
+declare class Algorithm implements IAlgorithm {
+    name: string;
+    inputTypes: string[];
+    outputType: string;
+    description: string;
+    requiredParams: IAlgorithmParameter[] | 'boolean' | 'number' | 'string';
+    run: (input: IInput, params?: IParameters) => AlgorithmResult;
+    constructor(name: string, description: string, inputTypes: string[], outputType: string, requiredParams: IAlgorithmParameter[] | 'boolean' | 'number' | 'string', run: (input: any | any[], params?: IParameters) => AlgorithmResult);
+}
+export declare const PUTVALUE: Algorithm;
+export declare const COPY: Algorithm;
+export declare const DIVIDE: Algorithm;
+export declare const DIVIDE_BY: Algorithm;
+export declare const MULTIPLY_BY: Algorithm;
+export declare const MULTIPLY: Algorithm;
+export declare const THRESHOLD_ABOVE: Algorithm;
+export declare const THRESHOLD_BELOW: Algorithm;
+export declare const THRESHOLD_BETWEEN_IN: Algorithm;
+export declare const THRESHOLD_BETWEEN_OUT: Algorithm;
+export declare const AVERAGE: Algorithm;
+export declare const TIMESERIES_THRESHOLD_ZSCORE: Algorithm;
+export declare const TIMESERIES_AVERAGE: Algorithm;
+export declare const TIMESERIES_TIME_WEIGHTED_AVERAGE: Algorithm;
+export declare const TIMESERIES_BOOLEAN_RATE: Algorithm;
+export declare const TIMESERIES_IS_EMPTY: Algorithm;
+export declare const TIMESERIES_SUM: Algorithm;
+export declare const TIMESERIES_EDGE_SUBSTRACT: Algorithm;
+export declare const AND: Algorithm;
+export declare const OR: Algorithm;
+export declare const NOT: Algorithm;
+export declare const DIFFERENCE_THRESHOLD: Algorithm;
+export declare const STANDARD_DEVIATION: Algorithm;
+export declare const EQUAL_TO: Algorithm;
+export declare const IS_EMPTY: Algorithm;
+export declare const CONV_BOOLEAN_TO_NUMBER: Algorithm;
+export declare const CONV_NUMBER_TO_BOOLEAN: Algorithm;
+export declare const CURRENT_EPOCH_TIME: Algorithm;
+export declare const SUBTRACT: Algorithm;
+export declare const SUM: Algorithm;
+export declare const SUBTRACT_BY: Algorithm;
+export declare const RANDOM_NUMBER: Algorithm;
+export declare const RANDOM_INTEGER: Algorithm;
+export declare const RANDOM_BOOLEAN_NUMBER: Algorithm;
+export declare const RANDOM_BOOLEAN: Algorithm;
+export declare const FIRST_NODE: Algorithm;
+export declare const NODE_ARRAY: Algorithm;
+export declare const UNIQUE_NODE_ARRAY: Algorithm;
+export declare const EXIT: Algorithm;
+export declare const ALGORITHMS: {
+    [key: string]: Algorithm;
+};
+export {};

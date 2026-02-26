@@ -15,8 +15,8 @@ import {
 } from './interfaces/IAnalyticResult';
 import * as CONSTANTS from './constants';
 
-import * as algos from './algorithms/algorithms';
-import { ALGORITHMS } from './algorithms/algorithms';
+import * as algos from './algorithms/algorithms.old';
+import { ALGORITHMS } from './algorithms/algorithms.old';
 
 import AnalyticExecutionManagerService from './services/AnalyticExecutionManagerService';
 import AnalyticNodeManagerService from './services/AnalyticNodeManagerService';

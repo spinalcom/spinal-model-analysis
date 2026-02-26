@@ -13,10 +13,10 @@ Object.defineProperty(exports, "isGChatMessageResult", { enumerable: true, get: 
 Object.defineProperty(exports, "isGChatOrganCardResult", { enumerable: true, get: function () { return IAnalyticResult_1.isGChatOrganCardResult; } });
 const CONSTANTS = require("./constants");
 exports.CONSTANTS = CONSTANTS;
-const algos = require("./algorithms/algorithms");
+const algos = require("./algorithms/algorithms.old");
 exports.algos = algos;
-const algorithms_1 = require("./algorithms/algorithms");
-Object.defineProperty(exports, "ALGORITHMS", { enumerable: true, get: function () { return algorithms_1.ALGORITHMS; } });
+const algorithms_old_1 = require("./algorithms/algorithms.old");
+Object.defineProperty(exports, "ALGORITHMS", { enumerable: true, get: function () { return algorithms_old_1.ALGORITHMS; } });
 const AnalyticExecutionManagerService_1 = require("./services/AnalyticExecutionManagerService");
 const AnalyticNodeManagerService_1 = require("./services/AnalyticNodeManagerService");
 const AnalyticInputManagerService_1 = require("./services/AnalyticInputManagerService");

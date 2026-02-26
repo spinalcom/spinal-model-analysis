@@ -22,16 +22,30 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 
-export const CONTEXT_TYPE = 'analysisContext';
-export const ENTITY_TYPE = 'entity';
-export const ANALYTIC_TYPE = 'analytic';
+export const CONTEXT_NODE_TYPE = 'analysisContext';
+export const ANALYSIS_NODE_TYPE = 'analysisNode';
+
+/** WORKFLOW **/
+export const WORKFLOW_NODE_NAME = 'Workflow';
+export const WORKFLOW_NODE_TYPE = 'analysisWorkflow';
+export const ANALYSIS_TO_WORKFLOW_RELATION = 'analysisHasWorkflow';
+
+
+
+
+
+
+
+
+
+
+
 export const TRACKING_METHOD_TYPE = 'trackingMethod';
 export const INPUTS_TYPE = 'analyticInputs';
 export const OUTPUTS_TYPE = 'analyticOutputs';
 export const CONFIG_TYPE = 'analyticConfig';
 
-export const CONTEXT_TO_ENTITY_RELATION = 'hasEntity';
-export const ENTITY_TO_ANALYTIC_RELATION = 'hasAnalytics';
+export const CONTEXT_TO_ANALYSIS_NODE_RELATION = 'hasAnalysisNode';
 
 export const ANALYTIC_TO_INPUTS_RELATION = 'hasInputs';
 export const ANALYTIC_TO_OUTPUTS_RELATION = 'hasOutputs';
@@ -74,7 +88,7 @@ export const ATTRIBUTE_VALUE_SEPARATOR = ',';
 export const ATTRIBUTE_LAST_EXECUTION_TIME = 'lastExecutionTime';
 export const ATTRIBUTE_TRACKING_METHOD = 'Tracking method';
 export const ATTRIBUTE_FILTER_VALUE = 'Filter value';
-export const ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime'; 
+export const ATTRIBUTE_TIMESERIES = 'Timeseries intervalTime';
 export const ATTRIBUTE_SEARCH_DEPTH = 'Search depth';
 export const ATTRIBUTE_STRICT_DEPTH = 'Strict depth';
 export const ATTRIBUTE_SEARCH_RELATIONS = 'Search relations';
@@ -97,7 +111,7 @@ export const ATTRIBUTE_CREATE_ENDPOINT_IF_NOT_EXIST = 'Create endpoint if not ex
 export const ATTRIBUTE_CREATE_ENDPOINT_MAX_DAYS = 'Number of days the timeseries are stored';
 export const ATTRIBUTE_CREATE_ENDPOINT_UNIT = 'Unit of the endpoint';
 export const ATTRIBUTE_RESULT_CATEGORY_NAME = 'Category name';
-export const ATTRIBUTE_RESULT_CREATE_ATTRIBUTE_IF_NOT_EXIST = 'Create attribute if not exist'; 
+export const ATTRIBUTE_RESULT_CREATE_ATTRIBUTE_IF_NOT_EXIST = 'Create attribute if not exist';
 export const ATTRIBUTE_ANALYTIC_STATUS = 'Status';
 export const ATTRIBUTE_ANALYTIC_DESCRIPTION = 'Description';
 export const ATTRIBUTE_TRIGGER_AT_START = 'Trigger at start';
