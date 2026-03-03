@@ -1,0 +1,4 @@
+import { ANALYSIS_CONTEXT_NODE_TYPE } from './analysisContext';
+
+export const ANALYSIS_NODE_TYPE = 'analysisNode';
+export const ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = ANALYSIS_CONTEXT_NODE_TYPE + 'Has' + ANALYSIS_NODE_TYPE;
