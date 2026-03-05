@@ -16,17 +16,20 @@ import { AlgorithmDefinition, AlgorithmRegistry } from './definitions/core';
 import { NUMBER_ALGORITHMS } from './definitions/number.algorithms';
 import { NODE_ALGORITHMS } from './definitions/node.algorithms';
 import { FLOW_CONTROL_ALGORITHMS } from './definitions/flow-control.algorithms';
+import { REGISTER_ALGORITHMS } from './definitions/register.algorithms';
 
 export {
   NUMBER_ALGORITHMS,
   NODE_ALGORITHMS,
   FLOW_CONTROL_ALGORITHMS,
+  REGISTER_ALGORITHMS,
 };
 
 export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
   ...NUMBER_ALGORITHMS,
   ...NODE_ALGORITHMS,
-  ...FLOW_CONTROL_ALGORITHMS
+  ...FLOW_CONTROL_ALGORITHMS,
+  ...REGISTER_ALGORITHMS,
 ];
 
 export const ALGORITHM_REGISTRY = new AlgorithmRegistry(
