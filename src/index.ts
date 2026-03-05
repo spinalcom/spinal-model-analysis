@@ -4,6 +4,7 @@ import AnalyticNodeManagerService from './services/AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './services/WorkflowBlockManagerService';
 import WorkflowExecutionService from './services/WorkflowExecutionService';
 import AnalysisExecutionService from './services/AnalysisExecutionService';
+import AnalysisFactoryService from './services/AnalysisFactoryService';
 import { ALGORITHM_REGISTRY } from './algorithms/algorithms';
 
 const spinalAnalyticNodeManagerService = new AnalyticNodeManagerService();
@@ -13,12 +14,17 @@ const spinalAnalysisExecutionService = new AnalysisExecutionService(
   spinalAnalyticNodeManagerService,
   ALGORITHM_REGISTRY
 );
+const spinalAnalysisFactoryService = new AnalysisFactoryService(
+  spinalAnalyticNodeManagerService,
+  spinalWorkflowBlockManagerService
+);
 
 export {
   spinalAnalyticNodeManagerService,
   spinalWorkflowBlockManagerService,
   spinalWorkflowExecutionService,
   spinalAnalysisExecutionService,
+  spinalAnalysisFactoryService,
   VERSION
 };
 
@@ -28,6 +34,7 @@ export {
   WorkflowBlockManagerService,
   WorkflowExecutionService,
   AnalysisExecutionService,
+  AnalysisFactoryService,
 };
 
 // Execution context & result types
@@ -47,6 +54,11 @@ export type {
 } from './interfaces/IWorkflowBlock';
 export type { IAlgorithm } from './interfaces/IAlgorithm';
 export type { IAlgorithmParameter } from './interfaces/IAlgorithmParameter';
+export type {
+  IAnalysisConfigJSON,
+  IWorkflowConfigJSON,
+  IBlockConfigJSON,
+} from './interfaces/IAnalysisConfigJSON';
 
 // Constants
 export * from './constants/analysisContext';

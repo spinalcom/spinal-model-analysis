@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AlgorithmRegistry = exports.createAlgorithm = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
+exports.AlgorithmRegistry = exports.createAlgorithm = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
 const version_1 = require("./version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
 const AnalyticNodeManagerService_1 = require("./services/AnalyticNodeManagerService");
@@ -25,6 +25,8 @@ const WorkflowExecutionService_1 = require("./services/WorkflowExecutionService"
 exports.WorkflowExecutionService = WorkflowExecutionService_1.default;
 const AnalysisExecutionService_1 = require("./services/AnalysisExecutionService");
 exports.AnalysisExecutionService = AnalysisExecutionService_1.default;
+const AnalysisFactoryService_1 = require("./services/AnalysisFactoryService");
+exports.AnalysisFactoryService = AnalysisFactoryService_1.default;
 const algorithms_1 = require("./algorithms/algorithms");
 const spinalAnalyticNodeManagerService = new AnalyticNodeManagerService_1.default();
 exports.spinalAnalyticNodeManagerService = spinalAnalyticNodeManagerService;
@@ -34,6 +36,8 @@ const spinalWorkflowExecutionService = new WorkflowExecutionService_1.default(al
 exports.spinalWorkflowExecutionService = spinalWorkflowExecutionService;
 const spinalAnalysisExecutionService = new AnalysisExecutionService_1.default(spinalAnalyticNodeManagerService, algorithms_1.ALGORITHM_REGISTRY);
 exports.spinalAnalysisExecutionService = spinalAnalysisExecutionService;
+const spinalAnalysisFactoryService = new AnalysisFactoryService_1.default(spinalAnalyticNodeManagerService, spinalWorkflowBlockManagerService);
+exports.spinalAnalysisFactoryService = spinalAnalysisFactoryService;
 // Constants
 __exportStar(require("./constants/analysisContext"), exports);
 __exportStar(require("./constants/analysisNode"), exports);
