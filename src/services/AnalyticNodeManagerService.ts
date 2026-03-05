@@ -60,7 +60,7 @@ export default class AnalyticNodeManagerService {
   public getContext(contextName: string): SpinalNode<any> | undefined {
     const contexts = this.getContexts();
     if (!contexts) return undefined;
-    return contexts.find((context) => context.name.get() === contextName);
+    return contexts.find((context) => context.getName().get() === contextName);
   }
 
   /**

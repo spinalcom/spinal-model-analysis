@@ -46,7 +46,7 @@ class AnalyticNodeManagerService {
         const contexts = this.getContexts();
         if (!contexts)
             return undefined;
-        return contexts.find((context) => context.name.get() === contextName);
+        return contexts.find((context) => context.getName().get() === contextName);
     }
     /**
      * This method creates a new context and returns the info of the newly created context.
