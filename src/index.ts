@@ -1,41 +1,9 @@
-import { IAnalytic } from './interfaces/IAnalytic';
-import { IEntity } from './interfaces/IEntity';
-import { ITrackingMethod } from './interfaces/ITrackingMethod';
-import { IConfig } from './interfaces/IConfig';
-import { AnalyticModel } from './models/AnalyticModel';
-import { TrackingMethodModel } from './models/TrackingMethodModel';
-
 import { VERSION } from './version';
 
-import {
-  isResultSuccess,
-  isGChatMessageResult,
-  isGChatOrganCardResult,
-  IResult,
-} from './interfaces/IAnalyticResult';
-import * as CONSTANTS from './constants';
-
-import * as algos from './algorithms/algorithms.old';
-import { ALGORITHMS } from './algorithms/algorithms.old';
-
-import AnalyticExecutionManagerService from './services/AnalyticExecutionManagerService';
 import AnalyticNodeManagerService from './services/AnalyticNodeManagerService';
-import AnalyticInputManagerService from './services/AnalyticInputManagerService';
-import AnalyticOutputManagerService from './services/AnalyticOutputManagerService';
 
 const spinalAnalyticNodeManagerService = new AnalyticNodeManagerService();
-const spinalAnalyticInputManagerService = new AnalyticInputManagerService(
-  spinalAnalyticNodeManagerService
-);
-const spinalAnalyticOutputManagerService = new AnalyticOutputManagerService(
-  spinalAnalyticNodeManagerService,
-  spinalAnalyticInputManagerService
-);
-const spinalAnalyticExecutionService = new AnalyticExecutionManagerService(
-  spinalAnalyticNodeManagerService,
-  spinalAnalyticInputManagerService,
-  spinalAnalyticOutputManagerService
-);
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 // const globalRoot: any = typeof window === 'undefined' ? global : window;
@@ -50,24 +18,8 @@ const spinalAnalyticExecutionService = new AnalyticExecutionManagerService(
 // }
 
 export {
-  spinalAnalyticExecutionService,
   spinalAnalyticNodeManagerService,
-  spinalAnalyticInputManagerService,
-  spinalAnalyticOutputManagerService,
-  IAnalytic,
-  ITrackingMethod,
-  IEntity,
-  IConfig,
-  IResult,
-  AnalyticModel,
-  TrackingMethodModel,
-  CONSTANTS,
-  isResultSuccess,
-  isGChatMessageResult,
-  isGChatOrganCardResult,
-  algos,
-  ALGORITHMS,
   VERSION
 };
 
-export default spinalAnalyticExecutionService;
+export default spinalAnalyticNodeManagerService;

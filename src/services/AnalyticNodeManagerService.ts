@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import {
   SpinalGraphService,
-  SpinalNodeRef,
   SpinalNode,
   SpinalContext,
   SPINAL_RELATION_PTR_LST_TYPE,
@@ -24,10 +23,6 @@ import { ANALYSIS_NODE_TO_OUTPUT_NODE_RELATION, OUTPUT_NODE_NAME, OUTPUT_NODE_TY
 import { ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION, TRIGGER_NODE_NAME, TRIGGER_NODE_TYPE } from '../constants/analysisTrigger'
 import { ANALYSIS_NODE_TO_WORKNODE_RESOLVER_RELATION, WORKNODE_RESOLVER_NODE_NAME, WORKNODE_RESOLVER_NODE_TYPE } from '../constants/analysisWorknodeResolver'
 
-
-import { IAnalyticConfig } from '../interfaces/IAnalyticConfig';
-
-import { INodeDocumentation } from '../interfaces/IAttribute';
 import AttributeService, {
   attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
