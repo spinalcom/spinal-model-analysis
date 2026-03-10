@@ -47,7 +47,7 @@ export default class AnalysisExecutionService {
      * Runs the execution workflow DAG on a work node.
      * Has access to the input registers populated during the input workflow.
      *
-     * @returns A map of all block outputs (keyed by block ID)
+     * @returns A record of block outputs keyed by block name (ref)
      */
     private executeExecutionWorkflow;
     /**
@@ -55,6 +55,11 @@ export default class AnalysisExecutionService {
      * If multiple leaves exist, returns the last one in the blocks array.
      */
     private findLeafBlock;
+    /**
+     * Converts ID-keyed blockOutputs into a name-keyed record.
+     * Skips internal entries like __WORK_NODE__.
+     */
+    private mapBlockOutputsByName;
 }
 export interface AnalysisExecutionResult {
     analysisName: string;
@@ -66,6 +71,6 @@ export interface WorkNodeExecutionResult {
     workNodeName: string;
     success: boolean;
     inputRegisters?: Record<string, unknown>;
-    executionOutputs?: Map<string, unknown>;
+    executionOutputs?: Record<string, unknown>;
     error?: string;
 }

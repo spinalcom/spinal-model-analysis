@@ -245,20 +245,20 @@ export default class AnalysisExecutionService {
      * Runs the execution workflow DAG on a work node.
      * Has access to the input registers populated during the input workflow.
      *
-     * @returns A map of all block outputs (keyed by block ID)
+     * @returns A record of block outputs keyed by block name (ref)
      */
     private async executeExecutionWorkflow(
         analysisNode: SpinalNode<any>,
         workNode: SpinalNode<any>,
         inputRegisters: Map<string, unknown>
-    ): Promise<Map<string, unknown>> {
+    ): Promise<Record<string, unknown>> {
         const workflowNode =
             await this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
 
         const dag = await this.blockManager.loadWorkflowDAG(workflowNode);
 
         if (dag.blocks.length === 0) {
-            return new Map();
+            return {};
         }
 
         const context: WorkflowExecutionContext = {
@@ -269,7 +269,8 @@ export default class AnalysisExecutionService {
 
         await this.executor.executeDAG(dag, context);
 
-        return context.blockOutputs;
+        // Convert ID-keyed blockOutputs to name-keyed results
+        return this.mapBlockOutputsByName(dag.blocks, context.blockOutputs);
     }
 
     // ─────────────────────────────────────────────────────
@@ -300,6 +301,30 @@ export default class AnalysisExecutionService {
 
         return leaves[leaves.length - 1];
     }
+
+    /**
+     * Converts ID-keyed blockOutputs into a name-keyed record.
+     * Skips internal entries like __WORK_NODE__.
+     */
+    private mapBlockOutputsByName(
+        blocks: IWorkflowBlock[],
+        blockOutputs: Map<string, unknown>
+    ): Record<string, unknown> {
+        const idToName = new Map<string, string>();
+        for (const block of blocks) {
+            idToName.set(block.id, block.name);
+        }
+
+        const result: Record<string, unknown> = {};
+        for (const [id, value] of blockOutputs.entries()) {
+            const name = idToName.get(id);
+            if (name) {
+                result[name] = value;
+            }
+            // Skip __WORK_NODE__ and other internal entries
+        }
+        return result;
+    }
 }
 
 // ─────────────────────────────────────────────────────
@@ -317,6 +342,6 @@ export interface WorkNodeExecutionResult {
     workNodeName: string;
     success: boolean;
     inputRegisters?: Record<string, unknown>;
-    executionOutputs?: Map<string, unknown>;
+    executionOutputs?: Record<string, unknown>;
     error?: string;
 }

@@ -174,14 +174,14 @@ class AnalysisExecutionService {
      * Runs the execution workflow DAG on a work node.
      * Has access to the input registers populated during the input workflow.
      *
-     * @returns A map of all block outputs (keyed by block ID)
+     * @returns A record of block outputs keyed by block name (ref)
      */
     executeExecutionWorkflow(analysisNode, workNode, inputRegisters) {
         return __awaiter(this, void 0, void 0, function* () {
             const workflowNode = yield this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
             const dag = yield this.blockManager.loadWorkflowDAG(workflowNode);
             if (dag.blocks.length === 0) {
-                return new Map();
+                return {};
             }
             const context = {
                 workNode,
@@ -189,7 +189,8 @@ class AnalysisExecutionService {
                 blockOutputs: new Map(),
             };
             yield this.executor.executeDAG(dag, context);
-            return context.blockOutputs;
+            // Convert ID-keyed blockOutputs to name-keyed results
+            return this.mapBlockOutputsByName(dag.blocks, context.blockOutputs);
         });
     }
     // ─────────────────────────────────────────────────────
@@ -213,6 +214,25 @@ class AnalysisExecutionService {
             throw new Error('No leaf block found in workflow DAG — all blocks are depended on (possible cycle?)');
         }
         return leaves[leaves.length - 1];
+    }
+    /**
+     * Converts ID-keyed blockOutputs into a name-keyed record.
+     * Skips internal entries like __WORK_NODE__.
+     */
+    mapBlockOutputsByName(blocks, blockOutputs) {
+        const idToName = new Map();
+        for (const block of blocks) {
+            idToName.set(block.id, block.name);
+        }
+        const result = {};
+        for (const [id, value] of blockOutputs.entries()) {
+            const name = idToName.get(id);
+            if (name) {
+                result[name] = value;
+            }
+            // Skip __WORK_NODE__ and other internal entries
+        }
+        return result;
     }
 }
 exports.default = AnalysisExecutionService;
