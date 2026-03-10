@@ -116,5 +116,24 @@ exports.NODE_ALGORITHMS = [
             });
         }),
     }),
+    (0, core_1.createAlgorithm)({
+        name: 'ENDPOINT_NODE_CURRENT_VALUE',
+        description: 'For a node representing an endpoint, returns the current value.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'any',
+        parameters: [],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a;
+            if (!isSpinalNode(input))
+                throw new Error('Expected SpinalNode input');
+            const nodeElement = yield ((_a = input.element) === null || _a === void 0 ? void 0 : _a.load());
+            if (!nodeElement)
+                throw new Error('Node has no element to load');
+            const currentValue = nodeElement.currentValue;
+            if (currentValue === undefined)
+                throw new Error('Node element has no currentValue');
+            return currentValue.get();
+        })
+    }),
 ];
 //# sourceMappingURL=node.algorithms.js.map
