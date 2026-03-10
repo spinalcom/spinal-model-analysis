@@ -51,6 +51,37 @@ export default class WorkflowBlockManagerService {
             foreachOutputBlockId?: string;
         }
     ): Promise<SpinalNode<any>> {
+        const blockNode = this.createOrphanBlock(algorithmName, parameters, options);
+
+        await parentNode.addChildInContext(
+            blockNode,
+            PARENT_TO_WORKFLOW_BLOCK_RELATION,
+            SPINAL_RELATION_PTR_LST_TYPE,
+            contextNode
+        );
+
+        return blockNode;
+    }
+
+    /**
+     * Creates a block SpinalNode without attaching it to any parent.
+     * Use this when the block will be wired as a dependent later via addDependency(),
+     * to avoid the double-parenting problem (block shouldn't be a child of both
+     * the workflow node AND its source block).
+     *
+     * Root blocks (no dependencies) should use createBlock() instead.
+     *
+     * @returns The created block SpinalNode (not yet in the graph hierarchy)
+     */
+    public createOrphanBlock(
+        algorithmName: string,
+        parameters: Record<string, unknown> = {},
+        options?: {
+            name?: string;
+            registerAs?: string;
+            foreachOutputBlockId?: string;
+        }
+    ): SpinalNode<any> {
         const blockInfo: any = {
             name: options?.name ?? algorithmName,
             type: WORKFLOW_BLOCK_NODE_TYPE,
@@ -69,13 +100,6 @@ export default class WorkflowBlockManagerService {
         const blockNodeId = SpinalGraphService.createNode(blockInfo);
         const blockNode = SpinalGraphService.getRealNode(blockNodeId);
         if (!blockNode) throw new Error('Failed to create block node');
-
-        await parentNode.addChildInContext(
-            blockNode,
-            PARENT_TO_WORKFLOW_BLOCK_RELATION,
-            SPINAL_RELATION_PTR_LST_TYPE,
-            contextNode
-        );
 
         return blockNode;
     }

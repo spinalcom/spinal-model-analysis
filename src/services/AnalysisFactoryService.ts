@@ -13,6 +13,7 @@ import {
     IBlockConfigJSON,
 } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
+import { WORK_NODE_RESERVED_ID } from './WorkflowExecutionService';
 import { logMessage } from './utils';
 
 /**
@@ -144,8 +145,13 @@ export default class AnalysisFactoryService {
      * Builds a complete workflow DAG from the JSON block definitions.
      *
      * Strategy:
-     * 1. Create all blocks as SpinalNodes (attached to the workflow node as root)
-     * 2. Wire dependencies based on the `inputs` ref arrays
+     * 1. Determine which blocks are roots (no inputs, or only '$node') vs dependents
+     * 2. Create root blocks as children of the workflow node
+     * 3. Create dependent blocks as orphans
+     * 4. Wire dependencies — dependent blocks become children of their source blocks
+     *
+     * The special ref '$node' maps to WORK_NODE_RESERVED_ID and does NOT require
+     * a SpinalNode — it's automatically available at execution time.
      *
      * @param workflowNode - The parent workflow SpinalNode (resolver, input, or execution)
      * @param contextNode - The analysis context
@@ -159,18 +165,40 @@ export default class AnalysisFactoryService {
         // Map of ref → created SpinalNode
         const refToNode = new Map<string, SpinalNode<any>>();
 
-        // ── Phase 1: Create all block nodes (all as root children initially) ──
+        // Determine which blocks are "root" (no real block inputs)
+        // A block is root if it has no inputs, or all its inputs are '$node'
+        const isRootBlock = (blockDef: IBlockConfigJSON): boolean => {
+            if (!blockDef.inputs || blockDef.inputs.length === 0) return true;
+            return blockDef.inputs.every((ref) => ref === '$node');
+        };
+
+        // ── Phase 1: Create block nodes ──
+        // Root blocks → children of workflow node
+        // Dependent blocks → orphans (will be parented in Phase 2)
         for (const blockDef of workflowConfig.blocks) {
-            const blockNode = await this.blockManager.createBlock(
-                workflowNode,
-                contextNode,
-                blockDef.algorithmName,
-                blockDef.parameters ?? {},
-                {
-                    name: blockDef.name,
-                    registerAs: blockDef.registerAs,
-                }
-            );
+            let blockNode: SpinalNode<any>;
+
+            if (isRootBlock(blockDef)) {
+                blockNode = await this.blockManager.createBlock(
+                    workflowNode,
+                    contextNode,
+                    blockDef.algorithmName,
+                    blockDef.parameters ?? {},
+                    {
+                        name: blockDef.name,
+                        registerAs: blockDef.registerAs,
+                    }
+                );
+            } else {
+                blockNode = this.blockManager.createOrphanBlock(
+                    blockDef.algorithmName,
+                    blockDef.parameters ?? {},
+                    {
+                        name: blockDef.name,
+                        registerAs: blockDef.registerAs,
+                    }
+                );
+            }
 
             refToNode.set(blockDef.ref, blockNode);
 
@@ -191,8 +219,19 @@ export default class AnalysisFactoryService {
             const dependentNode = refToNode.get(blockDef.ref);
             if (!dependentNode) continue;
 
+            // Resolve '$node' refs to WORK_NODE_RESERVED_ID in inputBlockIds
+            // but skip graph edges for '$node' (it's virtual)
+            const resolvedInputBlockIds: string[] = [];
+
             for (let slot = 0; slot < blockDef.inputs.length; slot++) {
                 const sourceRef = blockDef.inputs[slot];
+
+                if (sourceRef === '$node') {
+                    // Virtual reference — just record the reserved ID, no graph edge
+                    resolvedInputBlockIds.push(WORK_NODE_RESERVED_ID);
+                    continue;
+                }
+
                 const sourceNode = refToNode.get(sourceRef);
                 if (!sourceNode) {
                     throw new Error(
@@ -207,6 +246,27 @@ export default class AnalysisFactoryService {
                     contextNode,
                     slot
                 );
+            }
+
+            // If there were '$node' refs, merge them into the inputBlockIds
+            if (resolvedInputBlockIds.some((id) => id === WORK_NODE_RESERVED_ID)) {
+                const currentIds = JSON.parse(
+                    dependentNode.info.inputBlockIds?.get() ?? '[]'
+                ) as string[];
+
+                // Build final ordered list: for each slot, use the '$node' ID or the already-wired ID
+                const finalIds: string[] = [];
+                let wireIdx = 0;
+                for (let slot = 0; slot < blockDef.inputs!.length; slot++) {
+                    if (blockDef.inputs![slot] === '$node') {
+                        finalIds.push(WORK_NODE_RESERVED_ID);
+                    } else {
+                        finalIds.push(currentIds[wireIdx] ?? '');
+                        wireIdx++;
+                    }
+                }
+
+                dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
             }
         }
     }

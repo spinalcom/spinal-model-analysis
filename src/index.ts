@@ -38,6 +38,9 @@ export {
 };
 
 // Execution context & result types
+export {
+  WORK_NODE_RESERVED_ID,
+} from './services/WorkflowExecutionService';
 export type {
   WorkflowExecutionContext,
 } from './services/WorkflowExecutionService';

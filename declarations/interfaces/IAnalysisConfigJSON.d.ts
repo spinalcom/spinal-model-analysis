@@ -11,14 +11,12 @@
  *   "anchorNodeId": "abc-123-def",
  *   "worknodeResolver": {
  *     "blocks": [
- *       { "ref": "node",  "algorithmName": "CURRENT_NODE" },
- *       { "ref": "kids",  "algorithmName": "GET_NODE_CHILDREN", "inputs": ["node"], "parameters": { "regex": "hasSensor" } }
+ *       { "ref": "kids",  "algorithmName": "GET_NODE_CHILDREN", "inputs": ["$node"], "parameters": { "regex": "hasSensor" } }
  *     ]
  *   },
  *   "inputWorkflow": {
  *     "blocks": [
- *       { "ref": "node",  "algorithmName": "CURRENT_NODE" },
- *       { "ref": "temp",  "algorithmName": "GET_NODE_CHILDREN", "inputs": ["node"], "parameters": { "regex": "hasEndpoint" } },
+ *       { "ref": "temp",  "algorithmName": "GET_NODE_CHILDREN", "inputs": ["$node"], "parameters": { "regex": "hasEndpoint" } },
  *       { "ref": "setI0", "algorithmName": "SET_INPUT_REGISTER", "inputs": ["temp"], "registerAs": "I0" }
  *     ]
  *   },
@@ -77,6 +75,11 @@ export interface IBlockConfigJSON {
      * Ordered list of refs this block depends on.
      * Position in the array = input slot index.
      * e.g., ["blockA", "blockB"] means inputs[0] = blockA output, inputs[1] = blockB output
+     *
+     * Use the special ref '$node' to reference the implicit work node:
+     * - In worknodeResolver: '$node' is the anchor target node
+     * - In inputWorkflow / executionWorkflow: '$node' is the current work node
+     * This avoids the need for an explicit CURRENT_NODE block.
      */
     inputs?: string[];
     /**

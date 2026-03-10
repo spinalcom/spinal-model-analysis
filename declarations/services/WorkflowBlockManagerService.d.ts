@@ -29,6 +29,21 @@ export default class WorkflowBlockManagerService {
         foreachOutputBlockId?: string;
     }): Promise<SpinalNode<any>>;
     /**
+     * Creates a block SpinalNode without attaching it to any parent.
+     * Use this when the block will be wired as a dependent later via addDependency(),
+     * to avoid the double-parenting problem (block shouldn't be a child of both
+     * the workflow node AND its source block).
+     *
+     * Root blocks (no dependencies) should use createBlock() instead.
+     *
+     * @returns The created block SpinalNode (not yet in the graph hierarchy)
+     */
+    createOrphanBlock(algorithmName: string, parameters?: Record<string, unknown>, options?: {
+        name?: string;
+        registerAs?: string;
+        foreachOutputBlockId?: string;
+    }): SpinalNode<any>;
+    /**
      * Creates a sub-block for a FOREACH block using the dedicated FOREACH relation.
      * Sub-blocks form a mini-DAG inside the FOREACH block.
      */

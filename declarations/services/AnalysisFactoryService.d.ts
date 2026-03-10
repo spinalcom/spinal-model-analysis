@@ -36,8 +36,13 @@ export default class AnalysisFactoryService {
      * Builds a complete workflow DAG from the JSON block definitions.
      *
      * Strategy:
-     * 1. Create all blocks as SpinalNodes (attached to the workflow node as root)
-     * 2. Wire dependencies based on the `inputs` ref arrays
+     * 1. Determine which blocks are roots (no inputs, or only '$node') vs dependents
+     * 2. Create root blocks as children of the workflow node
+     * 3. Create dependent blocks as orphans
+     * 4. Wire dependencies — dependent blocks become children of their source blocks
+     *
+     * The special ref '$node' maps to WORK_NODE_RESERVED_ID and does NOT require
+     * a SpinalNode — it's automatically available at execution time.
      *
      * @param workflowNode - The parent workflow SpinalNode (resolver, input, or execution)
      * @param contextNode - The analysis context

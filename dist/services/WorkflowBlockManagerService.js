@@ -39,28 +39,42 @@ class WorkflowBlockManagerService {
      * @returns The created block SpinalNode
      */
     createBlock(parentNode, contextNode, algorithmName, parameters = {}, options) {
-        var _a;
         return __awaiter(this, void 0, void 0, function* () {
-            const blockInfo = {
-                name: (_a = options === null || options === void 0 ? void 0 : options.name) !== null && _a !== void 0 ? _a : algorithmName,
-                type: analysisWorkflowBlock_1.WORKFLOW_BLOCK_NODE_TYPE,
-                algorithmName,
-                parameters: JSON.stringify(parameters),
-                inputBlockIds: JSON.stringify([]),
-            };
-            if (options === null || options === void 0 ? void 0 : options.registerAs) {
-                blockInfo.registerAs = options.registerAs;
-            }
-            if (options === null || options === void 0 ? void 0 : options.foreachOutputBlockId) {
-                blockInfo.foreachOutputBlockId = options.foreachOutputBlockId;
-            }
-            const blockNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(blockInfo);
-            const blockNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(blockNodeId);
-            if (!blockNode)
-                throw new Error('Failed to create block node');
+            const blockNode = this.createOrphanBlock(algorithmName, parameters, options);
             yield parentNode.addChildInContext(blockNode, analysisWorkflowBlock_1.PARENT_TO_WORKFLOW_BLOCK_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
             return blockNode;
         });
+    }
+    /**
+     * Creates a block SpinalNode without attaching it to any parent.
+     * Use this when the block will be wired as a dependent later via addDependency(),
+     * to avoid the double-parenting problem (block shouldn't be a child of both
+     * the workflow node AND its source block).
+     *
+     * Root blocks (no dependencies) should use createBlock() instead.
+     *
+     * @returns The created block SpinalNode (not yet in the graph hierarchy)
+     */
+    createOrphanBlock(algorithmName, parameters = {}, options) {
+        var _a;
+        const blockInfo = {
+            name: (_a = options === null || options === void 0 ? void 0 : options.name) !== null && _a !== void 0 ? _a : algorithmName,
+            type: analysisWorkflowBlock_1.WORKFLOW_BLOCK_NODE_TYPE,
+            algorithmName,
+            parameters: JSON.stringify(parameters),
+            inputBlockIds: JSON.stringify([]),
+        };
+        if (options === null || options === void 0 ? void 0 : options.registerAs) {
+            blockInfo.registerAs = options.registerAs;
+        }
+        if (options === null || options === void 0 ? void 0 : options.foreachOutputBlockId) {
+            blockInfo.foreachOutputBlockId = options.foreachOutputBlockId;
+        }
+        const blockNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(blockInfo);
+        const blockNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(blockNodeId);
+        if (!blockNode)
+            throw new Error('Failed to create block node');
+        return blockNode;
     }
     /**
      * Creates a sub-block for a FOREACH block using the dedicated FOREACH relation.
