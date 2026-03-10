@@ -341,6 +341,7 @@ export default class WorkflowBlockManagerService {
      */
     private blockNodeToMemory(blockNode: SpinalNode<any>): IWorkflowBlock {
         const id = blockNode.getId().get();
+        const name: string = blockNode.getName().get() ?? id;
         const algorithmName: string =
             blockNode.info.algorithmName?.get() ?? '';
 
@@ -360,6 +361,7 @@ export default class WorkflowBlockManagerService {
 
         const block: IWorkflowBlock = {
             id,
+            name,
             algorithmName,
             parameters,
             inputBlockIds,

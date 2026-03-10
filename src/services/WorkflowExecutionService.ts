@@ -116,7 +116,7 @@ export default class WorkflowExecutionService {
         if (block.algorithmName === 'ELEMENT') {
             if (!context.blockOutputs.has(block.id)) {
                 throw new Error(
-                    `ELEMENT block "${block.id}" has no injected value — ` +
+                    `ELEMENT block "${block.name}" has no injected value — ` +
                     'it must be inside a FOREACH sub-workflow'
                 );
             }
@@ -143,13 +143,13 @@ export default class WorkflowExecutionService {
         const registerName = block.parameters['registerName'] as string;
         if (!registerName) {
             throw new Error(
-                `FETCH_INPUT_REGISTER block "${block.id}" is missing the registerName parameter`
+                `FETCH_INPUT_REGISTER block "${block.name}" is missing the registerName parameter`
             );
         }
 
         if (!context.inputRegisters.has(registerName)) {
             throw new Error(
-                `Input register "${registerName}" not found. Available registers: ` +
+                `Input register "${registerName}" not found (block: "${block.name}"). Available registers: ` +
                 `[${[...context.inputRegisters.keys()].join(', ')}]`
             );
         }
@@ -170,13 +170,13 @@ export default class WorkflowExecutionService {
         context: WorkflowExecutionContext
     ): Promise<void> {
         if (!block.subWorkflow) {
-            throw new Error(`FOREACH block "${block.id}" has no subWorkflow defined`);
+            throw new Error(`FOREACH block "${block.name}" has no subWorkflow defined`);
         }
 
         const inputArray = inputs[0];
         if (!Array.isArray(inputArray)) {
             throw new Error(
-                `FOREACH block "${block.id}" expects an array as its first input, ` +
+                `FOREACH block "${block.name}" expects an array as its first input, ` +
                 `got ${typeof inputArray}`
             );
         }
@@ -187,7 +187,7 @@ export default class WorkflowExecutionService {
         );
         if (!elementBlock) {
             throw new Error(
-                `FOREACH block "${block.id}" sub-workflow must contain an ELEMENT block`
+                `FOREACH block "${block.name}" sub-workflow must contain an ELEMENT block`
             );
         }
 
@@ -276,7 +276,7 @@ export default class WorkflowExecutionService {
         return block.inputBlockIds.map((depId) => {
             if (!context.blockOutputs.has(depId)) {
                 throw new Error(
-                    `Block "${block.id}" (${block.algorithmName}) depends on block "${depId}" ` +
+                    `Block "${block.name}" (${block.algorithmName}) depends on block "${depId}" ` +
                     'which has not been executed yet. Check for missing dependencies or cycles.'
                 );
             }
@@ -305,7 +305,7 @@ export default class WorkflowExecutionService {
 
             if (inProgress.has(block.id)) {
                 throw new Error(
-                    `Cycle detected in workflow DAG at block "${block.id}" (${block.algorithmName})`
+                    `Cycle detected in workflow DAG at block "${block.name}" (${block.algorithmName})`
                 );
             }
 

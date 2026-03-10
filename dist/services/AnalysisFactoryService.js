@@ -116,7 +116,7 @@ class AnalysisFactoryService {
      * @param workflowConfig - The JSON workflow descriptor with block definitions
      */
     buildWorkflow(workflowNode, contextNode, workflowConfig) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g;
         return __awaiter(this, void 0, void 0, function* () {
             // Map of ref → created SpinalNode
             const refToNode = new Map();
@@ -134,13 +134,13 @@ class AnalysisFactoryService {
                 let blockNode;
                 if (isRootBlock(blockDef)) {
                     blockNode = yield this.blockManager.createBlock(workflowNode, contextNode, blockDef.algorithmName, (_a = blockDef.parameters) !== null && _a !== void 0 ? _a : {}, {
-                        name: blockDef.name,
+                        name: (_b = blockDef.name) !== null && _b !== void 0 ? _b : blockDef.ref,
                         registerAs: blockDef.registerAs,
                     });
                 }
                 else {
-                    blockNode = this.blockManager.createOrphanBlock(blockDef.algorithmName, (_b = blockDef.parameters) !== null && _b !== void 0 ? _b : {}, {
-                        name: blockDef.name,
+                    blockNode = this.blockManager.createOrphanBlock(blockDef.algorithmName, (_c = blockDef.parameters) !== null && _c !== void 0 ? _c : {}, {
+                        name: (_d = blockDef.name) !== null && _d !== void 0 ? _d : blockDef.ref,
                         registerAs: blockDef.registerAs,
                     });
                 }
@@ -176,7 +176,7 @@ class AnalysisFactoryService {
                 }
                 // If there were '$node' refs, merge them into the inputBlockIds
                 if (resolvedInputBlockIds.some((id) => id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)) {
-                    const currentIds = JSON.parse((_d = (_c = dependentNode.info.inputBlockIds) === null || _c === void 0 ? void 0 : _c.get()) !== null && _d !== void 0 ? _d : '[]');
+                    const currentIds = JSON.parse((_f = (_e = dependentNode.info.inputBlockIds) === null || _e === void 0 ? void 0 : _e.get()) !== null && _f !== void 0 ? _f : '[]');
                     // Build final ordered list: for each slot, use the '$node' ID or the already-wired ID
                     const finalIds = [];
                     let wireIdx = 0;
@@ -185,7 +185,7 @@ class AnalysisFactoryService {
                             finalIds.push(WorkflowExecutionService_1.WORK_NODE_RESERVED_ID);
                         }
                         else {
-                            finalIds.push((_e = currentIds[wireIdx]) !== null && _e !== void 0 ? _e : '');
+                            finalIds.push((_g = currentIds[wireIdx]) !== null && _g !== void 0 ? _g : '');
                             wireIdx++;
                         }
                     }
@@ -198,13 +198,13 @@ class AnalysisFactoryService {
      * Builds the sub-workflow for a FOREACH block.
      */
     buildForeachSubWorkflow(foreachNode, contextNode, subWorkflowConfig) {
-        var _a;
+        var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const refToNode = new Map();
             // Phase 1: Create sub-blocks
             for (const blockDef of subWorkflowConfig.blocks) {
                 const subBlockNode = yield this.blockManager.createForeachSubBlock(foreachNode, contextNode, blockDef.algorithmName, (_a = blockDef.parameters) !== null && _a !== void 0 ? _a : {}, {
-                    name: blockDef.name,
+                    name: (_b = blockDef.name) !== null && _b !== void 0 ? _b : blockDef.ref,
                     registerAs: blockDef.registerAs,
                 });
                 refToNode.set(blockDef.ref, subBlockNode);

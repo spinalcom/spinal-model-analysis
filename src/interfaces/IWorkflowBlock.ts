@@ -10,6 +10,13 @@ export interface IWorkflowBlock {
     /** The SpinalNode ID of this block */
     id: string;
 
+    /**
+     * Human-readable name for this block.
+     * Set from the `ref` in the JSON config during creation.
+     * Used for logging and debugging.
+     */
+    name: string;
+
     /** The algorithm name from the AlgorithmRegistry */
     algorithmName: string;
 

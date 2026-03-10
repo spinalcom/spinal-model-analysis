@@ -185,7 +185,7 @@ export default class AnalysisFactoryService {
                     blockDef.algorithmName,
                     blockDef.parameters ?? {},
                     {
-                        name: blockDef.name,
+                        name: blockDef.name ?? blockDef.ref,
                         registerAs: blockDef.registerAs,
                     }
                 );
@@ -194,7 +194,7 @@ export default class AnalysisFactoryService {
                     blockDef.algorithmName,
                     blockDef.parameters ?? {},
                     {
-                        name: blockDef.name,
+                        name: blockDef.name ?? blockDef.ref,
                         registerAs: blockDef.registerAs,
                     }
                 );
@@ -289,7 +289,7 @@ export default class AnalysisFactoryService {
                 blockDef.algorithmName,
                 blockDef.parameters ?? {},
                 {
-                    name: blockDef.name,
+                    name: blockDef.name ?? blockDef.ref,
                     registerAs: blockDef.registerAs,
                 }
             );

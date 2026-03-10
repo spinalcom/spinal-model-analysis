@@ -252,16 +252,17 @@ class WorkflowBlockManagerService {
      * Converts a block SpinalNode to its in-memory IWorkflowBlock representation.
      */
     blockNodeToMemory(blockNode) {
-        var _a, _b, _c;
+        var _a, _b, _c, _d;
         const id = blockNode.getId().get();
-        const algorithmName = (_b = (_a = blockNode.info.algorithmName) === null || _a === void 0 ? void 0 : _a.get()) !== null && _b !== void 0 ? _b : '';
+        const name = (_a = blockNode.getName().get()) !== null && _a !== void 0 ? _a : id;
+        const algorithmName = (_c = (_b = blockNode.info.algorithmName) === null || _b === void 0 ? void 0 : _b.get()) !== null && _c !== void 0 ? _c : '';
         let parameters = {};
         try {
-            const paramStr = (_c = blockNode.info.parameters) === null || _c === void 0 ? void 0 : _c.get();
+            const paramStr = (_d = blockNode.info.parameters) === null || _d === void 0 ? void 0 : _d.get();
             if (paramStr)
                 parameters = JSON.parse(paramStr);
         }
-        catch (_d) {
+        catch (_e) {
             /* invalid JSON — use empty params */
         }
         const inputBlockIds = this.getInputBlockIds(blockNode);
@@ -270,6 +271,7 @@ class WorkflowBlockManagerService {
             : undefined;
         const block = {
             id,
+            name,
             algorithmName,
             parameters,
             inputBlockIds,
