@@ -43,10 +43,7 @@ export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
         outputType: 'any',
         parameters: [],
         run: async (input): AlgorithmRunResult => {
-            // Pass through — the executor handles registration via block.registerAs
-            if (Array.isArray(input)) {
-                return input.length > 0 ? (input[0] as any) : undefined;
-            }
+            // Pass through unchanged — the executor handles registration via block.registerAs
             return input as any;
         },
     }),

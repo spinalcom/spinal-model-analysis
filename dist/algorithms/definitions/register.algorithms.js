@@ -47,10 +47,7 @@ exports.REGISTER_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
-            // Pass through — the executor handles registration via block.registerAs
-            if (Array.isArray(input)) {
-                return input.length > 0 ? input[0] : undefined;
-            }
+            // Pass through unchanged — the executor handles registration via block.registerAs
             return input;
         }),
     }),
