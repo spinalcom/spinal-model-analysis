@@ -9,13 +9,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.WORK_NODE_RESERVED_ID = void 0;
+exports.FOREACH_ELEMENT_RESERVED_ID = exports.WORK_NODE_RESERVED_ID = void 0;
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
  * Blocks that need the work node can reference this in their inputBlockIds.
  * In JSON configs, use the special ref '$node' which maps to this ID.
  */
 exports.WORK_NODE_RESERVED_ID = '__WORK_NODE__';
+/**
+ * Reserved block ID for the implicit ELEMENT block inside FOREACH sub-workflows.
+ * The executor auto-injects this block with the current iteration element.
+ * In JSON configs, sub-workflow blocks use the special ref '$item' to reference it.
+ */
+exports.FOREACH_ELEMENT_RESERVED_ID = '__FOREACH_ELEMENT__';
 /**
  * DAG execution engine for workflow blocks.
  *
@@ -80,7 +86,7 @@ class WorkflowExecutionService {
                 this.executeFetchInputRegister(block, context);
                 return;
             }
-            // ── ELEMENT (value already injected by FOREACH executor) ──
+            // ── ELEMENT (legacy explicit block — value already injected by FOREACH executor) ──
             if (block.algorithmName === 'ELEMENT') {
                 if (!context.blockOutputs.has(block.id)) {
                     throw new Error(`ELEMENT block "${block.name}" has no injected value — ` +
@@ -114,6 +120,10 @@ class WorkflowExecutionService {
     /**
      * Handles FOREACH: iterates over an array input, executing the sub-workflow
      * for each element. Collects results into an output array.
+     *
+     * The current iteration element is automatically injected under
+     * FOREACH_ELEMENT_RESERVED_ID. Sub-workflow blocks reference it via '$item'.
+     * An explicit ELEMENT block is no longer required.
      */
     executeForeach(block, inputs, context) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -125,11 +135,6 @@ class WorkflowExecutionService {
                 throw new Error(`FOREACH block "${block.name}" expects an array as its first input, ` +
                     `got ${typeof inputArray}`);
             }
-            // Find the ELEMENT block in the sub-workflow
-            const elementBlock = block.subWorkflow.blocks.find((b) => b.algorithmName === 'ELEMENT');
-            if (!elementBlock) {
-                throw new Error(`FOREACH block "${block.name}" sub-workflow must contain an ELEMENT block`);
-            }
             const results = [];
             for (const element of inputArray) {
                 // Create an isolated sub-context for this iteration
@@ -138,8 +143,8 @@ class WorkflowExecutionService {
                     inputRegisters: new Map(context.inputRegisters),
                     blockOutputs: new Map(),
                 };
-                // Inject the current element as the ELEMENT block's output
-                subContext.blockOutputs.set(elementBlock.id, element);
+                // Auto-inject the current element under the reserved ID
+                subContext.blockOutputs.set(exports.FOREACH_ELEMENT_RESERVED_ID, element);
                 // Execute sub-workflow DAG
                 yield this.executeDAG({ blocks: block.subWorkflow.blocks }, subContext);
                 // Collect the designated output

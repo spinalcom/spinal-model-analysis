@@ -76,10 +76,9 @@ export interface IBlockConfigJSON {
      * Position in the array = input slot index.
      * e.g., ["blockA", "blockB"] means inputs[0] = blockA output, inputs[1] = blockB output
      *
-     * Use the special ref '$node' to reference the implicit work node:
-     * - In worknodeResolver: '$node' is the anchor target node
-     * - In inputWorkflow / executionWorkflow: '$node' is the current work node
-     * This avoids the need for an explicit CURRENT_NODE block.
+     * Special refs:
+     * - '$node': references the implicit work node (anchor target / current work node)
+     * - '$item': (inside FOREACH subWorkflow only) references the current iteration element
      */
     inputs?: string[];
     /**

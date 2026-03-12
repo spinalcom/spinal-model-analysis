@@ -15,6 +15,13 @@ import {
 export const WORK_NODE_RESERVED_ID = '__WORK_NODE__';
 
 /**
+ * Reserved block ID for the implicit ELEMENT block inside FOREACH sub-workflows.
+ * The executor auto-injects this block with the current iteration element.
+ * In JSON configs, sub-workflow blocks use the special ref '$item' to reference it.
+ */
+export const FOREACH_ELEMENT_RESERVED_ID = '__FOREACH_ELEMENT__';
+
+/**
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
  */
@@ -112,7 +119,7 @@ export default class WorkflowExecutionService {
             return;
         }
 
-        // ── ELEMENT (value already injected by FOREACH executor) ──
+        // ── ELEMENT (legacy explicit block — value already injected by FOREACH executor) ──
         if (block.algorithmName === 'ELEMENT') {
             if (!context.blockOutputs.has(block.id)) {
                 throw new Error(
@@ -163,6 +170,10 @@ export default class WorkflowExecutionService {
     /**
      * Handles FOREACH: iterates over an array input, executing the sub-workflow
      * for each element. Collects results into an output array.
+     *
+     * The current iteration element is automatically injected under
+     * FOREACH_ELEMENT_RESERVED_ID. Sub-workflow blocks reference it via '$item'.
+     * An explicit ELEMENT block is no longer required.
      */
     private async executeForeach(
         block: IWorkflowBlock,
@@ -181,16 +192,6 @@ export default class WorkflowExecutionService {
             );
         }
 
-        // Find the ELEMENT block in the sub-workflow
-        const elementBlock = block.subWorkflow.blocks.find(
-            (b) => b.algorithmName === 'ELEMENT'
-        );
-        if (!elementBlock) {
-            throw new Error(
-                `FOREACH block "${block.name}" sub-workflow must contain an ELEMENT block`
-            );
-        }
-
         const results: unknown[] = [];
 
         for (const element of inputArray) {
@@ -201,8 +202,8 @@ export default class WorkflowExecutionService {
                 blockOutputs: new Map(),
             };
 
-            // Inject the current element as the ELEMENT block's output
-            subContext.blockOutputs.set(elementBlock.id, element);
+            // Auto-inject the current element under the reserved ID
+            subContext.blockOutputs.set(FOREACH_ELEMENT_RESERVED_ID, element);
 
             // Execute sub-workflow DAG
             await this.executeDAG(

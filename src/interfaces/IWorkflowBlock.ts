@@ -46,8 +46,13 @@ export interface IWorkflowBlock {
 
 /**
  * A sub-workflow embedded inside a FOREACH block.
- * Must contain exactly one block with algorithmName === 'ELEMENT'
- * which acts as the source / injection point for the current array element.
+ *
+ * At runtime, the current iteration element is automatically injected under
+ * a reserved block ID. Sub-workflow blocks access it via the '$item' ref
+ * in their inputs (mapped to FOREACH_ELEMENT_RESERVED_ID).
+ *
+ * An explicit ELEMENT block is still supported for backward compatibility
+ * but is no longer required.
  */
 export interface ISubWorkflow {
     /** All blocks in the sub-workflow */

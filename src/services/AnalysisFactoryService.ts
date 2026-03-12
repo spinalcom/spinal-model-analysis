@@ -13,7 +13,7 @@ import {
     IBlockConfigJSON,
 } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
-import { WORK_NODE_RESERVED_ID } from './WorkflowExecutionService';
+import { WORK_NODE_RESERVED_ID, FOREACH_ELEMENT_RESERVED_ID } from './WorkflowExecutionService';
 import { logMessage } from './utils';
 
 /**
@@ -273,6 +273,8 @@ export default class AnalysisFactoryService {
 
     /**
      * Builds the sub-workflow for a FOREACH block.
+     * The special ref '$item' maps to FOREACH_ELEMENT_RESERVED_ID and is auto-injected
+     * at runtime — no explicit ELEMENT block is needed.
      */
     private async buildForeachSubWorkflow(
         foreachNode: SpinalNode<any>,
@@ -281,7 +283,7 @@ export default class AnalysisFactoryService {
     ): Promise<void> {
         const refToNode = new Map<string, SpinalNode<any>>();
 
-        // Phase 1: Create sub-blocks
+        // Phase 1: Create sub-blocks (skip implicit ELEMENT blocks)
         for (const blockDef of subWorkflowConfig.blocks) {
             const subBlockNode = await this.blockManager.createForeachSubBlock(
                 foreachNode,
@@ -303,13 +305,22 @@ export default class AnalysisFactoryService {
             const dependentNode = refToNode.get(blockDef.ref);
             if (!dependentNode) continue;
 
+            const resolvedInputBlockIds: string[] = [];
+
             for (let slot = 0; slot < blockDef.inputs.length; slot++) {
                 const sourceRef = blockDef.inputs[slot];
+
+                if (sourceRef === '$item') {
+                    // Virtual reference to the implicit FOREACH element
+                    resolvedInputBlockIds.push(FOREACH_ELEMENT_RESERVED_ID);
+                    continue;
+                }
+
                 const sourceNode = refToNode.get(sourceRef);
                 if (!sourceNode) {
                     throw new Error(
                         `[AnalysisFactory] FOREACH sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                        'which does not exist in the sub-workflow.'
+                        'which does not exist in the sub-workflow. Use "$item" to reference the current iteration element.'
                     );
                 }
 
@@ -319,6 +330,26 @@ export default class AnalysisFactoryService {
                     contextNode,
                     slot
                 );
+            }
+
+            // If there were '$item' refs, merge them into the inputBlockIds
+            if (resolvedInputBlockIds.some((id) => id === FOREACH_ELEMENT_RESERVED_ID)) {
+                const currentIds = JSON.parse(
+                    dependentNode.info.inputBlockIds?.get() ?? '[]'
+                ) as string[];
+
+                const finalIds: string[] = [];
+                let wireIdx = 0;
+                for (let slot = 0; slot < blockDef.inputs!.length; slot++) {
+                    if (blockDef.inputs![slot] === '$item') {
+                        finalIds.push(FOREACH_ELEMENT_RESERVED_ID);
+                    } else {
+                        finalIds.push(currentIds[wireIdx] ?? '');
+                        wireIdx++;
+                    }
+                }
+
+                dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
             }
         }
 

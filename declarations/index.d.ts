@@ -11,7 +11,7 @@ declare const spinalAnalysisExecutionService: AnalysisExecutionService;
 declare const spinalAnalysisFactoryService: AnalysisFactoryService;
 export { spinalAnalyticNodeManagerService, spinalWorkflowBlockManagerService, spinalWorkflowExecutionService, spinalAnalysisExecutionService, spinalAnalysisFactoryService, VERSION };
 export { AnalyticNodeManagerService, WorkflowBlockManagerService, WorkflowExecutionService, AnalysisExecutionService, AnalysisFactoryService, };
-export { WORK_NODE_RESERVED_ID, } from './services/WorkflowExecutionService';
+export { WORK_NODE_RESERVED_ID, FOREACH_ELEMENT_RESERVED_ID, } from './services/WorkflowExecutionService';
 export type { WorkflowExecutionContext, } from './services/WorkflowExecutionService';
 export type { AnalysisExecutionResult, WorkNodeExecutionResult, } from './services/AnalysisExecutionService';
 export type { IWorkflowBlock, ISubWorkflow, IWorkflowDAG, } from './interfaces/IWorkflowBlock';

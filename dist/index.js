@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AlgorithmRegistry = exports.createAlgorithm = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.WORK_NODE_RESERVED_ID = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
+exports.AlgorithmRegistry = exports.createAlgorithm = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.FOREACH_ELEMENT_RESERVED_ID = exports.WORK_NODE_RESERVED_ID = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
 const version_1 = require("./version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
 const AnalyticNodeManagerService_1 = require("./services/AnalyticNodeManagerService");
@@ -41,6 +41,7 @@ exports.spinalAnalysisFactoryService = spinalAnalysisFactoryService;
 // Execution context & result types
 var WorkflowExecutionService_2 = require("./services/WorkflowExecutionService");
 Object.defineProperty(exports, "WORK_NODE_RESERVED_ID", { enumerable: true, get: function () { return WorkflowExecutionService_2.WORK_NODE_RESERVED_ID; } });
+Object.defineProperty(exports, "FOREACH_ELEMENT_RESERVED_ID", { enumerable: true, get: function () { return WorkflowExecutionService_2.FOREACH_ELEMENT_RESERVED_ID; } });
 // Constants
 __exportStar(require("./constants/analysisContext"), exports);
 __exportStar(require("./constants/analysisNode"), exports);

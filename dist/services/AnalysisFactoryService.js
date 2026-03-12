@@ -196,12 +196,14 @@ class AnalysisFactoryService {
     }
     /**
      * Builds the sub-workflow for a FOREACH block.
+     * The special ref '$item' maps to FOREACH_ELEMENT_RESERVED_ID and is auto-injected
+     * at runtime — no explicit ELEMENT block is needed.
      */
     buildForeachSubWorkflow(foreachNode, contextNode, subWorkflowConfig) {
-        var _a, _b;
+        var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
             const refToNode = new Map();
-            // Phase 1: Create sub-blocks
+            // Phase 1: Create sub-blocks (skip implicit ELEMENT blocks)
             for (const blockDef of subWorkflowConfig.blocks) {
                 const subBlockNode = yield this.blockManager.createForeachSubBlock(foreachNode, contextNode, blockDef.algorithmName, (_a = blockDef.parameters) !== null && _a !== void 0 ? _a : {}, {
                     name: (_b = blockDef.name) !== null && _b !== void 0 ? _b : blockDef.ref,
@@ -216,14 +218,36 @@ class AnalysisFactoryService {
                 const dependentNode = refToNode.get(blockDef.ref);
                 if (!dependentNode)
                     continue;
+                const resolvedInputBlockIds = [];
                 for (let slot = 0; slot < blockDef.inputs.length; slot++) {
                     const sourceRef = blockDef.inputs[slot];
+                    if (sourceRef === '$item') {
+                        // Virtual reference to the implicit FOREACH element
+                        resolvedInputBlockIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
+                        continue;
+                    }
                     const sourceNode = refToNode.get(sourceRef);
                     if (!sourceNode) {
                         throw new Error(`[AnalysisFactory] FOREACH sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                            'which does not exist in the sub-workflow.');
+                            'which does not exist in the sub-workflow. Use "$item" to reference the current iteration element.');
                     }
                     yield this.blockManager.addSubBlockDependency(sourceNode, dependentNode, contextNode, slot);
+                }
+                // If there were '$item' refs, merge them into the inputBlockIds
+                if (resolvedInputBlockIds.some((id) => id === WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID)) {
+                    const currentIds = JSON.parse((_d = (_c = dependentNode.info.inputBlockIds) === null || _c === void 0 ? void 0 : _c.get()) !== null && _d !== void 0 ? _d : '[]');
+                    const finalIds = [];
+                    let wireIdx = 0;
+                    for (let slot = 0; slot < blockDef.inputs.length; slot++) {
+                        if (blockDef.inputs[slot] === '$item') {
+                            finalIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
+                        }
+                        else {
+                            finalIds.push((_e = currentIds[wireIdx]) !== null && _e !== void 0 ? _e : '');
+                            wireIdx++;
+                        }
+                    }
+                    dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
                 }
             }
             // Set the output block ID on the FOREACH node

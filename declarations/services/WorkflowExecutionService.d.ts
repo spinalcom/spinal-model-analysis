@@ -8,6 +8,12 @@ import { AlgorithmRegistry } from '../algorithms/definitions/core';
  */
 export declare const WORK_NODE_RESERVED_ID = "__WORK_NODE__";
 /**
+ * Reserved block ID for the implicit ELEMENT block inside FOREACH sub-workflows.
+ * The executor auto-injects this block with the current iteration element.
+ * In JSON configs, sub-workflow blocks use the special ref '$item' to reference it.
+ */
+export declare const FOREACH_ELEMENT_RESERVED_ID = "__FOREACH_ELEMENT__";
+/**
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
  */
@@ -64,6 +70,10 @@ export default class WorkflowExecutionService {
     /**
      * Handles FOREACH: iterates over an array input, executing the sub-workflow
      * for each element. Collects results into an output array.
+     *
+     * The current iteration element is automatically injected under
+     * FOREACH_ELEMENT_RESERVED_ID. Sub-workflow blocks reference it via '$item'.
+     * An explicit ELEMENT block is no longer required.
      */
     private executeForeach;
     /**

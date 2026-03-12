@@ -51,6 +51,8 @@ export default class AnalysisFactoryService {
     private buildWorkflow;
     /**
      * Builds the sub-workflow for a FOREACH block.
+     * The special ref '$item' maps to FOREACH_ELEMENT_RESERVED_ID and is auto-injected
+     * at runtime — no explicit ELEMENT block is needed.
      */
     private buildForeachSubWorkflow;
 }
