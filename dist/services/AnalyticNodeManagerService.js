@@ -204,6 +204,11 @@ class AnalyticNodeManagerService {
             yield anchorNode.addChildInContext(nodeToLink, analysisAnchor_1.ANALYSIS_NODE_TO_ANCHOR_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
         });
     }
+    removeLinkToAnchorNode(anchorNode, anchoredNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            anchorNode.removeChild(anchoredNode, analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+        });
+    }
     // #endregion ANCHOR
     // #region NODE GLOBAL
     removeChild(parentNode, childNode, relation) {

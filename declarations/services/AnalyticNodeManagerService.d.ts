@@ -37,6 +37,7 @@ export default class AnalyticNodeManagerService {
     getAnalysisNodesByContextName(contextName: string): Promise<SpinalNode<any>[]>;
     getAnalysisNode(contextName: string, analyticName: string): Promise<SpinalNode<any> | undefined>;
     linkNodeToAnchorNode(anchorNode: SpinalNode<any>, nodeToLink: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;
+    removeLinkToAnchorNode(anchorNode: SpinalNode<any>, anchoredNode: SpinalNode<any>): Promise<void>;
     private removeChild;
     safeDeleteNode(node: SpinalNode<any>, shouldDeleteChildren?: boolean): Promise<void>;
     addWorkflowNodeToAnalysisNode(analysisNode: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;

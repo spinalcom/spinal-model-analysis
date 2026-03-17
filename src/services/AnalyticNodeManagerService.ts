@@ -16,7 +16,7 @@ import {
   ANALYSIS_CONTEXT_NODE_TYPE
 } from '../constants/analysisContext';
 
-import { ANALYSIS_NODE_TO_ANCHOR_RELATION, ANCHOR_NODE_NAME, ANCHOR_NODE_TYPE } from '../constants/analysisAnchor'
+import { ANALYSIS_NODE_TO_ANCHOR_RELATION, ANCHOR_NODE_NAME, ANCHOR_NODE_TO_LINKED_NODE_RELATION, ANCHOR_NODE_TYPE } from '../constants/analysisAnchor'
 import { EXECUTION_WORKFLOW_NODE_NAME, EXECUTION_WORKFLOW_NODE_TYPE, ANALYSIS_NODE_TO_EXECUTION_WORKFLOW_RELATION } from '../constants/analysisExecutionWorkflow'
 import { ANALYSIS_NODE_TO_INPUT_NODE_RELATION, INPUT_NODE_NAME, INPUT_NODE_TYPE } from '../constants/analysisInput'
 import { ANALYSIS_NODE_TO_OUTPUT_NODE_RELATION, OUTPUT_NODE_NAME, OUTPUT_NODE_TYPE } from '../constants/analysisOutput'
@@ -253,6 +253,17 @@ export default class AnalyticNodeManagerService {
       ANALYSIS_NODE_TO_ANCHOR_RELATION,
       SPINAL_RELATION_PTR_LST_TYPE,
       contextNode
+    );
+  }
+
+  public async removeLinkToAnchorNode(
+    anchorNode: SpinalNode<any>,
+    anchoredNode: SpinalNode<any>
+  ): Promise<void> {
+    anchorNode.removeChild(
+      anchoredNode,
+      ANCHOR_NODE_TO_LINKED_NODE_RELATION,
+      SPINAL_RELATION_PTR_LST_TYPE
     );
   }
 
