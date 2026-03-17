@@ -28,6 +28,8 @@ export declare const THRESHOLD_BETWEEN_OUT: Algorithm;
 export declare const AVERAGE: Algorithm;
 export declare const TIMESERIES_THRESHOLD_ZSCORE: Algorithm;
 export declare const TIMESERIES_AVERAGE: Algorithm;
+export declare const TIMESERIES_MAX_VALUE: Algorithm;
+export declare const TIMESERIES_MIN_VALUE: Algorithm;
 export declare const TIMESERIES_TIME_WEIGHTED_AVERAGE: Algorithm;
 export declare const TIMESERIES_BOOLEAN_RATE: Algorithm;
 export declare const TIMESERIES_IS_EMPTY: Algorithm;
