@@ -302,6 +302,32 @@ export const TIMESERIES_AVERAGE = new Algorithm(
   }
 );
 
+export const TIMESERIES_MAX_VALUE = new Algorithm(
+  'TIMESERIES_MAX_VALUE',
+  'This algorithm returns the maximum value of the timeseries',
+  ['Timeseries'],
+  'number',
+  [],
+  (input: SpinalDateValue[][]): number => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0) throw new Error('Timeseries is empty');
+    return dataInput.reduce((max, current) => Math.max(max, current.value), -Infinity);
+  }
+);
+
+export const TIMESERIES_MIN_VALUE = new Algorithm(
+  'TIMESERIES_MIN_VALUE',
+  'This algorithm returns the minimum value of the timeseries',
+  ['Timeseries'],
+  'number',
+  [],
+  (input: SpinalDateValue[][]): number => {
+    const dataInput = input.reduce((acc, curr) => acc.concat(...curr), []);
+    if (dataInput.length === 0) throw new Error('Timeseries is empty');
+    return dataInput.reduce((min, current) => Math.min(min, current.value), Infinity);
+  }
+);
+
 export const TIMESERIES_TIME_WEIGHTED_AVERAGE = new Algorithm(
   'TIMESERIES_TIME_WEIGHTED_AVERAGE',
   'This algorithm calculates the time-weighted average value of a timeseries. It takes into account the time intervals between successive data points to compute the average.',
@@ -613,7 +639,7 @@ export const SUBTRACT_BY = new Algorithm(
       );
     const flat = input.flat(Infinity);
     if (flat.length === 0) throw new Error('No input provided');
-    
+
     return flat[0] - params['p1'];
   }
 );
@@ -632,7 +658,7 @@ export const RANDOM_NUMBER = new Algorithm(
     if (typeof params['p1'] !== 'number' || typeof params['p2'] !== 'number')
       throw new Error(
         `Invalid parameter type. Expected number, got ${typeof params[
-          'p1'
+        'p1'
         ]} or ${typeof params['p2']}`
       );
     return Math.random() * (params['p2'] - params['p1']) + params['p1'];
@@ -653,7 +679,7 @@ export const RANDOM_INTEGER = new Algorithm(
     if (typeof params['p1'] !== 'number' || typeof params['p2'] !== 'number')
       throw new Error(
         `Invalid parameter type. Expected number, got ${typeof params[
-          'p1'
+        'p1'
         ]} or ${typeof params['p2']}`
       );
     return Math.floor(Math.random() * (params['p2'] - params['p1'] + 1) + params['p1']);
@@ -710,6 +736,8 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   TIMESERIES_THRESHOLD_ZSCORE,
   TIMESERIES_IS_EMPTY,
   TIMESERIES_AVERAGE,
+  TIMESERIES_MAX_VALUE,
+  TIMESERIES_MIN_VALUE,
   TIMESERIES_TIME_WEIGHTED_AVERAGE,
   TIMESERIES_SUM,
   TIMESERIES_BOOLEAN_RATE,
