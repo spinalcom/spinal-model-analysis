@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.EXIT = exports.RANDOM_BOOLEAN = exports.RANDOM_BOOLEAN_NUMBER = exports.RANDOM_INTEGER = exports.RANDOM_NUMBER = exports.SUBTRACT_BY = exports.SUM = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_EDGE_SUBSTRACT = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_MIN_VALUE = exports.TIMESERIES_MAX_VALUE = exports.TIMESERIES_AVERAGE = exports.TIMESERIES_THRESHOLD_ZSCORE = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
+exports.ALGORITHMS = exports.ROUND_NUMBER = exports.CEIL_NUMBER = exports.FLOOR_NUMBER = exports.EXIT = exports.RANDOM_BOOLEAN = exports.RANDOM_BOOLEAN_NUMBER = exports.RANDOM_INTEGER = exports.RANDOM_NUMBER = exports.SUBTRACT_BY = exports.SUM = exports.SUBTRACT = exports.CURRENT_EPOCH_TIME = exports.CONV_NUMBER_TO_BOOLEAN = exports.CONV_BOOLEAN_TO_NUMBER = exports.IS_EMPTY = exports.EQUAL_TO = exports.STANDARD_DEVIATION = exports.DIFFERENCE_THRESHOLD = exports.NOT = exports.OR = exports.AND = exports.TIMESERIES_EDGE_SUBSTRACT = exports.TIMESERIES_SUM = exports.TIMESERIES_IS_EMPTY = exports.TIMESERIES_BOOLEAN_RATE = exports.TIMESERIES_TIME_WEIGHTED_AVERAGE = exports.TIMESERIES_MIN_VALUE = exports.TIMESERIES_MAX_VALUE = exports.TIMESERIES_AVERAGE = exports.TIMESERIES_THRESHOLD_ZSCORE = exports.AVERAGE = exports.THRESHOLD_BETWEEN_OUT = exports.THRESHOLD_BETWEEN_IN = exports.THRESHOLD_BELOW = exports.THRESHOLD_ABOVE = exports.MULTIPLY = exports.MULTIPLY_BY = exports.DIVIDE_BY = exports.DIVIDE = exports.COPY = exports.PUTVALUE = void 0;
 class Algorithm {
     constructor(name, description, inputTypes, outputType, requiredParams, run) {
         this.name = name;
@@ -386,6 +386,24 @@ exports.EXIT = new Algorithm('EXIT', 'This algorithm is used to stop the executi
         throw new Error('No input provided');
     return flat[0];
 });
+exports.FLOOR_NUMBER = new Algorithm('FLOOR_NUMBER', 'This algorithm returns the largest integer less than or equal to a given number', ['number'], 'number', [], (input) => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return Math.floor(flat[0]);
+});
+exports.CEIL_NUMBER = new Algorithm('CEIL_NUMBER', 'This algorithm returns the smallest integer greater than or equal to a given number', ['number'], 'number', [], (input) => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return Math.ceil(flat[0]);
+});
+exports.ROUND_NUMBER = new Algorithm('ROUND_NUMBER', 'This algorithm returns the value of a number rounded to the nearest integer', ['number'], 'number', [], (input) => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0)
+        throw new Error('No input provided');
+    return Math.round(flat[0]);
+});
 exports.ALGORITHMS = {
     PUTVALUE: exports.PUTVALUE,
     COPY: exports.COPY,
@@ -425,5 +443,8 @@ exports.ALGORITHMS = {
     RANDOM_BOOLEAN: exports.RANDOM_BOOLEAN,
     RANDOM_INTEGER: exports.RANDOM_INTEGER,
     EXIT: exports.EXIT,
+    FLOOR_NUMBER: exports.FLOOR_NUMBER,
+    CEIL_NUMBER: exports.CEIL_NUMBER,
+    ROUND_NUMBER: exports.ROUND_NUMBER,
 };
 //# sourceMappingURL=algorithms.js.map

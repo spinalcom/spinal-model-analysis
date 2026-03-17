@@ -721,6 +721,48 @@ export const EXIT = new Algorithm(
   }
 );
 
+
+export const FLOOR_NUMBER = new Algorithm(
+  'FLOOR_NUMBER',
+  'This algorithm returns the largest integer less than or equal to a given number',
+  ['number'],
+  'number',
+  [],
+  (input: number[]): number => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return Math.floor(flat[0]);
+  }
+);
+
+export const CEIL_NUMBER = new Algorithm(
+  'CEIL_NUMBER',
+  'This algorithm returns the smallest integer greater than or equal to a given number',
+  ['number'],
+  'number',
+  [],
+  (input: number[]): number => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return Math.ceil(flat[0]);
+  }
+);
+
+export const ROUND_NUMBER = new Algorithm(
+  'ROUND_NUMBER',
+  'This algorithm returns the value of a number rounded to the nearest integer',
+  ['number'],
+  'number',
+  [],
+  (input: number[]): number => {
+    const flat = input.flat(Infinity);
+    if (flat.length === 0) throw new Error('No input provided');
+    return Math.round(flat[0]);
+  }
+);
+
+
+
 export const ALGORITHMS: { [key: string]: Algorithm } = {
   PUTVALUE,
   COPY,
@@ -760,4 +802,7 @@ export const ALGORITHMS: { [key: string]: Algorithm } = {
   RANDOM_BOOLEAN,
   RANDOM_INTEGER,
   EXIT,
+  FLOOR_NUMBER,
+  CEIL_NUMBER,
+  ROUND_NUMBER,
 };

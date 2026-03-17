@@ -53,6 +53,9 @@ export declare const RANDOM_INTEGER: Algorithm;
 export declare const RANDOM_BOOLEAN_NUMBER: Algorithm;
 export declare const RANDOM_BOOLEAN: Algorithm;
 export declare const EXIT: Algorithm;
+export declare const FLOOR_NUMBER: Algorithm;
+export declare const CEIL_NUMBER: Algorithm;
+export declare const ROUND_NUMBER: Algorithm;
 export declare const ALGORITHMS: {
     [key: string]: Algorithm;
 };
