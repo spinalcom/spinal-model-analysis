@@ -17,7 +17,7 @@ import {
 export default class AnalyticInputManagerService {
   private analyticNodeManagerService: AnalyticNodeManagerService;
   private spinalServiceTimeseries: SpinalServiceTimeseries;
-  constructor(analyticNodeManagerService : AnalyticNodeManagerService) {
+  constructor(analyticNodeManagerService: AnalyticNodeManagerService) {
     this.analyticNodeManagerService = analyticNodeManagerService;
     this.spinalServiceTimeseries = SingletonServiceTimeseries.getInstance();
   }
@@ -130,7 +130,7 @@ export default class AnalyticInputManagerService {
       await this.analyticNodeManagerService.getEntityFromAnalytic(analyticId);
 
     if (!entityInfo || !followedEntity || !trackingMethod || !config) return;
-    
+
     const entityType: string = entityInfo.entityType.get();
     const followedType: string = followedEntity.type.get();
 
@@ -183,7 +183,7 @@ export default class AnalyticInputManagerService {
     );
     return [];
   }
-    
+
   public async getWorkingFollowedEntitiesWithParam(
     followedEntity: SpinalNodeRef,
     entityType: string
@@ -262,8 +262,8 @@ export default class AnalyticInputManagerService {
       multipleModels
     );
   }
- 
- 
+
+
 
   private async getRelationsWithDepth(
     nodeId: string,
@@ -380,9 +380,9 @@ export default class AnalyticInputManagerService {
     trackedRelations: string[],
     nodeType: string
   ): Promise<SpinalNodeRef | undefined> {
-    const regex = new RegExp(filterNameValue); 
+    const regex = new RegExp(filterNameValue);
     const endpoints = await this.findNodes(nodeId, trackedRelations, nodeType);
-  
+
     return endpoints.find(
       (endpoint) => regex.test(endpoint.name.get())
     );
@@ -395,8 +395,8 @@ export default class AnalyticInputManagerService {
     nodeType: string
   ): Promise<SpinalNodeRef[]> {
     const endpoints = await this.findNodes(nodeId, trackedRelations, nodeType);
-    const regex = new RegExp(filterNameValue); 
-    return endpoints.filter((endpoint) => 
+    const regex = new RegExp(filterNameValue);
+    return endpoints.filter((endpoint) =>
       regex.test(endpoint.name.get())
     );
   }
@@ -768,10 +768,10 @@ export default class AnalyticInputManagerService {
     analyticId: string,
     followedEntity: SpinalNodeRef,
     inputIndex: string,
-    executionTimes: number [] = [Date.now()]
+    executionTimes: number[] = [Date.now()]
   ): Promise<
     any
-   >{
+  > {
     const inputData = {};
     const trackingMethod =
       await this.analyticNodeManagerService.getTrackingMethod(analyticId);
@@ -780,7 +780,7 @@ export default class AnalyticInputManagerService {
       await this.analyticNodeManagerService.getAttributesFromNode(
         trackingMethod.id.get(),
         inputIndex
-    );
+      );
     const entryDataModel = await this.getEntryDataModelByInputIndex(
       analyticId,
       followedEntity,
@@ -788,11 +788,11 @@ export default class AnalyticInputManagerService {
       trackingParams[CONSTANTS.ATTRIBUTE_MULTIPLE_MODELS] || false
     );
     if (!entryDataModel) return undefined;
-    if( trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] <0) {
+    if (trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] < 0) {
       throw new Error('Timeseries intervalTime cannot be negative');
     }
     if (!trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] ||
-      trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES]== 0) {
+      trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES] == 0) {
       //add the current value for each executionTime
       if (Array.isArray(entryDataModel)) {
         const res: any = [];
@@ -803,7 +803,7 @@ export default class AnalyticInputManagerService {
 
           res.push(assertedValue);
         }
-        for(const execTime of executionTimes){
+        for (const execTime of executionTimes) {
           inputData[execTime] = res;
         }
       }
@@ -813,20 +813,20 @@ export default class AnalyticInputManagerService {
           | string
           | number
           | boolean;
-          for(const execTime of executionTimes){
-            inputData[execTime] = assertedValue;
-          }
+        for (const execTime of executionTimes) {
+          inputData[execTime] = assertedValue;
+        }
       }
     }
 
     else {
-      if(Array.isArray(entryDataModel)) {
+      if (Array.isArray(entryDataModel)) {
         throw new Error('Timeseries and multiple input capture is not compatible');
       }
       // add the timeseries data for each executionTime
       const oldestTime = Math.min(...executionTimes);
       const closestTime = Math.max(...executionTimes);
-      
+
       const spinalTs = await this.spinalServiceTimeseries.getOrCreateTimeSeries(
         entryDataModel.id.get()
       );
@@ -834,11 +834,11 @@ export default class AnalyticInputManagerService {
       const start = oldestTime - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
       const injectLastValueBeforeStart: boolean =
         trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES_VALUE_AT_START];
-      const data =  await spinalTs.getFromIntervalTime(start, end, injectLastValueBeforeStart)
-      
-      for(const execTime of executionTimes) {
+      const data = await spinalTs.getFromIntervalTime(start, end, injectLastValueBeforeStart)
+
+      for (const execTime of executionTimes) {
         const execTimeStart = execTime - trackingParams[CONSTANTS.ATTRIBUTE_TIMESERIES];
-        const processedData =this.timeseriesPreProcessingData(execTimeStart, execTime, data,injectLastValueBeforeStart);
+        const processedData = this.timeseriesPreProcessingData(execTimeStart, execTime, data, injectLastValueBeforeStart);
         inputData[execTime] = processedData;
       }
     }
@@ -846,29 +846,29 @@ export default class AnalyticInputManagerService {
   }
 
   public async getAllDataFromAnalyticConfiguration(
-    analyticId : string,
+    analyticId: string,
     entity: SpinalNodeRef,
-    ioDependencies : any,
-    executionTimes : number[]
-  ): Promise<any>{
+    ioDependencies: any,
+    executionTimes: number[]
+  ): Promise<any> {
     const resultData = {};
     // Get all the inputs (I0, I1, I2, ...)
-    const inputs : string [] = [];
+    const inputs: string[] = [];
     const keys = Object.keys(ioDependencies)
     for (const key of keys) {
       const myDependencies =
-      ioDependencies[key]?.split(
-        CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
-      ) ?? [];
+        ioDependencies[key]?.split(
+          CONSTANTS.ATTRIBUTE_VALUE_SEPARATOR
+        ) ?? [];
       for (const dep of myDependencies) {
-        if(dep.startsWith('I') && !inputs.includes(dep)){
+        if (dep.startsWith('I') && !inputs.includes(dep)) {
           inputs.push(dep);
         }
       }
     } // end for
-    for( const input of inputs){
+    for (const input of inputs) {
       const data = await this.getFormattedInputData(analyticId, entity, input, executionTimes);
-      if(data){
+      if (data) {
         resultData[input] = data;
       }
     }
@@ -882,12 +882,12 @@ export default class AnalyticInputManagerService {
     timeseries: SpinalDateValue[]
   ): SpinalDateValue[] {
     if (timeseries.length === 0) return [];
-  
+
     //shifting the first timeseries to start if it is before start
     if (timeseries[0].date < start) {
       timeseries[0].date = start;
     }
-  
+
     //copy last value to the end of the timeseries
     timeseries.push({
       date: end,
@@ -905,26 +905,26 @@ export default class AnalyticInputManagerService {
     let hasInjectedValue = false;
     const resultTimeseries: SpinalDateValue[] = [];
     if (timeseries.length === 0) return [];
-    for( const timeserie of timeseries){
-      if(timeserie.date == startTime){
+    for (const timeserie of timeseries) {
+      if (timeserie.date == startTime) {
         hasInjectedValue = true;
         resultTimeseries.push(timeserie);
       }
-      else if (timeserie.date > startTime && timeserie.date < endTime){
+      else if (timeserie.date > startTime && timeserie.date < endTime) {
         resultTimeseries.push(timeserie);
-      } 
+      }
     } // end for
 
-    if(!hasInjectedValue && injectLastValueBeforeStart){
-      for(let i = timeseries.length - 1; i >= 0; i--){
-        if(timeseries[i].date < startTime){
-          resultTimeseries.unshift({date : startTime, value : timeseries[i].value});
+    if (!hasInjectedValue && injectLastValueBeforeStart) {
+      for (let i = timeseries.length - 1; i >= 0; i--) {
+        if (timeseries[i].date < startTime) {
+          resultTimeseries.unshift({ date: startTime, value: timeseries[i].value });
           break;
         }
       }
     }
-    if(resultTimeseries.length!=0 && resultTimeseries[resultTimeseries.length - 1].date < endTime){
-      resultTimeseries.push({date : endTime, value : resultTimeseries[resultTimeseries.length - 1].value});
+    if (resultTimeseries.length != 0 && resultTimeseries[resultTimeseries.length - 1].date < endTime) {
+      resultTimeseries.push({ date: endTime, value: resultTimeseries[resultTimeseries.length - 1].value });
     }
     return resultTimeseries;
   }
