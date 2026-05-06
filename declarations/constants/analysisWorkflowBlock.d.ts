@@ -19,3 +19,11 @@ export declare const PARENT_TO_WORKFLOW_BLOCK_RELATION: string;
  * Relation used for FOREACH blocks to their sub-workflow root blocks.
  */
 export declare const FOREACH_TO_SUB_BLOCK_RELATION: string;
+/**
+ * Relation used for IF blocks to their "then" branch sub-workflow blocks.
+ */
+export declare const IF_THEN_TO_SUB_BLOCK_RELATION: string;
+/**
+ * Relation used for IF blocks to their "else" branch sub-workflow blocks.
+ */
+export declare const IF_ELSE_TO_SUB_BLOCK_RELATION: string;

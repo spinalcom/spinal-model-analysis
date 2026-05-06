@@ -52,6 +52,7 @@ export interface WorkflowExecutionContext {
  * - SET_INPUT_REGISTER: passes through and registers (via block.registerAs)
  * - ELEMENT: element source for FOREACH sub-workflows (value injected by executor)
  * - FOREACH: iterates over an array, executing a sub-workflow per element
+ * - IF: conditional branching, executes thenWorkflow or elseWorkflow based on predicate
  */
 export default class WorkflowExecutionService {
     private readonly registry: AlgorithmRegistry;
@@ -133,6 +134,12 @@ export default class WorkflowExecutionService {
         // ── FOREACH (higher-order iteration) ──
         if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
             await this.executeForeach(block, inputs, context);
+            return;
+        }
+
+        // ── IF (conditional branching) ──
+        if (block.algorithmName === 'IF' && (block.thenWorkflow || block.elseWorkflow)) {
+            await this.executeIf(block, inputs, context);
             return;
         }
 
@@ -219,6 +226,62 @@ export default class WorkflowExecutionService {
         }
 
         context.blockOutputs.set(block.id, results);
+    }
+
+    /**
+     * Handles IF: conditional branching with sub-workflows.
+     *
+     * inputs[0] = boolean predicate
+     * inputs[1] = optional payload (injected as $item in the chosen branch)
+     *
+     * If predicate is true → executes thenWorkflow
+     * If predicate is false → executes elseWorkflow (if defined, else output = undefined)
+     */
+    private async executeIf(
+        block: IWorkflowBlock,
+        inputs: unknown[],
+        context: WorkflowExecutionContext
+    ): Promise<void> {
+        const predicate = inputs[0];
+        if (typeof predicate !== 'boolean') {
+            throw new Error(
+                `IF block "${block.name}" expects a boolean as its first input, ` +
+                `got ${typeof predicate}`
+            );
+        }
+
+        const payload = inputs.length > 1 ? inputs[1] : undefined;
+
+        // Pick the branch to execute
+        const branch = predicate ? block.thenWorkflow : block.elseWorkflow;
+
+        if (!branch) {
+            // No branch for this condition — output is undefined
+            context.blockOutputs.set(block.id, undefined);
+            return;
+        }
+
+        // Create isolated sub-context for the branch
+        const subContext: WorkflowExecutionContext = {
+            workNode: context.workNode,
+            inputRegisters: new Map(context.inputRegisters),
+            blockOutputs: new Map(),
+        };
+
+        // Inject payload as $item if provided
+        if (payload !== undefined) {
+            subContext.blockOutputs.set(FOREACH_ELEMENT_RESERVED_ID, payload);
+        }
+
+        // Execute the branch sub-workflow
+        await this.executeDAG(
+            { blocks: branch.blocks },
+            subContext
+        );
+
+        // Collect the branch output
+        const result = subContext.blockOutputs.get(branch.outputBlockId);
+        context.blockOutputs.set(block.id, result);
     }
 
     /**

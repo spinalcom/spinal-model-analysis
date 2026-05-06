@@ -22,3 +22,13 @@ export const PARENT_TO_WORKFLOW_BLOCK_RELATION = 'has' + WORKFLOW_BLOCK_NODE_TYP
  * Relation used for FOREACH blocks to their sub-workflow root blocks.
  */
 export const FOREACH_TO_SUB_BLOCK_RELATION = 'foreachHas' + WORKFLOW_BLOCK_NODE_TYPE;
+
+/**
+ * Relation used for IF blocks to their "then" branch sub-workflow blocks.
+ */
+export const IF_THEN_TO_SUB_BLOCK_RELATION = 'ifThenHas' + WORKFLOW_BLOCK_NODE_TYPE;
+
+/**
+ * Relation used for IF blocks to their "else" branch sub-workflow blocks.
+ */
+export const IF_ELSE_TO_SUB_BLOCK_RELATION = 'ifElseHas' + WORKFLOW_BLOCK_NODE_TYPE;

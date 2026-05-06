@@ -10,6 +10,7 @@ import { IWorkflowDAG } from '../interfaces/IWorkflowBlock';
  * - Block config is stored in the node's info: algorithmName, parameters (JSON),
  *   inputBlockIds (JSON ordered array), registerAs (optional)
  * - FOREACH blocks have sub-workflow blocks as children via a dedicated relation
+ * - IF blocks have then/else sub-workflow blocks via dedicated relations
  */
 export default class WorkflowBlockManagerService {
     /**
@@ -52,6 +53,13 @@ export default class WorkflowBlockManagerService {
         registerAs?: string;
     }): Promise<SpinalNode<any>>;
     /**
+     * Creates a sub-block for an IF block's then or else branch.
+     */
+    createIfSubBlock(ifBlock: SpinalNode<any>, contextNode: SpinalNode<any>, algorithmName: string, parameters: Record<string, unknown> | undefined, branch: 'then' | 'else', options?: {
+        name?: string;
+        registerAs?: string;
+    }): Promise<SpinalNode<any>>;
+    /**
      * Adds a data-flow dependency: sourceBlock feeds into dependentBlock.
      * In graph terms, dependentBlock becomes a child of sourceBlock.
      *
@@ -78,6 +86,9 @@ export default class WorkflowBlockManagerService {
         registerAs?: string;
         name?: string;
         foreachOutputBlockId?: string;
+        ifThenOutputBlockId?: string;
+        ifElseOutputBlockId?: string;
+        [key: string]: unknown;
     }): void;
     /**
      * Loads the full workflow DAG from the graph, starting from a workflow node.
@@ -96,6 +107,11 @@ export default class WorkflowBlockManagerService {
      * Loads the sub-workflow DAG for a FOREACH block.
      */
     private loadForeachSubWorkflow;
+    /**
+     * Loads a sub-workflow DAG for an IF block (then or else branch).
+     * Returns undefined if the branch has no sub-blocks.
+     */
+    private loadIfSubWorkflow;
     /**
      * Converts a block SpinalNode to its in-memory IWorkflowBlock representation.
      */

@@ -112,4 +112,24 @@ export interface IBlockConfigJSON {
         /** The ref of the block whose output is the sub-workflow result */
         outputRef: string;
     };
+
+    /**
+     * For IF blocks: sub-workflow executed when predicate (inputs[0]) is true.
+     * The optional payload (inputs[1]) is injected as '$item' in the branch.
+     */
+    thenWorkflow?: {
+        blocks: IBlockConfigJSON[];
+        /** The ref of the block whose output becomes the IF block's output */
+        outputRef: string;
+    };
+
+    /**
+     * For IF blocks: sub-workflow executed when predicate (inputs[0]) is false.
+     * If omitted and predicate is false, the IF block output is undefined.
+     */
+    elseWorkflow?: {
+        blocks: IBlockConfigJSON[];
+        /** The ref of the block whose output becomes the IF block's output */
+        outputRef: string;
+    };
 }

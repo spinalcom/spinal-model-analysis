@@ -55,4 +55,9 @@ export default class AnalysisFactoryService {
      * at runtime — no explicit ELEMENT block is needed.
      */
     private buildForeachSubWorkflow;
+    /**
+     * Builds a sub-workflow for an IF block (then or else branch).
+     * Uses the same $item mechanism as FOREACH for payload injection.
+     */
+    private buildIfSubWorkflow;
 }

@@ -42,6 +42,19 @@ export interface IWorkflowBlock {
      * Defines the sub-workflow DAG to execute for each element of the input array.
      */
     subWorkflow?: ISubWorkflow;
+
+    /**
+     * For IF blocks only.
+     * Sub-workflow executed when the boolean predicate (inputs[0]) is true.
+     */
+    thenWorkflow?: ISubWorkflow;
+
+    /**
+     * For IF blocks only.
+     * Sub-workflow executed when the boolean predicate (inputs[0]) is false.
+     * If omitted and predicate is false, IF block output is undefined.
+     */
+    elseWorkflow?: ISubWorkflow;
 }
 
 /**

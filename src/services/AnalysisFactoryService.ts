@@ -210,6 +210,26 @@ export default class AnalysisFactoryService {
                     blockDef.subWorkflow
                 );
             }
+
+            // If this is an IF block with branch workflows, build them
+            if (blockDef.algorithmName === 'IF') {
+                if (blockDef.thenWorkflow) {
+                    await this.buildIfSubWorkflow(
+                        blockNode,
+                        contextNode,
+                        blockDef.thenWorkflow,
+                        'then'
+                    );
+                }
+                if (blockDef.elseWorkflow) {
+                    await this.buildIfSubWorkflow(
+                        blockNode,
+                        contextNode,
+                        blockDef.elseWorkflow,
+                        'else'
+                    );
+                }
+            }
         }
 
         // ── Phase 2: Wire dependencies ──
@@ -364,6 +384,103 @@ export default class AnalysisFactoryService {
 
         this.blockManager.updateBlock(foreachNode, {
             foreachOutputBlockId: outputNode.getId().get(),
+        });
+    }
+
+    /**
+     * Builds a sub-workflow for an IF block (then or else branch).
+     * Uses the same $item mechanism as FOREACH for payload injection.
+     */
+    private async buildIfSubWorkflow(
+        ifNode: SpinalNode<any>,
+        contextNode: SpinalNode<any>,
+        subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
+        branch: 'then' | 'else'
+    ): Promise<void> {
+        const refToNode = new Map<string, SpinalNode<any>>();
+
+        // Phase 1: Create sub-blocks
+        for (const blockDef of subWorkflowConfig.blocks) {
+            const subBlockNode = await this.blockManager.createIfSubBlock(
+                ifNode,
+                contextNode,
+                blockDef.algorithmName,
+                blockDef.parameters ?? {},
+                branch,
+                {
+                    name: blockDef.name ?? blockDef.ref,
+                    registerAs: blockDef.registerAs,
+                }
+            );
+            refToNode.set(blockDef.ref, subBlockNode);
+        }
+
+        // Phase 2: Wire dependencies between sub-blocks
+        for (const blockDef of subWorkflowConfig.blocks) {
+            if (!blockDef.inputs || blockDef.inputs.length === 0) continue;
+
+            const dependentNode = refToNode.get(blockDef.ref);
+            if (!dependentNode) continue;
+
+            const resolvedInputBlockIds: string[] = [];
+
+            for (let slot = 0; slot < blockDef.inputs.length; slot++) {
+                const sourceRef = blockDef.inputs[slot];
+
+                if (sourceRef === '$item') {
+                    resolvedInputBlockIds.push(FOREACH_ELEMENT_RESERVED_ID);
+                    continue;
+                }
+
+                const sourceNode = refToNode.get(sourceRef);
+                if (!sourceNode) {
+                    throw new Error(
+                        `[AnalysisFactory] IF ${branch} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
+                        'which does not exist in the sub-workflow. Use "$item" to reference the payload.'
+                    );
+                }
+
+                await this.blockManager.addSubBlockDependency(
+                    sourceNode,
+                    dependentNode,
+                    contextNode,
+                    slot
+                );
+            }
+
+            // If there were '$item' refs, merge them into the inputBlockIds
+            if (resolvedInputBlockIds.some((id) => id === FOREACH_ELEMENT_RESERVED_ID)) {
+                const currentIds = JSON.parse(
+                    dependentNode.info.inputBlockIds?.get() ?? '[]'
+                ) as string[];
+
+                const finalIds: string[] = [];
+                let wireIdx = 0;
+                for (let slot = 0; slot < blockDef.inputs!.length; slot++) {
+                    if (blockDef.inputs![slot] === '$item') {
+                        finalIds.push(FOREACH_ELEMENT_RESERVED_ID);
+                    } else {
+                        finalIds.push(currentIds[wireIdx] ?? '');
+                        wireIdx++;
+                    }
+                }
+
+                dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
+            }
+        }
+
+        // Set the output block ID on the IF node
+        const outputRef = subWorkflowConfig.outputRef;
+        const outputNode = refToNode.get(outputRef);
+        if (!outputNode) {
+            throw new Error(
+                `[AnalysisFactory] IF ${branch} outputRef "${outputRef}" does not match any sub-block ref`
+            );
+        }
+
+        const fieldName = branch === 'then' ? 'ifThenOutputBlockId' : 'ifElseOutputBlockId';
+        this.blockManager.updateBlock(ifNode, {
+            [fieldName]: outputNode.getId().get(),
         });
     }
 }

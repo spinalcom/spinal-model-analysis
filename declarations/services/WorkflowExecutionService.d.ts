@@ -41,6 +41,7 @@ export interface WorkflowExecutionContext {
  * - SET_INPUT_REGISTER: passes through and registers (via block.registerAs)
  * - ELEMENT: element source for FOREACH sub-workflows (value injected by executor)
  * - FOREACH: iterates over an array, executing a sub-workflow per element
+ * - IF: conditional branching, executes thenWorkflow or elseWorkflow based on predicate
  */
 export default class WorkflowExecutionService {
     private readonly registry;
@@ -76,6 +77,16 @@ export default class WorkflowExecutionService {
      * An explicit ELEMENT block is no longer required.
      */
     private executeForeach;
+    /**
+     * Handles IF: conditional branching with sub-workflows.
+     *
+     * inputs[0] = boolean predicate
+     * inputs[1] = optional payload (injected as $item in the chosen branch)
+     *
+     * If predicate is true → executes thenWorkflow
+     * If predicate is false → executes elseWorkflow (if defined, else output = undefined)
+     */
+    private executeIf;
     /**
      * Executes a normal (non-special) block by calling its algorithm from the registry.
      */

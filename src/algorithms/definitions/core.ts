@@ -24,8 +24,6 @@ export type AlgorithmRunResult = Promise<AlgorithmResult>;
 
 export interface AlgorithmRunContext {
   selfNode?: SpinalNode<any>;
-  getChildren?: () => Promise<SpinalNode<any>[]>;
-  setNextNodes?: (nodes: SpinalNode<any>[]) => void;
 }
 
 export interface AlgorithmDefinition {

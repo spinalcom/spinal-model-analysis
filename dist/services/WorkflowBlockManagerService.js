@@ -22,6 +22,7 @@ const analysisWorkflowBlock_1 = require("../constants/analysisWorkflowBlock");
  * - Block config is stored in the node's info: algorithmName, parameters (JSON),
  *   inputBlockIds (JSON ordered array), registerAs (optional)
  * - FOREACH blocks have sub-workflow blocks as children via a dedicated relation
+ * - IF blocks have then/else sub-workflow blocks via dedicated relations
  */
 class WorkflowBlockManagerService {
     // ─────────────────────────────────────────────────────
@@ -98,6 +99,33 @@ class WorkflowBlockManagerService {
             if (!blockNode)
                 throw new Error('Failed to create FOREACH sub-block node');
             yield foreachBlock.addChildInContext(blockNode, analysisWorkflowBlock_1.FOREACH_TO_SUB_BLOCK_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
+            return blockNode;
+        });
+    }
+    /**
+     * Creates a sub-block for an IF block's then or else branch.
+     */
+    createIfSubBlock(ifBlock, contextNode, algorithmName, parameters = {}, branch, options) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const blockInfo = {
+                name: (_a = options === null || options === void 0 ? void 0 : options.name) !== null && _a !== void 0 ? _a : algorithmName,
+                type: analysisWorkflowBlock_1.WORKFLOW_BLOCK_NODE_TYPE,
+                algorithmName,
+                parameters: JSON.stringify(parameters),
+                inputBlockIds: JSON.stringify([]),
+            };
+            if (options === null || options === void 0 ? void 0 : options.registerAs) {
+                blockInfo.registerAs = options.registerAs;
+            }
+            const blockNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(blockInfo);
+            const blockNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(blockNodeId);
+            if (!blockNode)
+                throw new Error(`Failed to create IF ${branch} sub-block node`);
+            const relation = branch === 'then'
+                ? analysisWorkflowBlock_1.IF_THEN_TO_SUB_BLOCK_RELATION
+                : analysisWorkflowBlock_1.IF_ELSE_TO_SUB_BLOCK_RELATION;
+            yield ifBlock.addChildInContext(blockNode, relation, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
             return blockNode;
         });
     }
@@ -178,6 +206,22 @@ class WorkflowBlockManagerService {
                 blockNode.info.foreachOutputBlockId.set(updates.foreachOutputBlockId);
             }
         }
+        if (updates.ifThenOutputBlockId !== undefined) {
+            if (!blockNode.info.ifThenOutputBlockId) {
+                blockNode.info.add_attr('ifThenOutputBlockId', updates.ifThenOutputBlockId);
+            }
+            else {
+                blockNode.info.ifThenOutputBlockId.set(updates.ifThenOutputBlockId);
+            }
+        }
+        if (updates.ifElseOutputBlockId !== undefined) {
+            if (!blockNode.info.ifElseOutputBlockId) {
+                blockNode.info.add_attr('ifElseOutputBlockId', updates.ifElseOutputBlockId);
+            }
+            else {
+                blockNode.info.ifElseOutputBlockId.set(updates.ifElseOutputBlockId);
+            }
+        }
     }
     // ─────────────────────────────────────────────────────
     //  LOAD DAG FROM GRAPH
@@ -213,6 +257,11 @@ class WorkflowBlockManagerService {
                 if (block.algorithmName === 'FOREACH') {
                     block.subWorkflow = yield this.loadForeachSubWorkflow(childNode);
                 }
+                // If IF, load then/else sub-workflows
+                if (block.algorithmName === 'IF') {
+                    block.thenWorkflow = yield this.loadIfSubWorkflow(childNode, 'then');
+                    block.elseWorkflow = yield this.loadIfSubWorkflow(childNode, 'else');
+                }
                 // Recurse to find downstream dependent blocks
                 yield this.collectBlocks(childNode, visited);
             }
@@ -241,6 +290,40 @@ class WorkflowBlockManagerService {
                 : '';
             if (!outputBlockId) {
                 throw new Error(`FOREACH block "${foreachNode.getName().get()}" is missing foreachOutputBlockId`);
+            }
+            return {
+                blocks: [...subVisited.values()],
+                outputBlockId,
+            };
+        });
+    }
+    /**
+     * Loads a sub-workflow DAG for an IF block (then or else branch).
+     * Returns undefined if the branch has no sub-blocks.
+     */
+    loadIfSubWorkflow(ifNode, branch) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const relation = branch === 'then'
+                ? analysisWorkflowBlock_1.IF_THEN_TO_SUB_BLOCK_RELATION
+                : analysisWorkflowBlock_1.IF_ELSE_TO_SUB_BLOCK_RELATION;
+            const subVisited = new Map();
+            const subRoots = yield ifNode.getChildren(relation);
+            if (subRoots.length === 0)
+                return undefined;
+            for (const subRoot of subRoots) {
+                const subId = subRoot.getId().get();
+                if (subVisited.has(subId))
+                    continue;
+                const block = this.blockNodeToMemory(subRoot);
+                subVisited.set(subId, block);
+                yield this.collectBlocks(subRoot, subVisited);
+            }
+            const fieldName = branch === 'then' ? 'ifThenOutputBlockId' : 'ifElseOutputBlockId';
+            const outputBlockId = ifNode.info[fieldName]
+                ? ifNode.info[fieldName].get()
+                : '';
+            if (!outputBlockId) {
+                throw new Error(`IF block "${ifNode.getName().get()}" is missing ${fieldName}`);
             }
             return {
                 blocks: [...subVisited.values()],

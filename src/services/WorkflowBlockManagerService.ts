@@ -9,6 +9,8 @@ import {
     WORKFLOW_BLOCK_NODE_TYPE,
     PARENT_TO_WORKFLOW_BLOCK_RELATION,
     FOREACH_TO_SUB_BLOCK_RELATION,
+    IF_THEN_TO_SUB_BLOCK_RELATION,
+    IF_ELSE_TO_SUB_BLOCK_RELATION,
 } from '../constants/analysisWorkflowBlock';
 
 import { IWorkflowBlock, IWorkflowDAG } from '../interfaces/IWorkflowBlock';
@@ -23,6 +25,7 @@ import { IWorkflowBlock, IWorkflowDAG } from '../interfaces/IWorkflowBlock';
  * - Block config is stored in the node's info: algorithmName, parameters (JSON),
  *   inputBlockIds (JSON ordered array), registerAs (optional)
  * - FOREACH blocks have sub-workflow blocks as children via a dedicated relation
+ * - IF blocks have then/else sub-workflow blocks via dedicated relations
  */
 export default class WorkflowBlockManagerService {
     // ─────────────────────────────────────────────────────
@@ -144,6 +147,50 @@ export default class WorkflowBlockManagerService {
         return blockNode;
     }
 
+    /**
+     * Creates a sub-block for an IF block's then or else branch.
+     */
+    public async createIfSubBlock(
+        ifBlock: SpinalNode<any>,
+        contextNode: SpinalNode<any>,
+        algorithmName: string,
+        parameters: Record<string, unknown> = {},
+        branch: 'then' | 'else',
+        options?: {
+            name?: string;
+            registerAs?: string;
+        }
+    ): Promise<SpinalNode<any>> {
+        const blockInfo: any = {
+            name: options?.name ?? algorithmName,
+            type: WORKFLOW_BLOCK_NODE_TYPE,
+            algorithmName,
+            parameters: JSON.stringify(parameters),
+            inputBlockIds: JSON.stringify([]),
+        };
+
+        if (options?.registerAs) {
+            blockInfo.registerAs = options.registerAs;
+        }
+
+        const blockNodeId = SpinalGraphService.createNode(blockInfo);
+        const blockNode = SpinalGraphService.getRealNode(blockNodeId);
+        if (!blockNode) throw new Error(`Failed to create IF ${branch} sub-block node`);
+
+        const relation = branch === 'then'
+            ? IF_THEN_TO_SUB_BLOCK_RELATION
+            : IF_ELSE_TO_SUB_BLOCK_RELATION;
+
+        await ifBlock.addChildInContext(
+            blockNode,
+            relation,
+            SPINAL_RELATION_PTR_LST_TYPE,
+            contextNode
+        );
+
+        return blockNode;
+    }
+
     // ─────────────────────────────────────────────────────
     //  DEPENDENCY EDGES
     // ─────────────────────────────────────────────────────
@@ -220,6 +267,9 @@ export default class WorkflowBlockManagerService {
             registerAs?: string;
             name?: string;
             foreachOutputBlockId?: string;
+            ifThenOutputBlockId?: string;
+            ifElseOutputBlockId?: string;
+            [key: string]: unknown;
         }
     ): void {
         if (updates.algorithmName !== undefined) {
@@ -243,6 +293,20 @@ export default class WorkflowBlockManagerService {
                 blockNode.info.add_attr('foreachOutputBlockId', updates.foreachOutputBlockId);
             } else {
                 blockNode.info.foreachOutputBlockId.set(updates.foreachOutputBlockId);
+            }
+        }
+        if (updates.ifThenOutputBlockId !== undefined) {
+            if (!blockNode.info.ifThenOutputBlockId) {
+                blockNode.info.add_attr('ifThenOutputBlockId', updates.ifThenOutputBlockId);
+            } else {
+                blockNode.info.ifThenOutputBlockId.set(updates.ifThenOutputBlockId);
+            }
+        }
+        if (updates.ifElseOutputBlockId !== undefined) {
+            if (!blockNode.info.ifElseOutputBlockId) {
+                blockNode.info.add_attr('ifElseOutputBlockId', updates.ifElseOutputBlockId);
+            } else {
+                blockNode.info.ifElseOutputBlockId.set(updates.ifElseOutputBlockId);
             }
         }
     }
@@ -290,6 +354,12 @@ export default class WorkflowBlockManagerService {
                 block.subWorkflow = await this.loadForeachSubWorkflow(childNode);
             }
 
+            // If IF, load then/else sub-workflows
+            if (block.algorithmName === 'IF') {
+                block.thenWorkflow = await this.loadIfSubWorkflow(childNode, 'then');
+                block.elseWorkflow = await this.loadIfSubWorkflow(childNode, 'else');
+            }
+
             // Recurse to find downstream dependent blocks
             await this.collectBlocks(childNode, visited);
         }
@@ -327,6 +397,50 @@ export default class WorkflowBlockManagerService {
         if (!outputBlockId) {
             throw new Error(
                 `FOREACH block "${foreachNode.getName().get()}" is missing foreachOutputBlockId`
+            );
+        }
+
+        return {
+            blocks: [...subVisited.values()],
+            outputBlockId,
+        };
+    }
+
+    /**
+     * Loads a sub-workflow DAG for an IF block (then or else branch).
+     * Returns undefined if the branch has no sub-blocks.
+     */
+    private async loadIfSubWorkflow(
+        ifNode: SpinalNode<any>,
+        branch: 'then' | 'else'
+    ): Promise<{ blocks: IWorkflowBlock[]; outputBlockId: string } | undefined> {
+        const relation = branch === 'then'
+            ? IF_THEN_TO_SUB_BLOCK_RELATION
+            : IF_ELSE_TO_SUB_BLOCK_RELATION;
+
+        const subVisited = new Map<string, IWorkflowBlock>();
+
+        const subRoots = await ifNode.getChildren(relation);
+        if (subRoots.length === 0) return undefined;
+
+        for (const subRoot of subRoots) {
+            const subId = subRoot.getId().get();
+            if (subVisited.has(subId)) continue;
+
+            const block = this.blockNodeToMemory(subRoot);
+            subVisited.set(subId, block);
+
+            await this.collectBlocks(subRoot, subVisited);
+        }
+
+        const fieldName = branch === 'then' ? 'ifThenOutputBlockId' : 'ifElseOutputBlockId';
+        const outputBlockId = ifNode.info[fieldName]
+            ? ifNode.info[fieldName].get()
+            : '';
+
+        if (!outputBlockId) {
+            throw new Error(
+                `IF block "${ifNode.getName().get()}" is missing ${fieldName}`
             );
         }
 
