@@ -133,4 +133,61 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
       return currentValue.get();
     }
   }),
+
+  createAlgorithm({
+    name: 'SET_ENDPOINT_VALUE',
+    description:
+      'Sets the current value of an endpoint node. Takes 2 inputs: [endpointNode, value]. ' +
+      'Returns the value that was set.',
+    inputTypes: ['SpinalNode', 'any'],
+    outputType: 'any',
+    parameters: [],
+    run: async (input): AlgorithmRunResult => {
+      if (!Array.isArray(input) || input.length < 2) {
+        throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
+      }
+      const node = input[0];
+      const value = input[1];
+      if (!isSpinalNode(node)) {
+        throw new Error('SET_ENDPOINT_VALUE: first input must be a SpinalNode');
+      }
+      const nodeElement = await (node as SpinalNode<any>).element?.load();
+      if (!nodeElement) throw new Error('SET_ENDPOINT_VALUE: node has no element to load');
+      const currentValue = nodeElement.currentValue;
+      if (currentValue === undefined) {
+        throw new Error('SET_ENDPOINT_VALUE: node element has no currentValue');
+      }
+      currentValue.set(value);
+      return value as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'SET_ENDPOINT_VALUE_PARAM',
+    description:
+      'Sets the current value of an endpoint node to a static parameter value. ' +
+      'Takes 1 input: endpointNode, and a "value" parameter. Returns the value that was set.',
+    inputTypes: ['SpinalNode'],
+    outputType: 'any',
+    parameters: [
+      { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      if (!isSpinalNode(input)) {
+        throw new Error('SET_ENDPOINT_VALUE_PARAM expects a SpinalNode input');
+      }
+      const value = params?.value;
+      if (value === undefined) {
+        throw new Error('SET_ENDPOINT_VALUE_PARAM requires a "value" parameter');
+      }
+      const nodeElement = await input.element?.load();
+      if (!nodeElement) throw new Error('SET_ENDPOINT_VALUE_PARAM: node has no element to load');
+      const currentValue = nodeElement.currentValue;
+      if (currentValue === undefined) {
+        throw new Error('SET_ENDPOINT_VALUE_PARAM: node element has no currentValue');
+      }
+      currentValue.set(value);
+      return value as any;
+    },
+  }),
 ];

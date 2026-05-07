@@ -135,5 +135,62 @@ exports.NODE_ALGORITHMS = [
             return currentValue.get();
         })
     }),
+    (0, core_1.createAlgorithm)({
+        name: 'SET_ENDPOINT_VALUE',
+        description: 'Sets the current value of an endpoint node. Takes 2 inputs: [endpointNode, value]. ' +
+            'Returns the value that was set.',
+        inputTypes: ['SpinalNode', 'any'],
+        outputType: 'any',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            var _b;
+            if (!Array.isArray(input) || input.length < 2) {
+                throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
+            }
+            const node = input[0];
+            const value = input[1];
+            if (!isSpinalNode(node)) {
+                throw new Error('SET_ENDPOINT_VALUE: first input must be a SpinalNode');
+            }
+            const nodeElement = yield ((_b = node.element) === null || _b === void 0 ? void 0 : _b.load());
+            if (!nodeElement)
+                throw new Error('SET_ENDPOINT_VALUE: node has no element to load');
+            const currentValue = nodeElement.currentValue;
+            if (currentValue === undefined) {
+                throw new Error('SET_ENDPOINT_VALUE: node element has no currentValue');
+            }
+            currentValue.set(value);
+            return value;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'SET_ENDPOINT_VALUE_PARAM',
+        description: 'Sets the current value of an endpoint node to a static parameter value. ' +
+            'Takes 1 input: endpointNode, and a "value" parameter. Returns the value that was set.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'any',
+        parameters: [
+            { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            var _c;
+            if (!isSpinalNode(input)) {
+                throw new Error('SET_ENDPOINT_VALUE_PARAM expects a SpinalNode input');
+            }
+            const value = params === null || params === void 0 ? void 0 : params.value;
+            if (value === undefined) {
+                throw new Error('SET_ENDPOINT_VALUE_PARAM requires a "value" parameter');
+            }
+            const nodeElement = yield ((_c = input.element) === null || _c === void 0 ? void 0 : _c.load());
+            if (!nodeElement)
+                throw new Error('SET_ENDPOINT_VALUE_PARAM: node has no element to load');
+            const currentValue = nodeElement.currentValue;
+            if (currentValue === undefined) {
+                throw new Error('SET_ENDPOINT_VALUE_PARAM: node element has no currentValue');
+            }
+            currentValue.set(value);
+            return value;
+        }),
+    }),
 ];
 //# sourceMappingURL=node.algorithms.js.map
