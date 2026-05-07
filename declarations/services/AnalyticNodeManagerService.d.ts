@@ -40,6 +40,7 @@ export default class AnalyticNodeManagerService {
     removeLinkToAnchorNode(anchorNode: SpinalNode<any>, anchoredNode: SpinalNode<any>): Promise<void>;
     private removeChild;
     safeDeleteNode(node: SpinalNode<any>, shouldDeleteChildren?: boolean): Promise<void>;
+    deleteAnalysisNode(analysisNode: SpinalNode<any>): Promise<void>;
     addWorkflowNodeToAnalysisNode(analysisNode: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;
     private addInputNodeToAnalysisNode;
     private addOutputNodeToAnalysisNode;

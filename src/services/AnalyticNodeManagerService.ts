@@ -310,6 +310,13 @@ export default class AnalyticNodeManagerService {
     }
     await node.removeFromGraph();
   }
+
+  public async deleteAnalysisNode(analysisNode: SpinalNode<any>): Promise<void> {
+    const anchorNode = await this.getAnalysisAnchorNodeNode(analysisNode);
+    await anchorNode.removeRelation(ANCHOR_NODE_TO_LINKED_NODE_RELATION, SPINAL_RELATION_PTR_LST_TYPE);
+    await analysisNode.removeFromGraph();
+  }
+
   // #endregion NODE GLOBAL
 
 

@@ -240,6 +240,13 @@ class AnalyticNodeManagerService {
             yield node.removeFromGraph();
         });
     }
+    deleteAnalysisNode(analysisNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const anchorNode = yield this.getAnalysisAnchorNodeNode(analysisNode);
+            yield anchorNode.removeRelation(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            yield analysisNode.removeFromGraph();
+        });
+    }
     // #endregion NODE GLOBAL
     // #region ADD ANALYSIS SUBNODES
     addWorkflowNodeToAnalysisNode(analysisNode, contextNode) {
