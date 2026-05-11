@@ -85,6 +85,9 @@ export default class WorkflowExecutionService {
      *
      * If predicate is true → executes thenWorkflow
      * If predicate is false → executes elseWorkflow (if defined, else output = undefined)
+     *
+     * IF sub-workflows inherit all parent block outputs, so branches can
+     * reference any block computed before the IF block.
      */
     private executeIf;
     /**

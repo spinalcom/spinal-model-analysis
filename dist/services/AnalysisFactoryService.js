@@ -152,10 +152,10 @@ class AnalysisFactoryService {
                 // If this is an IF block with branch workflows, build them
                 if (blockDef.algorithmName === 'IF') {
                     if (blockDef.thenWorkflow) {
-                        yield this.buildIfSubWorkflow(blockNode, contextNode, blockDef.thenWorkflow, 'then');
+                        yield this.buildIfSubWorkflow(blockNode, contextNode, blockDef.thenWorkflow, 'then', refToNode);
                     }
                     if (blockDef.elseWorkflow) {
-                        yield this.buildIfSubWorkflow(blockNode, contextNode, blockDef.elseWorkflow, 'else');
+                        yield this.buildIfSubWorkflow(blockNode, contextNode, blockDef.elseWorkflow, 'else', refToNode);
                     }
                 }
             }
@@ -272,9 +272,14 @@ class AnalysisFactoryService {
     }
     /**
      * Builds a sub-workflow for an IF block (then or else branch).
-     * Uses the same $item mechanism as FOREACH for payload injection.
+     *
+     * IF sub-workflows can reference:
+     * - '$item': the optional payload from inputs[1]
+     * - '$node': the implicit work node
+     * - Any ref from the parent workflow (resolved as a virtual input)
+     * - Other sub-workflow block refs
      */
-    buildIfSubWorkflow(ifNode, contextNode, subWorkflowConfig, branch) {
+    buildIfSubWorkflow(ifNode, contextNode, subWorkflowConfig, branch, parentRefToNode) {
         var _a, _b, _c, _d, _e;
         return __awaiter(this, void 0, void 0, function* () {
             const refToNode = new Map();
@@ -300,21 +305,36 @@ class AnalysisFactoryService {
                         resolvedInputBlockIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
                         continue;
                     }
+                    // Check local sub-workflow refs first
                     const sourceNode = refToNode.get(sourceRef);
-                    if (!sourceNode) {
-                        throw new Error(`[AnalysisFactory] IF ${branch} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                            'which does not exist in the sub-workflow. Use "$item" to reference the payload.');
+                    if (sourceNode) {
+                        yield this.blockManager.addSubBlockDependency(sourceNode, dependentNode, contextNode, slot);
+                        continue;
                     }
-                    yield this.blockManager.addSubBlockDependency(sourceNode, dependentNode, contextNode, slot);
+                    // Check parent workflow refs (IF branches inherit parent context)
+                    if (parentRefToNode) {
+                        const parentNode = parentRefToNode.get(sourceRef);
+                        if (parentNode) {
+                            // Virtual reference — record the parent block's ID, no graph edge
+                            resolvedInputBlockIds.push(parentNode.getId().get());
+                            continue;
+                        }
+                    }
+                    throw new Error(`[AnalysisFactory] IF ${branch} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
+                        'which does not exist in the sub-workflow or parent workflow.');
                 }
-                // If there were '$item' refs, merge them into the inputBlockIds
-                if (resolvedInputBlockIds.some((id) => id === WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID)) {
+                // If there were virtual refs ($item or parent refs), merge them into inputBlockIds
+                if (resolvedInputBlockIds.length > 0) {
                     const currentIds = JSON.parse((_d = (_c = dependentNode.info.inputBlockIds) === null || _c === void 0 ? void 0 : _c.get()) !== null && _d !== void 0 ? _d : '[]');
                     const finalIds = [];
                     let wireIdx = 0;
                     for (let slot = 0; slot < blockDef.inputs.length; slot++) {
-                        if (blockDef.inputs[slot] === '$item') {
+                        const ref = blockDef.inputs[slot];
+                        if (ref === '$item') {
                             finalIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
+                        }
+                        else if (parentRefToNode === null || parentRefToNode === void 0 ? void 0 : parentRefToNode.has(ref)) {
+                            finalIds.push(parentRefToNode.get(ref).getId().get());
                         }
                         else {
                             finalIds.push((_e = currentIds[wireIdx]) !== null && _e !== void 0 ? _e : '');

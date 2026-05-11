@@ -168,6 +168,9 @@ class WorkflowExecutionService {
      *
      * If predicate is true → executes thenWorkflow
      * If predicate is false → executes elseWorkflow (if defined, else output = undefined)
+     *
+     * IF sub-workflows inherit all parent block outputs, so branches can
+     * reference any block computed before the IF block.
      */
     executeIf(block, inputs, context) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -184,11 +187,12 @@ class WorkflowExecutionService {
                 context.blockOutputs.set(block.id, undefined);
                 return;
             }
-            // Create isolated sub-context for the branch
+            // Create sub-context inheriting parent block outputs
+            // (IF branches run once and often need surrounding context)
             const subContext = {
                 workNode: context.workNode,
                 inputRegisters: new Map(context.inputRegisters),
-                blockOutputs: new Map(),
+                blockOutputs: new Map(context.blockOutputs),
             };
             // Inject payload as $item if provided
             if (payload !== undefined) {

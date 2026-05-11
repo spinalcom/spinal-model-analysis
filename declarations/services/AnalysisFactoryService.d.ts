@@ -57,7 +57,12 @@ export default class AnalysisFactoryService {
     private buildForeachSubWorkflow;
     /**
      * Builds a sub-workflow for an IF block (then or else branch).
-     * Uses the same $item mechanism as FOREACH for payload injection.
+     *
+     * IF sub-workflows can reference:
+     * - '$item': the optional payload from inputs[1]
+     * - '$node': the implicit work node
+     * - Any ref from the parent workflow (resolved as a virtual input)
+     * - Other sub-workflow block refs
      */
     private buildIfSubWorkflow;
 }
