@@ -280,9 +280,12 @@ class AnalysisFactoryService {
      * - Other sub-workflow block refs
      */
     buildIfSubWorkflow(ifNode, contextNode, subWorkflowConfig, branch, parentRefToNode) {
-        var _a, _b, _c, _d, _e;
+        var _a, _b, _c, _d, _e, _f, _g;
         return __awaiter(this, void 0, void 0, function* () {
             const refToNode = new Map();
+            // Track parent refs used by sub-blocks so we can add them as
+            // dependencies of the IF block itself (ensures correct topological order)
+            const usedParentRefs = new Set();
             // Phase 1: Create sub-blocks
             for (const blockDef of subWorkflowConfig.blocks) {
                 const subBlockNode = yield this.blockManager.createIfSubBlock(ifNode, contextNode, blockDef.algorithmName, (_a = blockDef.parameters) !== null && _a !== void 0 ? _a : {}, branch, {
@@ -317,6 +320,7 @@ class AnalysisFactoryService {
                         if (parentNode) {
                             // Virtual reference — record the parent block's ID, no graph edge
                             resolvedInputBlockIds.push(parentNode.getId().get());
+                            usedParentRefs.add(sourceRef);
                             continue;
                         }
                     }
@@ -354,6 +358,23 @@ class AnalysisFactoryService {
             this.blockManager.updateBlock(ifNode, {
                 [fieldName]: outputNode.getId().get(),
             });
+            // Ensure parent refs used by sub-blocks are also dependencies of the IF block.
+            // This guarantees the topological sort places those parent blocks before IF.
+            if (parentRefToNode && usedParentRefs.size > 0) {
+                const ifInputBlockIds = JSON.parse((_g = (_f = ifNode.info.inputBlockIds) === null || _f === void 0 ? void 0 : _f.get()) !== null && _g !== void 0 ? _g : '[]');
+                for (const parentRef of usedParentRefs) {
+                    const parentNode = parentRefToNode.get(parentRef);
+                    if (!parentNode)
+                        continue;
+                    const parentId = parentNode.getId().get();
+                    if (!ifInputBlockIds.includes(parentId)) {
+                        ifInputBlockIds.push(parentId);
+                        // Add graph edge so loadWorkflowDAG can traverse it
+                        yield this.blockManager.addDependency(parentNode, ifNode, contextNode);
+                    }
+                }
+                ifNode.info.inputBlockIds.set(JSON.stringify(ifInputBlockIds));
+            }
         });
     }
 }

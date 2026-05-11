@@ -407,6 +407,10 @@ export default class AnalysisFactoryService {
     ): Promise<void> {
         const refToNode = new Map<string, SpinalNode<any>>();
 
+        // Track parent refs used by sub-blocks so we can add them as
+        // dependencies of the IF block itself (ensures correct topological order)
+        const usedParentRefs = new Set<string>();
+
         // Phase 1: Create sub-blocks
         for (const blockDef of subWorkflowConfig.blocks) {
             const subBlockNode = await this.blockManager.createIfSubBlock(
@@ -458,6 +462,7 @@ export default class AnalysisFactoryService {
                     if (parentNode) {
                         // Virtual reference — record the parent block's ID, no graph edge
                         resolvedInputBlockIds.push(parentNode.getId().get());
+                        usedParentRefs.add(sourceRef);
                         continue;
                     }
                 }
@@ -505,5 +510,32 @@ export default class AnalysisFactoryService {
         this.blockManager.updateBlock(ifNode, {
             [fieldName]: outputNode.getId().get(),
         });
+
+        // Ensure parent refs used by sub-blocks are also dependencies of the IF block.
+        // This guarantees the topological sort places those parent blocks before IF.
+        if (parentRefToNode && usedParentRefs.size > 0) {
+            const ifInputBlockIds = JSON.parse(
+                ifNode.info.inputBlockIds?.get() ?? '[]'
+            ) as string[];
+
+            for (const parentRef of usedParentRefs) {
+                const parentNode = parentRefToNode.get(parentRef);
+                if (!parentNode) continue;
+
+                const parentId = parentNode.getId().get();
+                if (!ifInputBlockIds.includes(parentId)) {
+                    ifInputBlockIds.push(parentId);
+
+                    // Add graph edge so loadWorkflowDAG can traverse it
+                    await this.blockManager.addDependency(
+                        parentNode,
+                        ifNode,
+                        contextNode
+                    );
+                }
+            }
+
+            ifNode.info.inputBlockIds.set(JSON.stringify(ifInputBlockIds));
+        }
     }
 }
