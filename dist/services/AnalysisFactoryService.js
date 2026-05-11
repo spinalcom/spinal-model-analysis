@@ -280,7 +280,7 @@ class AnalysisFactoryService {
      * - Other sub-workflow block refs
      */
     buildIfSubWorkflow(ifNode, contextNode, subWorkflowConfig, branch, parentRefToNode) {
-        var _a, _b, _c, _d, _e, _f, _g;
+        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             const refToNode = new Map();
             // Track parent refs used by sub-blocks so we can add them as
@@ -294,32 +294,32 @@ class AnalysisFactoryService {
                 });
                 refToNode.set(blockDef.ref, subBlockNode);
             }
-            // Phase 2: Wire dependencies between sub-blocks
+            // Phase 2: Wire dependencies and build inputBlockIds
             for (const blockDef of subWorkflowConfig.blocks) {
                 if (!blockDef.inputs || blockDef.inputs.length === 0)
                     continue;
                 const dependentNode = refToNode.get(blockDef.ref);
                 if (!dependentNode)
                     continue;
-                const resolvedInputBlockIds = [];
-                for (let slot = 0; slot < blockDef.inputs.length; slot++) {
-                    const sourceRef = blockDef.inputs[slot];
+                const finalIds = [];
+                for (const sourceRef of blockDef.inputs) {
                     if (sourceRef === '$item') {
-                        resolvedInputBlockIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
+                        finalIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
                         continue;
                     }
                     // Check local sub-workflow refs first
-                    const sourceNode = refToNode.get(sourceRef);
-                    if (sourceNode) {
-                        yield this.blockManager.addSubBlockDependency(sourceNode, dependentNode, contextNode, slot);
+                    const localNode = refToNode.get(sourceRef);
+                    if (localNode) {
+                        // Create graph edge (no slot — we override inputBlockIds below)
+                        yield this.blockManager.addSubBlockDependency(localNode, dependentNode, contextNode);
+                        finalIds.push(localNode.getId().get());
                         continue;
                     }
                     // Check parent workflow refs (IF branches inherit parent context)
                     if (parentRefToNode) {
                         const parentNode = parentRefToNode.get(sourceRef);
                         if (parentNode) {
-                            // Virtual reference — record the parent block's ID, no graph edge
-                            resolvedInputBlockIds.push(parentNode.getId().get());
+                            finalIds.push(parentNode.getId().get());
                             usedParentRefs.add(sourceRef);
                             continue;
                         }
@@ -327,26 +327,8 @@ class AnalysisFactoryService {
                     throw new Error(`[AnalysisFactory] IF ${branch} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
                         'which does not exist in the sub-workflow or parent workflow.');
                 }
-                // If there were virtual refs ($item or parent refs), merge them into inputBlockIds
-                if (resolvedInputBlockIds.length > 0) {
-                    const currentIds = JSON.parse((_d = (_c = dependentNode.info.inputBlockIds) === null || _c === void 0 ? void 0 : _c.get()) !== null && _d !== void 0 ? _d : '[]');
-                    const finalIds = [];
-                    let wireIdx = 0;
-                    for (let slot = 0; slot < blockDef.inputs.length; slot++) {
-                        const ref = blockDef.inputs[slot];
-                        if (ref === '$item') {
-                            finalIds.push(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID);
-                        }
-                        else if (parentRefToNode === null || parentRefToNode === void 0 ? void 0 : parentRefToNode.has(ref)) {
-                            finalIds.push(parentRefToNode.get(ref).getId().get());
-                        }
-                        else {
-                            finalIds.push((_e = currentIds[wireIdx]) !== null && _e !== void 0 ? _e : '');
-                            wireIdx++;
-                        }
-                    }
-                    dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
-                }
+                // Set the correctly ordered inputBlockIds (overrides addSubBlockDependency side effects)
+                dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
             }
             // Set the output block ID on the IF node
             const outputRef = subWorkflowConfig.outputRef;
@@ -361,7 +343,7 @@ class AnalysisFactoryService {
             // Ensure parent refs used by sub-blocks are also dependencies of the IF block.
             // This guarantees the topological sort places those parent blocks before IF.
             if (parentRefToNode && usedParentRefs.size > 0) {
-                const ifInputBlockIds = JSON.parse((_g = (_f = ifNode.info.inputBlockIds) === null || _f === void 0 ? void 0 : _f.get()) !== null && _g !== void 0 ? _g : '[]');
+                const ifInputBlockIds = JSON.parse((_d = (_c = ifNode.info.inputBlockIds) === null || _c === void 0 ? void 0 : _c.get()) !== null && _d !== void 0 ? _d : '[]');
                 for (const parentRef of usedParentRefs) {
                     const parentNode = parentRefToNode.get(parentRef);
                     if (!parentNode)

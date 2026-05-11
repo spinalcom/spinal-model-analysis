@@ -427,32 +427,31 @@ export default class AnalysisFactoryService {
             refToNode.set(blockDef.ref, subBlockNode);
         }
 
-        // Phase 2: Wire dependencies between sub-blocks
+        // Phase 2: Wire dependencies and build inputBlockIds
         for (const blockDef of subWorkflowConfig.blocks) {
             if (!blockDef.inputs || blockDef.inputs.length === 0) continue;
 
             const dependentNode = refToNode.get(blockDef.ref);
             if (!dependentNode) continue;
 
-            const resolvedInputBlockIds: string[] = [];
+            const finalIds: string[] = [];
 
-            for (let slot = 0; slot < blockDef.inputs.length; slot++) {
-                const sourceRef = blockDef.inputs[slot];
-
+            for (const sourceRef of blockDef.inputs) {
                 if (sourceRef === '$item') {
-                    resolvedInputBlockIds.push(FOREACH_ELEMENT_RESERVED_ID);
+                    finalIds.push(FOREACH_ELEMENT_RESERVED_ID);
                     continue;
                 }
 
                 // Check local sub-workflow refs first
-                const sourceNode = refToNode.get(sourceRef);
-                if (sourceNode) {
+                const localNode = refToNode.get(sourceRef);
+                if (localNode) {
+                    // Create graph edge (no slot — we override inputBlockIds below)
                     await this.blockManager.addSubBlockDependency(
-                        sourceNode,
+                        localNode,
                         dependentNode,
-                        contextNode,
-                        slot
+                        contextNode
                     );
+                    finalIds.push(localNode.getId().get());
                     continue;
                 }
 
@@ -460,8 +459,7 @@ export default class AnalysisFactoryService {
                 if (parentRefToNode) {
                     const parentNode = parentRefToNode.get(sourceRef);
                     if (parentNode) {
-                        // Virtual reference — record the parent block's ID, no graph edge
-                        resolvedInputBlockIds.push(parentNode.getId().get());
+                        finalIds.push(parentNode.getId().get());
                         usedParentRefs.add(sourceRef);
                         continue;
                     }
@@ -473,28 +471,8 @@ export default class AnalysisFactoryService {
                 );
             }
 
-            // If there were virtual refs ($item or parent refs), merge them into inputBlockIds
-            if (resolvedInputBlockIds.length > 0) {
-                const currentIds = JSON.parse(
-                    dependentNode.info.inputBlockIds?.get() ?? '[]'
-                ) as string[];
-
-                const finalIds: string[] = [];
-                let wireIdx = 0;
-                for (let slot = 0; slot < blockDef.inputs!.length; slot++) {
-                    const ref = blockDef.inputs![slot];
-                    if (ref === '$item') {
-                        finalIds.push(FOREACH_ELEMENT_RESERVED_ID);
-                    } else if (parentRefToNode?.has(ref)) {
-                        finalIds.push(parentRefToNode.get(ref)!.getId().get());
-                    } else {
-                        finalIds.push(currentIds[wireIdx] ?? '');
-                        wireIdx++;
-                    }
-                }
-
-                dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
-            }
+            // Set the correctly ordered inputBlockIds (overrides addSubBlockDependency side effects)
+            dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
         }
 
         // Set the output block ID on the IF node
