@@ -194,6 +194,15 @@ class WorkflowExecutionService {
                 inputRegisters: new Map(context.inputRegisters),
                 blockOutputs: new Map(context.blockOutputs),
             };
+            // DEBUG: log inherited block outputs
+            console.log(`[IF DEBUG] Branch: ${predicate ? 'then' : 'else'}, inherited ${subContext.blockOutputs.size} block outputs:`);
+            for (const [key] of subContext.blockOutputs) {
+                console.log(`  - blockOutput key: "${key}"`);
+            }
+            console.log(`[IF DEBUG] Sub-workflow blocks:`);
+            for (const b of branch.blocks) {
+                console.log(`  - "${b.name}" (${b.algorithmName}), inputBlockIds: ${JSON.stringify(b.inputBlockIds)}`);
+            }
             // Inject payload as $item if provided
             if (payload !== undefined) {
                 subContext.blockOutputs.set(exports.FOREACH_ELEMENT_RESERVED_ID, payload);
