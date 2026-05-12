@@ -21,6 +21,8 @@ const analysisTrigger_1 = require("../constants/analysisTrigger");
 const analysisWorknodeResolver_1 = require("../constants/analysisWorknodeResolver");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const version_1 = require("../version");
+const WorkflowBlockManagerService_1 = require("./WorkflowBlockManagerService");
+const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
 class AnalyticNodeManagerService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() { }
@@ -135,69 +137,132 @@ class AnalyticNodeManagerService {
     }
     // #endregion ANALYSIS
     // #region ANALYSIS DETAILS
-    /*
-    public async getAnalyticDetails(analyticId: string) {
-      const config = await this.getConfig(analyticId);
-      const trackingMethod = await this.getTrackingMethod(analyticId);
-      const followedEntity = await this.getFollowedEntity(analyticId);
-      const entity = await this.getEntityFromAnalytic(analyticId);
-      const analyticNode = SpinalGraphService.getRealNode(analyticId);
-      if (!analyticNode) throw new Error('No analytic node found');
-      if (!config) throw new Error('No config node found');
-      if (!trackingMethod) throw new Error('No tracking method node found');
-      if (!followedEntity) throw new Error('No followed entity node found');
-      if (!entity) throw new Error('No entity node found');
-  
-      // Config node
-      const analyticConfigAttributes = await this.getAllCategoriesAndAttributesFromNode(config.id.get());
-  
-      // Anchor node
-      const analyticAnchorNode = SpinalGraphService.getRealNode(followedEntity.id.get());
-  
-  
-      const inputAttributes = await this.getAllCategoriesAndAttributesFromNode(trackingMethod.id.get());
-      return {
-        id: analyticNode._server_id,
-        name: analyticNode.getName().get(),
-        type: analyticNode.getType().get(),
-        analyticOnEntityName: entity.name.get(),
-        analyticOnEntityType: entity.entityType.get(),
-        config: analyticConfigAttributes,
-        inputs: inputAttributes,
-        anchor: {
-          id: analyticAnchorNode._server_id,
-          name: analyticAnchorNode.getName().get(),
-          type: analyticAnchorNode.getType().get()
-        }
-      }
+    /**
+     * Extracts a complete JSON descriptor from an existing analysis node.
+     * The returned object conforms to IAnalysisConfigJSON and can be fed
+     * back into AnalysisFactoryService.createFromJSON() to recreate the analysis.
+     *
+     * @param analysisNode - The SpinalNode of type analysisNode
+     * @returns A round-trippable IAnalysisConfigJSON
+     */
+    getAnalyticDetails(analysisNode) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const blockManager = new WorkflowBlockManagerService_1.default();
+            const context = this.getContextOfAnalytic(analysisNode);
+            // ── Anchor ──
+            const anchorNode = yield this.getAnalysisAnchorNodeNode(analysisNode);
+            const anchorTargets = yield anchorNode.getChildren(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION);
+            const anchorNodeId = anchorTargets.length > 0
+                ? anchorTargets[0].getId().get()
+                : undefined;
+            // ── Workflows ──
+            const resolverNode = yield this.getAnalysisWorknodeResolverNode(analysisNode);
+            const inputNode = yield this.getAnalysisInputNode(analysisNode);
+            const executionNode = yield this.getAnalysisExecutionWorkflowNode(analysisNode);
+            const resolverDAG = yield blockManager.loadWorkflowDAG(resolverNode);
+            const inputDAG = yield blockManager.loadWorkflowDAG(inputNode);
+            const executionDAG = yield blockManager.loadWorkflowDAG(executionNode);
+            // ── Build result ──
+            const result = {
+                contextName: context.getName().get(),
+                analysisName: analysisNode.getName().get(),
+                description: (_b = (_a = analysisNode.info.description) === null || _a === void 0 ? void 0 : _a.get()) !== null && _b !== void 0 ? _b : '',
+            };
+            if (anchorNodeId)
+                result.anchorNodeId = anchorNodeId;
+            if (resolverDAG.blocks.length > 0)
+                result.worknodeResolver = this.dagToWorkflowConfig(resolverDAG.blocks);
+            if (inputDAG.blocks.length > 0)
+                result.inputWorkflow = this.dagToWorkflowConfig(inputDAG.blocks);
+            if (executionDAG.blocks.length > 0)
+                result.executionWorkflow = this.dagToWorkflowConfig(executionDAG.blocks);
+            return result;
+        });
     }
-  
-    public async createAnalytic(analyticDetails: any, contextNode: SpinalNode<any>): Promise<any> {
-  
-      const entity = await this.getEntity(contextNode.getName().get(), analyticDetails.analyticOnEntityName);
-      if (!entity) throw new Error(`Entity ${analyticDetails.analyticOnEntityName} not found in context ${contextNode.getName().get()}`);
-  
-      const analyticInfo: IAnalytic = {
-        name: analyticDetails.name,
-        description: ''
-      };
-  
-      const anchorNode = SpinalGraphService.getRealNode(analyticDetails.anchor.id);
-      SpinalGraphService._addNode(anchorNode);
-  
-      const analyticNodeRef = await this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
-  
-      const configRef = await this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
-      //const configNode = SpinalGraphService.getRealNode(configRef.id.get());
-      //await this.addAttributesToNode(configNode, analyticDetails.config);
-      const trackingMethodRef = await this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
-      //const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
-      //await this.addAttributesToNode(trackingMethodNode, analyticDetails.inputs);
-      await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
-      return this.getAnalyticDetails(analyticNodeRef.id.get());
-      }
-      */
     // #endregion ANALYSIS DETAILS
+    // #region DAG → JSON CONVERSION
+    /**
+     * Converts an array of in-memory workflow blocks back to a JSON workflow config.
+     */
+    dagToWorkflowConfig(blocks) {
+        const idToRef = this.buildIdToRefMap(blocks);
+        return {
+            blocks: blocks.map((b) => this.blockToConfig(b, idToRef)),
+        };
+    }
+    /**
+     * Converts a sub-workflow (FOREACH / IF branch) back to its JSON config shape.
+     * @param parentIdToRef - id→ref map of the parent workflow, used to resolve parent refs in IF branches
+     */
+    subWorkflowToConfig(sub, parentIdToRef) {
+        var _a;
+        const subIdToRef = this.buildIdToRefMap(sub.blocks);
+        // Merge parent refs so IF sub-block inputs referencing parent blocks resolve correctly
+        const mergedIdToRef = new Map([...parentIdToRef, ...subIdToRef]);
+        return {
+            blocks: sub.blocks.map((b) => this.blockToConfig(b, mergedIdToRef, parentIdToRef)),
+            outputRef: (_a = subIdToRef.get(sub.outputBlockId)) !== null && _a !== void 0 ? _a : sub.outputBlockId,
+        };
+    }
+    /**
+     * Converts a single IWorkflowBlock to an IBlockConfigJSON.
+     */
+    blockToConfig(block, idToRef, parentIdToRef) {
+        var _a;
+        const config = {
+            ref: (_a = idToRef.get(block.id)) !== null && _a !== void 0 ? _a : block.name,
+            algorithmName: block.algorithmName,
+        };
+        if (Object.keys(block.parameters).length > 0) {
+            config.parameters = block.parameters;
+        }
+        if (block.inputBlockIds.length > 0) {
+            config.inputs = block.inputBlockIds.map((id) => {
+                var _a, _b;
+                if (id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)
+                    return '$node';
+                if (id === WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID)
+                    return '$item';
+                return (_b = (_a = idToRef.get(id)) !== null && _a !== void 0 ? _a : parentIdToRef === null || parentIdToRef === void 0 ? void 0 : parentIdToRef.get(id)) !== null && _b !== void 0 ? _b : id;
+            });
+        }
+        if (block.registerAs) {
+            config.registerAs = block.registerAs;
+        }
+        if (block.subWorkflow) {
+            config.subWorkflow = this.subWorkflowToConfig(block.subWorkflow, idToRef);
+        }
+        if (block.thenWorkflow) {
+            config.thenWorkflow = this.subWorkflowToConfig(block.thenWorkflow, idToRef);
+        }
+        if (block.elseWorkflow) {
+            config.elseWorkflow = this.subWorkflowToConfig(block.elseWorkflow, idToRef);
+        }
+        return config;
+    }
+    /**
+     * Builds a map of block ID → ref name from an array of blocks.
+     * Uses block.name as the ref (which was set from the original ref during creation).
+     * Disambiguates duplicate names by appending a suffix.
+     */
+    buildIdToRefMap(blocks) {
+        const idToRef = new Map();
+        const usedRefs = new Set();
+        for (const block of blocks) {
+            let ref = block.name;
+            if (usedRefs.has(ref)) {
+                let suffix = 2;
+                while (usedRefs.has(`${block.name}_${suffix}`))
+                    suffix++;
+                ref = `${block.name}_${suffix}`;
+            }
+            usedRefs.add(ref);
+            idToRef.set(block.id, ref);
+        }
+        return idToRef;
+    }
+    // #endregion DAG → JSON CONVERSION
     // #region ANCHOR
     linkNodeToAnchorNode(anchorNode, nodeToLink, contextNode) {
         return __awaiter(this, void 0, void 0, function* () {

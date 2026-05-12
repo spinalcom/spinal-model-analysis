@@ -1,4 +1,5 @@
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalyticNodeManagerService {
     constructor();
     /**
@@ -36,6 +37,34 @@ export default class AnalyticNodeManagerService {
     addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;
     getAnalysisNodesByContextName(contextName: string): Promise<SpinalNode<any>[]>;
     getAnalysisNode(contextName: string, analyticName: string): Promise<SpinalNode<any> | undefined>;
+    /**
+     * Extracts a complete JSON descriptor from an existing analysis node.
+     * The returned object conforms to IAnalysisConfigJSON and can be fed
+     * back into AnalysisFactoryService.createFromJSON() to recreate the analysis.
+     *
+     * @param analysisNode - The SpinalNode of type analysisNode
+     * @returns A round-trippable IAnalysisConfigJSON
+     */
+    getAnalyticDetails(analysisNode: SpinalNode<any>): Promise<IAnalysisConfigJSON>;
+    /**
+     * Converts an array of in-memory workflow blocks back to a JSON workflow config.
+     */
+    private dagToWorkflowConfig;
+    /**
+     * Converts a sub-workflow (FOREACH / IF branch) back to its JSON config shape.
+     * @param parentIdToRef - id→ref map of the parent workflow, used to resolve parent refs in IF branches
+     */
+    private subWorkflowToConfig;
+    /**
+     * Converts a single IWorkflowBlock to an IBlockConfigJSON.
+     */
+    private blockToConfig;
+    /**
+     * Builds a map of block ID → ref name from an array of blocks.
+     * Uses block.name as the ref (which was set from the original ref during creation).
+     * Disambiguates duplicate names by appending a suffix.
+     */
+    private buildIdToRefMap;
     linkNodeToAnchorNode(anchorNode: SpinalNode<any>, nodeToLink: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;
     removeLinkToAnchorNode(anchorNode: SpinalNode<any>, anchoredNode: SpinalNode<any>): Promise<void>;
     private removeChild;
