@@ -244,11 +244,13 @@ export default class AnalyticNodeManagerService {
 
   /**
    * Converts an array of in-memory workflow blocks back to a JSON workflow config.
+   * Blocks are topologically sorted so dependencies appear before dependents.
    */
   private dagToWorkflowConfig(blocks: IWorkflowBlock[]): IWorkflowConfigJSON {
-    const idToRef = this.buildIdToRefMap(blocks);
+    const sorted = this.topologicalSort(blocks);
+    const idToRef = this.buildIdToRefMap(sorted);
     return {
-      blocks: blocks.map((b) => this.blockToConfig(b, idToRef)),
+      blocks: sorted.map((b) => this.blockToConfig(b, idToRef)),
     };
   }
 
@@ -273,6 +275,7 @@ export default class AnalyticNodeManagerService {
 
   /**
    * Converts a single IWorkflowBlock to an IBlockConfigJSON.
+   * For IF blocks, strips synthetic inputBlockIds that were only added for topological ordering.
    */
   private blockToConfig(
     block: IWorkflowBlock,
@@ -288,7 +291,19 @@ export default class AnalyticNodeManagerService {
       config.parameters = block.parameters;
     }
 
-    if (block.inputBlockIds.length > 0) {
+    // For IF blocks, only include "real" inputs (predicate + optional $item payload).
+    // Extra inputBlockIds are synthetic deps added for topological ordering by buildIfSubWorkflow.
+    if (block.algorithmName === 'IF') {
+      const realCount = this.getIfRealInputCount(block);
+      const realIds = block.inputBlockIds.slice(0, realCount);
+      if (realIds.length > 0) {
+        config.inputs = realIds.map((id) => {
+          if (id === WORK_NODE_RESERVED_ID) return '$node';
+          if (id === FOREACH_ELEMENT_RESERVED_ID) return '$item';
+          return idToRef.get(id) ?? parentIdToRef?.get(id) ?? id;
+        });
+      }
+    } else if (block.inputBlockIds.length > 0) {
       config.inputs = block.inputBlockIds.map((id) => {
         if (id === WORK_NODE_RESERVED_ID) return '$node';
         if (id === FOREACH_ELEMENT_RESERVED_ID) return '$item';
@@ -334,6 +349,54 @@ export default class AnalyticNodeManagerService {
     }
 
     return idToRef;
+  }
+
+  /**
+   * Topologically sorts blocks so that dependencies come before dependents.
+   * Uses DFS post-order (Kahn-like via recursion).
+   */
+  private topologicalSort(blocks: IWorkflowBlock[]): IWorkflowBlock[] {
+    const blockMap = new Map(blocks.map((b) => [b.id, b]));
+    const visited = new Set<string>();
+    const result: IWorkflowBlock[] = [];
+
+    const visit = (block: IWorkflowBlock) => {
+      if (visited.has(block.id)) return;
+      visited.add(block.id);
+      for (const depId of block.inputBlockIds) {
+        const dep = blockMap.get(depId);
+        if (dep) visit(dep);
+      }
+      result.push(block);
+    };
+
+    for (const block of blocks) {
+      visit(block);
+    }
+
+    return result;
+  }
+
+  /**
+   * Determines how many "real" inputs an IF block has (excluding synthetic
+   * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
+   *
+   * - inputs[0]: always the boolean predicate
+   * - inputs[1]: only real if a sub-workflow block uses $item
+   * - inputs[2+]: always synthetic
+   */
+  private getIfRealInputCount(block: IWorkflowBlock): number {
+    const usesItem = (sub?: ISubWorkflow): boolean => {
+      if (!sub) return false;
+      return sub.blocks.some((b) =>
+        b.inputBlockIds.includes(FOREACH_ELEMENT_RESERVED_ID)
+      );
+    };
+
+    if (usesItem(block.thenWorkflow) || usesItem(block.elseWorkflow)) {
+      return Math.min(2, block.inputBlockIds.length);
+    }
+    return Math.min(1, block.inputBlockIds.length);
   }
 
   // #endregion DAG → JSON CONVERSION

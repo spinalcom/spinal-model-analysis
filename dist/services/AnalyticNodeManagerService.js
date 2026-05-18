@@ -205,11 +205,13 @@ class AnalyticNodeManagerService {
     // #region DAG → JSON CONVERSION
     /**
      * Converts an array of in-memory workflow blocks back to a JSON workflow config.
+     * Blocks are topologically sorted so dependencies appear before dependents.
      */
     dagToWorkflowConfig(blocks) {
-        const idToRef = this.buildIdToRefMap(blocks);
+        const sorted = this.topologicalSort(blocks);
+        const idToRef = this.buildIdToRefMap(sorted);
         return {
-            blocks: blocks.map((b) => this.blockToConfig(b, idToRef)),
+            blocks: sorted.map((b) => this.blockToConfig(b, idToRef)),
         };
     }
     /**
@@ -228,6 +230,7 @@ class AnalyticNodeManagerService {
     }
     /**
      * Converts a single IWorkflowBlock to an IBlockConfigJSON.
+     * For IF blocks, strips synthetic inputBlockIds that were only added for topological ordering.
      */
     blockToConfig(block, idToRef, parentIdToRef) {
         var _a;
@@ -238,7 +241,23 @@ class AnalyticNodeManagerService {
         if (Object.keys(block.parameters).length > 0) {
             config.parameters = block.parameters;
         }
-        if (block.inputBlockIds.length > 0) {
+        // For IF blocks, only include "real" inputs (predicate + optional $item payload).
+        // Extra inputBlockIds are synthetic deps added for topological ordering by buildIfSubWorkflow.
+        if (block.algorithmName === 'IF') {
+            const realCount = this.getIfRealInputCount(block);
+            const realIds = block.inputBlockIds.slice(0, realCount);
+            if (realIds.length > 0) {
+                config.inputs = realIds.map((id) => {
+                    var _a, _b;
+                    if (id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)
+                        return '$node';
+                    if (id === WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID)
+                        return '$item';
+                    return (_b = (_a = idToRef.get(id)) !== null && _a !== void 0 ? _a : parentIdToRef === null || parentIdToRef === void 0 ? void 0 : parentIdToRef.get(id)) !== null && _b !== void 0 ? _b : id;
+                });
+            }
+        }
+        else if (block.inputBlockIds.length > 0) {
             config.inputs = block.inputBlockIds.map((id) => {
                 var _a, _b;
                 if (id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)
@@ -282,6 +301,49 @@ class AnalyticNodeManagerService {
             idToRef.set(block.id, ref);
         }
         return idToRef;
+    }
+    /**
+     * Topologically sorts blocks so that dependencies come before dependents.
+     * Uses DFS post-order (Kahn-like via recursion).
+     */
+    topologicalSort(blocks) {
+        const blockMap = new Map(blocks.map((b) => [b.id, b]));
+        const visited = new Set();
+        const result = [];
+        const visit = (block) => {
+            if (visited.has(block.id))
+                return;
+            visited.add(block.id);
+            for (const depId of block.inputBlockIds) {
+                const dep = blockMap.get(depId);
+                if (dep)
+                    visit(dep);
+            }
+            result.push(block);
+        };
+        for (const block of blocks) {
+            visit(block);
+        }
+        return result;
+    }
+    /**
+     * Determines how many "real" inputs an IF block has (excluding synthetic
+     * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
+     *
+     * - inputs[0]: always the boolean predicate
+     * - inputs[1]: only real if a sub-workflow block uses $item
+     * - inputs[2+]: always synthetic
+     */
+    getIfRealInputCount(block) {
+        const usesItem = (sub) => {
+            if (!sub)
+                return false;
+            return sub.blocks.some((b) => b.inputBlockIds.includes(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID));
+        };
+        if (usesItem(block.thenWorkflow) || usesItem(block.elseWorkflow)) {
+            return Math.min(2, block.inputBlockIds.length);
+        }
+        return Math.min(1, block.inputBlockIds.length);
     }
     // #endregion DAG → JSON CONVERSION
     // #region ANCHOR

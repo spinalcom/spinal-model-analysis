@@ -50,6 +50,7 @@ export default class AnalyticNodeManagerService {
     getAnalyticDetails(analysisNode: SpinalNode<any>): Promise<IAnalysisConfigJSON>;
     /**
      * Converts an array of in-memory workflow blocks back to a JSON workflow config.
+     * Blocks are topologically sorted so dependencies appear before dependents.
      */
     private dagToWorkflowConfig;
     /**
@@ -59,6 +60,7 @@ export default class AnalyticNodeManagerService {
     private subWorkflowToConfig;
     /**
      * Converts a single IWorkflowBlock to an IBlockConfigJSON.
+     * For IF blocks, strips synthetic inputBlockIds that were only added for topological ordering.
      */
     private blockToConfig;
     /**
@@ -67,6 +69,20 @@ export default class AnalyticNodeManagerService {
      * Disambiguates duplicate names by appending a suffix.
      */
     private buildIdToRefMap;
+    /**
+     * Topologically sorts blocks so that dependencies come before dependents.
+     * Uses DFS post-order (Kahn-like via recursion).
+     */
+    private topologicalSort;
+    /**
+     * Determines how many "real" inputs an IF block has (excluding synthetic
+     * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
+     *
+     * - inputs[0]: always the boolean predicate
+     * - inputs[1]: only real if a sub-workflow block uses $item
+     * - inputs[2+]: always synthetic
+     */
+    private getIfRealInputCount;
     linkNodeToAnchorNode(anchorNode: SpinalNode<any>, nodeToLink: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;
     removeLinkToAnchorNode(anchorNode: SpinalNode<any>, anchoredNode: SpinalNode<any>): Promise<void>;
     private removeChild;
