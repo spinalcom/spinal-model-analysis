@@ -305,6 +305,15 @@ class AnalyticNodeManagerService {
             yield node.removeFromGraph();
         });
     }
+    deleteAnalysisContext(contextNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const analysisNodes = yield contextNode.getChildren(analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
+            for (const analysisNode of analysisNodes) {
+                yield this.deleteAnalysisNode(analysisNode);
+            }
+            yield contextNode.removeFromGraph();
+        });
+    }
     deleteAnalysisNode(analysisNode) {
         return __awaiter(this, void 0, void 0, function* () {
             const anchorNode = yield this.getAnalysisAnchorNodeNode(analysisNode);

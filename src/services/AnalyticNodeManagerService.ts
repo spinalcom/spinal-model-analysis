@@ -399,6 +399,14 @@ export default class AnalyticNodeManagerService {
     await node.removeFromGraph();
   }
 
+  public async deleteAnalysisContext(contextNode: SpinalNode<any>): Promise<void> {
+    const analysisNodes = await contextNode.getChildren(ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
+    for (const analysisNode of analysisNodes) {
+      await this.deleteAnalysisNode(analysisNode);
+    }
+    await contextNode.removeFromGraph();
+  }
+
   public async deleteAnalysisNode(analysisNode: SpinalNode<any>): Promise<void> {
     const anchorNode = await this.getAnalysisAnchorNodeNode(analysisNode);
     const relations = anchorNode.getRelationNames();
