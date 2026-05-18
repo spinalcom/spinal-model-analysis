@@ -135,6 +135,21 @@ class AnalyticNodeManagerService {
             return analysisNodes;
         });
     }
+    getAnalysisNodesByContextNode(contextNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const analysisNodes = yield contextNode.getChildren(analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
+            return analysisNodes;
+        });
+    }
+    getAnalysisNodeByContextNode(contextNode, analysisNodeName) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const analysisNodes = yield this.getAnalysisNodesByContextNode(contextNode);
+            const analysisNode = analysisNodes.find((node) => node.getName().get() === analysisNodeName);
+            if (!analysisNode)
+                return undefined;
+            return analysisNode;
+        });
+    }
     getAnalysisNode(contextName, analyticName, graph) {
         return __awaiter(this, void 0, void 0, function* () {
             const analysisNodes = yield this.getAnalysisNodesByContextName(contextName, graph);

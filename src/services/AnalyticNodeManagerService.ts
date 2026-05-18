@@ -158,6 +158,19 @@ export default class AnalyticNodeManagerService {
     return analysisNodes;
   }
 
+  public async getAnalysisNodesByContextNode(contextNode: SpinalContext<any>): Promise<SpinalNode<any>[]> {
+    const analysisNodes = await contextNode.getChildren(ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
+    return analysisNodes;
+  }
+
+  public async getAnalysisNodeByContextNode(contextNode: SpinalContext<any>, analysisNodeName: string): Promise<SpinalNode<any> | undefined> {
+    const analysisNodes = await this.getAnalysisNodesByContextNode(contextNode);
+    const analysisNode = analysisNodes.find(
+      (node) => node.getName().get() === analysisNodeName
+    );
+    if (!analysisNode) return undefined;
+    return analysisNode;
+  }
 
   public async getAnalysisNode(
     contextName: string,

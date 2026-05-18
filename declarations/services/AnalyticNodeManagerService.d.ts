@@ -1,4 +1,4 @@
-import { SpinalNode, SpinalGraph } from 'spinal-env-viewer-graph-service';
+import { SpinalNode, SpinalGraph, SpinalContext } from 'spinal-env-viewer-graph-service';
 import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalyticNodeManagerService {
     constructor();
@@ -36,6 +36,8 @@ export default class AnalyticNodeManagerService {
      */
     addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;
     getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]>;
+    getAnalysisNodesByContextNode(contextNode: SpinalContext<any>): Promise<SpinalNode<any>[]>;
+    getAnalysisNodeByContextNode(contextNode: SpinalContext<any>, analysisNodeName: string): Promise<SpinalNode<any> | undefined>;
     getAnalysisNode(contextName: string, analyticName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any> | undefined>;
     /**
      * Extracts a complete JSON descriptor from an existing analysis node.
