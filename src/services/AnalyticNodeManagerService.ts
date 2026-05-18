@@ -206,7 +206,7 @@ export default class AnalyticNodeManagerService {
     const anchorNode = await this.getAnalysisAnchorNodeNode(analysisNode);
     const anchorTargets = await anchorNode.getChildren(ANCHOR_NODE_TO_LINKED_NODE_RELATION);
     const anchorNodeId = anchorTargets.length > 0
-      ? anchorTargets[0].getId().get()
+      ? anchorTargets[0]._server_id!
       : undefined;
 
     // ── Workflows ──
@@ -222,10 +222,11 @@ export default class AnalyticNodeManagerService {
     const result: IAnalysisConfigJSON = {
       contextName: context.getName().get(),
       analysisName: analysisNode.getName().get(),
+      analysisId: analysisNode._server_id!,
       description: analysisNode.info.description?.get() ?? '',
     };
 
-    if (anchorNodeId) result.anchorNodeId = anchorNodeId;
+    if (anchorNodeId) result.anchorNodeId = String(anchorNodeId);
 
     if (resolverDAG.blocks.length > 0)
       result.worknodeResolver = this.dagToWorkflowConfig(resolverDAG.blocks);

@@ -174,7 +174,7 @@ class AnalyticNodeManagerService {
             const anchorNode = yield this.getAnalysisAnchorNodeNode(analysisNode);
             const anchorTargets = yield anchorNode.getChildren(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION);
             const anchorNodeId = anchorTargets.length > 0
-                ? anchorTargets[0].getId().get()
+                ? anchorTargets[0]._server_id
                 : undefined;
             // ── Workflows ──
             const resolverNode = yield this.getAnalysisWorknodeResolverNode(analysisNode);
@@ -187,10 +187,11 @@ class AnalyticNodeManagerService {
             const result = {
                 contextName: context.getName().get(),
                 analysisName: analysisNode.getName().get(),
+                analysisId: analysisNode._server_id,
                 description: (_b = (_a = analysisNode.info.description) === null || _a === void 0 ? void 0 : _a.get()) !== null && _b !== void 0 ? _b : '',
             };
             if (anchorNodeId)
-                result.anchorNodeId = anchorNodeId;
+                result.anchorNodeId = String(anchorNodeId);
             if (resolverDAG.blocks.length > 0)
                 result.worknodeResolver = this.dagToWorkflowConfig(resolverDAG.blocks);
             if (inputDAG.blocks.length > 0)

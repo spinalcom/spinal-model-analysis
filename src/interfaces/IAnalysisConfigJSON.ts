@@ -38,12 +38,16 @@ export interface IAnalysisConfigJSON {
     /** Name for the analysis node */
     analysisName: string;
 
+    /** Server id of the analysis node */
+    analysisId?: number;
+
     /** Optional description */
     description?: string;
 
     /**
      * The SpinalNode server_id or ID of the node to link as the anchor target.
      * This is the starting node that the worknode resolver will operate on.
+     * If the static ID is provided, make sure SpinalGraphService added it
      */
     anchorNodeId?: string;
 
