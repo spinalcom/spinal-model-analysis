@@ -82,12 +82,9 @@ export default class AnalyticNodeManagerService {
       console.error(`Context ${contextName} already exists`);
       return alreadyExists;
     }
-    const id = SpinalGraphService.createNode({
-      name: contextName,
-      type: ANALYSIS_CONTEXT_NODE_TYPE
-    })
-    const context = SpinalGraphService.getRealNode(id);
-    return graph.addContext(context).then((context) => {
+
+    const contextNode = new SpinalContext(contextName, ANALYSIS_CONTEXT_NODE_TYPE);
+    return graph.addContext(contextNode).then((context) => {
       attributeService.createOrUpdateAttrsAndCategories(context, "metadata",
         {
           version: VERSION

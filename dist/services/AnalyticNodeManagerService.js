@@ -69,12 +69,8 @@ class AnalyticNodeManagerService {
                 console.error(`Context ${contextName} already exists`);
                 return alreadyExists;
             }
-            const id = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({
-                name: contextName,
-                type: analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE
-            });
-            const context = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(id);
-            return graph.addContext(context).then((context) => {
+            const contextNode = new spinal_env_viewer_graph_service_1.SpinalContext(contextName, analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE);
+            return graph.addContext(contextNode).then((context) => {
                 spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(context, "metadata", {
                     version: version_1.VERSION
                 });
