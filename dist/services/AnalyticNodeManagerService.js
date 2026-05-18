@@ -33,9 +33,12 @@ class AnalyticNodeManagerService {
      * @return {*}  {SpinalNode<any>[]}
      * @memberof AnalyticService
      */
-    getContexts() {
-        const contexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE);
-        return contexts;
+    getContexts(graph) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const contexts = yield graph.getChildren();
+            const analysisContexts = contexts.filter((context) => context.getType().get() === analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE);
+            return analysisContexts;
+        });
     }
     /**
      * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
@@ -44,11 +47,13 @@ class AnalyticNodeManagerService {
      * @return {*}  {(SpinalNode<any> | undefined)}
      * @memberof AnalyticService
      */
-    getContext(contextName) {
-        const contexts = this.getContexts();
-        if (!contexts)
-            return undefined;
-        return contexts.find((context) => context.getName().get() === contextName);
+    getContext(contextName, graph) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const contexts = yield this.getContexts(graph);
+            if (!contexts)
+                return undefined;
+            return contexts.find((context) => context.getName().get() === contextName);
+        });
     }
     /**
      * This method creates a new context and returns the info of the newly created context.
@@ -57,15 +62,19 @@ class AnalyticNodeManagerService {
      * @return {*}  {Promise<SpinalNode<any>>}
      * @memberof AnalyticService
      */
-    createContext(contextName) {
+    createContext(contextName, graph) {
         return __awaiter(this, void 0, void 0, function* () {
-            const alreadyExists = this.getContext(contextName);
+            const alreadyExists = yield this.getContext(contextName, graph);
             if (alreadyExists) {
                 console.error(`Context ${contextName} already exists`);
                 return alreadyExists;
             }
-            return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE, undefined).then((context) => {
-                const contextId = context.getId().get();
+            const id = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode({
+                name: contextName,
+                type: analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE
+            });
+            const context = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(id);
+            return graph.addContext(context).then((context) => {
                 spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(context, "metadata", {
                     version: version_1.VERSION
                 });
@@ -74,16 +83,16 @@ class AnalyticNodeManagerService {
         });
     }
     getContextOfAnalytic(analyticNode) {
-        if (analyticNode.getType().get() !== analysisNode_1.ANALYSIS_NODE_TYPE) {
-            throw new Error('Node is not an analysis node');
-        }
-        const contexts = this.getContexts();
-        const contextId = analyticNode.getContextIds()[0];
-        const context = contexts.find(c => c.getId().get() === contextId);
-        if (!context) {
-            throw new Error('Context not found for analytic node ( should not happen since analysisNode should always be in a context)');
-        }
-        return context;
+        return __awaiter(this, void 0, void 0, function* () {
+            if (analyticNode.getType().get() !== analysisNode_1.ANALYSIS_NODE_TYPE) {
+                throw new Error('Node is not an analysis node');
+            }
+            const parents = yield analyticNode.getParents(analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
+            if (parents.length === 0) {
+                throw new Error('Node is either not an Analysis node or is not linked to any analysis context ( should not happen since analysis nodes are always linked to a context)');
+            }
+            return parents[0];
+        });
     }
     // #endregion CONTEXT
     // #region ANALYSIS
@@ -117,18 +126,18 @@ class AnalyticNodeManagerService {
             return analysisNode;
         });
     }
-    getAnalysisNodesByContextName(contextName) {
+    getAnalysisNodesByContextName(contextName, graph) {
         return __awaiter(this, void 0, void 0, function* () {
-            const context = this.getContext(contextName);
+            const context = yield this.getContext(contextName, graph);
             if (!context)
                 throw new Error(`Context with name ${contextName} not found`);
             const analysisNodes = yield context.getChildren(analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
             return analysisNodes;
         });
     }
-    getAnalysisNode(contextName, analyticName) {
+    getAnalysisNode(contextName, analyticName, graph) {
         return __awaiter(this, void 0, void 0, function* () {
-            const analysisNodes = yield this.getAnalysisNodesByContextName(contextName);
+            const analysisNodes = yield this.getAnalysisNodesByContextName(contextName, graph);
             const analysisNode = analysisNodes.find((node) => node.getName().get() === analyticName);
             if (!analysisNode)
                 return undefined;
@@ -149,7 +158,7 @@ class AnalyticNodeManagerService {
         var _a, _b;
         return __awaiter(this, void 0, void 0, function* () {
             const blockManager = new WorkflowBlockManagerService_1.default();
-            const context = this.getContextOfAnalytic(analysisNode);
+            const context = yield this.getContextOfAnalytic(analysisNode);
             // ── Anchor ──
             const anchorNode = yield this.getAnalysisAnchorNodeNode(analysisNode);
             const anchorTargets = yield anchorNode.getChildren(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION);

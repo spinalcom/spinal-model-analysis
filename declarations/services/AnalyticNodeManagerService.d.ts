@@ -1,4 +1,4 @@
-import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { SpinalNode, SpinalGraph } from 'spinal-env-viewer-graph-service';
 import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalyticNodeManagerService {
     constructor();
@@ -8,7 +8,7 @@ export default class AnalyticNodeManagerService {
      * @return {*}  {SpinalNode<any>[]}
      * @memberof AnalyticService
      */
-    getContexts(): SpinalNode<any>[];
+    getContexts(graph: SpinalGraph<any>): Promise<SpinalNode<any>[]>;
     /**
      * This method use the context name to find and return the info of that context. If the context does not exist, it returns undefined.
      * If multiple contexts have the same name, it returns the first one.
@@ -16,7 +16,7 @@ export default class AnalyticNodeManagerService {
      * @return {*}  {(SpinalNode<any> | undefined)}
      * @memberof AnalyticService
      */
-    getContext(contextName: string): SpinalNode<any> | undefined;
+    getContext(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any> | undefined>;
     /**
      * This method creates a new context and returns the info of the newly created context.
      * If the context already exists (same name), it just returns the info of that context instead of creating a new one.
@@ -24,8 +24,8 @@ export default class AnalyticNodeManagerService {
      * @return {*}  {Promise<SpinalNode<any>>}
      * @memberof AnalyticService
      */
-    createContext(contextName: string): Promise<SpinalNode<any>>;
-    getContextOfAnalytic(analyticNode: SpinalNode<any>): SpinalNode<any>;
+    createContext(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>>;
+    getContextOfAnalytic(analyticNode: SpinalNode<any>): Promise<SpinalNode<any>>;
     /**
      * Adds a new analysis node, also adds the mandatory children nodes of the analysis node, and links the analysis node to the specified context.
      * @async
@@ -35,8 +35,8 @@ export default class AnalyticNodeManagerService {
      * @memberof AnalyticService
      */
     addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;
-    getAnalysisNodesByContextName(contextName: string): Promise<SpinalNode<any>[]>;
-    getAnalysisNode(contextName: string, analyticName: string): Promise<SpinalNode<any> | undefined>;
+    getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]>;
+    getAnalysisNode(contextName: string, analyticName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any> | undefined>;
     /**
      * Extracts a complete JSON descriptor from an existing analysis node.
      * The returned object conforms to IAnalysisConfigJSON and can be fed

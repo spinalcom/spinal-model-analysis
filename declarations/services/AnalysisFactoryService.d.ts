@@ -1,4 +1,4 @@
-import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { SpinalNode, SpinalGraph } from 'spinal-env-viewer-graph-service';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
@@ -27,7 +27,7 @@ export default class AnalysisFactoryService {
      * @param config - The JSON analysis descriptor
      * @returns The created analysis SpinalNode
      */
-    createFromJSON(config: IAnalysisConfigJSON): Promise<SpinalNode<any>>;
+    createFromJSON(config: IAnalysisConfigJSON, graph: SpinalGraph<any>): Promise<SpinalNode<any>>;
     /**
      * Links the analysis anchor node to the target node in the database.
      */

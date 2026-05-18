@@ -43,12 +43,12 @@ class AnalysisFactoryService {
      * @param config - The JSON analysis descriptor
      * @returns The created analysis SpinalNode
      */
-    createFromJSON(config) {
+    createFromJSON(config, graph) {
         var _a;
         return __awaiter(this, void 0, void 0, function* () {
             (0, utils_1.logMessage)(`[AnalysisFactory] Creating analysis: ${config.analysisName}`);
             // ── 1. Create or get context ──
-            const contextNode = yield this.nodeManager.createContext(config.contextName);
+            const contextNode = yield this.nodeManager.createContext(config.contextName, graph);
             (0, utils_1.logMessage)(`[AnalysisFactory] Context: ${config.contextName}`);
             // ── 2. Create analysis node (creates all mandatory sub-nodes) ──
             const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_a = config.description) !== null && _a !== void 0 ? _a : '', contextNode);

@@ -3,6 +3,7 @@ import {
     SpinalGraphService,
     SpinalNode,
     SPINAL_RELATION_PTR_LST_TYPE,
+    SpinalGraph,
 } from 'spinal-env-viewer-graph-service';
 
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
@@ -54,13 +55,15 @@ export default class AnalysisFactoryService {
      * @returns The created analysis SpinalNode
      */
     public async createFromJSON(
-        config: IAnalysisConfigJSON
+        config: IAnalysisConfigJSON,
+        graph: SpinalGraph<any>
     ): Promise<SpinalNode<any>> {
         logMessage(`[AnalysisFactory] Creating analysis: ${config.analysisName}`);
 
         // ── 1. Create or get context ──
         const contextNode = await this.nodeManager.createContext(
-            config.contextName
+            config.contextName,
+            graph
         );
         logMessage(`[AnalysisFactory] Context: ${config.contextName}`);
 

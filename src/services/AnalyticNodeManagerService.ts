@@ -2,6 +2,7 @@
 import {
   SpinalGraphService,
   SpinalNode,
+  SpinalGraph,
   SpinalContext,
   SPINAL_RELATION_PTR_LST_TYPE,
   SPINAL_RELATION_LST_PTR_TYPE,
@@ -47,11 +48,12 @@ export default class AnalyticNodeManagerService {
    * @return {*}  {SpinalNode<any>[]}
    * @memberof AnalyticService
    */
-  public getContexts(): SpinalNode<any>[] {
-    const contexts = SpinalGraphService.getContextWithType(
-      ANALYSIS_CONTEXT_NODE_TYPE
+  public async getContexts(graph: SpinalGraph<any>): Promise<SpinalNode<any>[]> {
+    const contexts = await graph.getChildren();
+    const analysisContexts = contexts.filter(
+      (context) => context.getType().get() === ANALYSIS_CONTEXT_NODE_TYPE
     );
-    return contexts;
+    return analysisContexts;
   }
 
   /**
@@ -61,8 +63,8 @@ export default class AnalyticNodeManagerService {
    * @return {*}  {(SpinalNode<any> | undefined)}
    * @memberof AnalyticService
    */
-  public getContext(contextName: string): SpinalNode<any> | undefined {
-    const contexts = this.getContexts();
+  public async getContext(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any> | undefined> {
+    const contexts = await this.getContexts(graph);
     if (!contexts) return undefined;
     return contexts.find((context) => context.getName().get() === contextName);
   }
@@ -74,18 +76,18 @@ export default class AnalyticNodeManagerService {
    * @return {*}  {Promise<SpinalNode<any>>}
    * @memberof AnalyticService
    */
-  public async createContext(contextName: string): Promise<SpinalNode<any>> {
-    const alreadyExists = this.getContext(contextName);
+  public async createContext(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>> {
+    const alreadyExists = await this.getContext(contextName, graph);
     if (alreadyExists) {
       console.error(`Context ${contextName} already exists`);
       return alreadyExists;
     }
-    return SpinalGraphService.addContext(
-      contextName,
-      ANALYSIS_CONTEXT_NODE_TYPE,
-      undefined
-    ).then((context) => {
-      const contextId = context.getId().get();
+    const id = SpinalGraphService.createNode({
+      name: contextName,
+      type: ANALYSIS_CONTEXT_NODE_TYPE
+    })
+    const context = SpinalGraphService.getRealNode(id);
+    return graph.addContext(context).then((context) => {
       attributeService.createOrUpdateAttrsAndCategories(context, "metadata",
         {
           version: VERSION
@@ -95,17 +97,15 @@ export default class AnalyticNodeManagerService {
     });
   }
 
-  public getContextOfAnalytic(analyticNode: SpinalNode<any>): SpinalNode<any> {
+  public async getContextOfAnalytic(analyticNode: SpinalNode<any>): Promise<SpinalNode<any>> {
     if (analyticNode.getType().get() !== ANALYSIS_NODE_TYPE) {
       throw new Error('Node is not an analysis node');
     }
-    const contexts = this.getContexts()
-    const contextId = analyticNode.getContextIds()[0];
-    const context = contexts.find(c => c.getId().get() === contextId);
-    if (!context) {
-      throw new Error('Context not found for analytic node ( should not happen since analysisNode should always be in a context)');
+    const parents = await analyticNode.getParents(ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
+    if (parents.length === 0) {
+      throw new Error('Node is either not an Analysis node or is not linked to any analysis context ( should not happen since analysis nodes are always linked to a context)');
     }
-    return context;
+    return parents[0];
   }
 
   // #endregion CONTEXT
@@ -151,8 +151,8 @@ export default class AnalyticNodeManagerService {
     return analysisNode;
   }
 
-  public async getAnalysisNodesByContextName(contextName: string): Promise<SpinalNode<any>[]> {
-    const context = this.getContext(contextName);
+  public async getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]> {
+    const context = await this.getContext(contextName, graph);
     if (!context) throw new Error(`Context with name ${contextName} not found`);
     const analysisNodes = await context.getChildren(ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION);
     return analysisNodes;
@@ -161,10 +161,11 @@ export default class AnalyticNodeManagerService {
 
   public async getAnalysisNode(
     contextName: string,
-    analyticName: string
+    analyticName: string,
+    graph: SpinalGraph<any>
   ): Promise<SpinalNode<any> | undefined> {
 
-    const analysisNodes = await this.getAnalysisNodesByContextName(contextName);
+    const analysisNodes = await this.getAnalysisNodesByContextName(contextName, graph);
     const analysisNode = analysisNodes.find(
       (node) => node.getName().get() === analyticName
     );
@@ -189,7 +190,7 @@ export default class AnalyticNodeManagerService {
     analysisNode: SpinalNode<any>
   ): Promise<IAnalysisConfigJSON> {
     const blockManager = new WorkflowBlockManagerService();
-    const context = this.getContextOfAnalytic(analysisNode);
+    const context = await this.getContextOfAnalytic(analysisNode);
 
     // ── Anchor ──
     const anchorNode = await this.getAnalysisAnchorNodeNode(analysisNode);
