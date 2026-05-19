@@ -385,6 +385,15 @@ export default class WorkflowBlockManagerService {
             const block = this.blockNodeToMemory(subRoot);
             subVisited.set(subId, block);
 
+            // Check if this sub-root is itself a FOREACH or IF block
+            if (block.algorithmName === 'FOREACH') {
+                block.subWorkflow = await this.loadForeachSubWorkflow(subRoot);
+            }
+            if (block.algorithmName === 'IF') {
+                block.thenWorkflow = await this.loadIfSubWorkflow(subRoot, 'then');
+                block.elseWorkflow = await this.loadIfSubWorkflow(subRoot, 'else');
+            }
+
             // Recurse into sub-block dependents (they use the normal block relation)
             await this.collectBlocks(subRoot, subVisited);
         }
@@ -429,6 +438,15 @@ export default class WorkflowBlockManagerService {
 
             const block = this.blockNodeToMemory(subRoot);
             subVisited.set(subId, block);
+
+            // Check if this sub-root is itself a FOREACH or IF block
+            if (block.algorithmName === 'FOREACH') {
+                block.subWorkflow = await this.loadForeachSubWorkflow(subRoot);
+            }
+            if (block.algorithmName === 'IF') {
+                block.thenWorkflow = await this.loadIfSubWorkflow(subRoot, 'then');
+                block.elseWorkflow = await this.loadIfSubWorkflow(subRoot, 'else');
+            }
 
             await this.collectBlocks(subRoot, subVisited);
         }

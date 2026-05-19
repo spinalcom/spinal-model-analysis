@@ -281,6 +281,14 @@ class WorkflowBlockManagerService {
                     continue;
                 const block = this.blockNodeToMemory(subRoot);
                 subVisited.set(subId, block);
+                // Check if this sub-root is itself a FOREACH or IF block
+                if (block.algorithmName === 'FOREACH') {
+                    block.subWorkflow = yield this.loadForeachSubWorkflow(subRoot);
+                }
+                if (block.algorithmName === 'IF') {
+                    block.thenWorkflow = yield this.loadIfSubWorkflow(subRoot, 'then');
+                    block.elseWorkflow = yield this.loadIfSubWorkflow(subRoot, 'else');
+                }
                 // Recurse into sub-block dependents (they use the normal block relation)
                 yield this.collectBlocks(subRoot, subVisited);
             }
@@ -316,6 +324,14 @@ class WorkflowBlockManagerService {
                     continue;
                 const block = this.blockNodeToMemory(subRoot);
                 subVisited.set(subId, block);
+                // Check if this sub-root is itself a FOREACH or IF block
+                if (block.algorithmName === 'FOREACH') {
+                    block.subWorkflow = yield this.loadForeachSubWorkflow(subRoot);
+                }
+                if (block.algorithmName === 'IF') {
+                    block.thenWorkflow = yield this.loadIfSubWorkflow(subRoot, 'then');
+                    block.elseWorkflow = yield this.loadIfSubWorkflow(subRoot, 'else');
+                }
                 yield this.collectBlocks(subRoot, subVisited);
             }
             const fieldName = branch === 'then' ? 'ifThenOutputBlockId' : 'ifElseOutputBlockId';
