@@ -321,6 +321,37 @@ export default class AnalysisFactoryService {
                 }
             );
             refToNode.set(blockDef.ref, subBlockNode);
+
+            // Recursively build nested FOREACH sub-workflows
+            if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
+                await this.buildForeachSubWorkflow(
+                    subBlockNode,
+                    contextNode,
+                    blockDef.subWorkflow
+                );
+            }
+
+            // Recursively build nested IF sub-workflows
+            if (blockDef.algorithmName === 'IF') {
+                if (blockDef.thenWorkflow) {
+                    await this.buildIfSubWorkflow(
+                        subBlockNode,
+                        contextNode,
+                        blockDef.thenWorkflow,
+                        'then',
+                        refToNode
+                    );
+                }
+                if (blockDef.elseWorkflow) {
+                    await this.buildIfSubWorkflow(
+                        subBlockNode,
+                        contextNode,
+                        blockDef.elseWorkflow,
+                        'else',
+                        refToNode
+                    );
+                }
+            }
         }
 
         // Phase 2: Wire dependencies between sub-blocks
@@ -428,6 +459,41 @@ export default class AnalysisFactoryService {
                 }
             );
             refToNode.set(blockDef.ref, subBlockNode);
+
+            // Recursively build nested FOREACH sub-workflows
+            if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
+                await this.buildForeachSubWorkflow(
+                    subBlockNode,
+                    contextNode,
+                    blockDef.subWorkflow
+                );
+            }
+
+            // Recursively build nested IF sub-workflows
+            if (blockDef.algorithmName === 'IF') {
+                // Merge parent refs with local refs so nested IF can resolve both
+                const mergedRefToNode = parentRefToNode
+                    ? new Map([...parentRefToNode, ...refToNode])
+                    : refToNode;
+                if (blockDef.thenWorkflow) {
+                    await this.buildIfSubWorkflow(
+                        subBlockNode,
+                        contextNode,
+                        blockDef.thenWorkflow,
+                        'then',
+                        mergedRefToNode
+                    );
+                }
+                if (blockDef.elseWorkflow) {
+                    await this.buildIfSubWorkflow(
+                        subBlockNode,
+                        contextNode,
+                        blockDef.elseWorkflow,
+                        'else',
+                        mergedRefToNode
+                    );
+                }
+            }
         }
 
         // Phase 2: Wire dependencies and build inputBlockIds
