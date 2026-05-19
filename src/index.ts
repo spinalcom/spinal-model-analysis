@@ -4,6 +4,9 @@ import { ITrackingMethod } from './interfaces/ITrackingMethod';
 import { IConfig } from './interfaces/IConfig';
 import { AnalyticModel } from './models/AnalyticModel';
 import { TrackingMethodModel } from './models/TrackingMethodModel';
+
+import { VERSION } from './version';
+
 import {
   isResultSuccess,
   isGChatMessageResult,
@@ -64,6 +67,7 @@ export {
   isGChatOrganCardResult,
   algos,
   ALGORITHMS,
+  VERSION
 };
 
 export default spinalAnalyticExecutionService;

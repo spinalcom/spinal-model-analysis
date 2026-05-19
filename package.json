@@ -1,10 +1,11 @@
 {
   "name": "spinal-model-analysis",
-  "version": "3.2.3",
+  "version": "3.3.0",
   "description": "Describe and register the models necessary for the whole analysis module and provide the service necessary for handling it.",
   "main": "dist/index.js",
   "types": "declarations/index.d.ts",
   "scripts": {
+    "prebuild": "node -e \"const fs=require('fs'); const v=require('./package.json').version; fs.writeFileSync('src/version.ts', 'export const VERSION = \\'' + v + '\\';\\n');\"",
     "build": "rm -fr dist declarations && tsc",
     "rm-spinal-deps": "rm -fr node_modules/spinal-*",
     "docs": "typedoc --out ./docs/code ./src",

@@ -6,10 +6,12 @@
     "paths": {
       "*": ["types/*"]
     },
+    "rootDir": "src",
     "outDir": "dist",
     "lib": ["es2019", "dom"],
     "sourceMap": true,
     "declaration": true,
+    "resolveJsonModule": true,
     "declarationDir": "./declarations",
     "forceConsistentCasingInFileNames": true,
     "strict": true,
@@ -20,8 +22,5 @@
   "types": ["declarations/index.d.ts"],
   "include": [
     "src/**/*.ts", "src/interfaces/IOutputs",
-  ],
-  "exclude": [
-    "oldnode_modules"
   ]
 }

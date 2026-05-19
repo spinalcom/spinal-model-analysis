@@ -20,6 +20,7 @@ const InputsModel_1 = require("../models/InputsModel");
 const OutputsModel_1 = require("../models/OutputsModel");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const utils_1 = require("./utils");
+const version_1 = require("../version");
 class AnalyticNodeManagerService {
     // eslint-disable-next-line @typescript-eslint/no-empty-function
     constructor() { }
@@ -64,6 +65,9 @@ class AnalyticNodeManagerService {
             }
             return spinal_env_viewer_graph_service_1.SpinalGraphService.addContext(contextName, CONSTANTS.CONTEXT_TYPE, undefined).then((context) => {
                 const contextId = context.getId().get();
+                spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(context, "metadata", {
+                    version: version_1.VERSION
+                });
                 return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(contextId);
             });
         });
@@ -126,8 +130,11 @@ class AnalyticNodeManagerService {
                 return undefined;
             const contextNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(context.id.get());
             const entities = yield contextNode.getChildren(CONSTANTS.CONTEXT_TO_ENTITY_RELATION);
-            const entitiesModels = entities.map((el) => spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(el.info.id.get()));
-            return entitiesModels.find((entity) => entity.name.get() === entityName);
+            const foundEntityNode = entities.find((el) => el.getName().get() === entityName);
+            if (!foundEntityNode)
+                return undefined;
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(foundEntityNode);
+            return spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(foundEntityNode.getId().get());
         });
     }
     /**
@@ -238,34 +245,47 @@ class AnalyticNodeManagerService {
                 throw new Error('No followed entity node found');
             if (!entity)
                 throw new Error('No entity node found');
-            const configNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(config.id.get());
-            const trackingMethodNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(trackingMethod.id.get());
-            const configCategoryAttributes = (yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getCategory(configNode)).map((el) => {
-                return el.nameCat;
-            });
-            const trackingMethodCategoryAttributes = (yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getCategory(trackingMethodNode)).map((el) => {
-                return el.nameCat;
-            });
-            const configInfo = {};
-            const trackingMethodInfo = {};
-            for (const cat of configCategoryAttributes) {
-                const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(configNode, cat);
-                configInfo[cat] = attributes;
-            }
-            for (const cat of trackingMethodCategoryAttributes) {
-                const attributes = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(trackingMethodNode, cat);
-                trackingMethodInfo[cat] = attributes;
-            }
-            const analyticDetails = spinal_env_viewer_graph_service_1.SpinalGraphService.getInfo(analyticId);
-            const followedEntityId = followedEntity.id.get();
-            const res = {
-                entityNodeInfo: entity,
-                analyticName: analyticDetails.name.get(),
-                config: configInfo,
-                trackingMethod: trackingMethodInfo,
-                followedEntityId,
+            // Config node
+            const analyticConfigAttributes = yield this.getAllCategoriesAndAttributesFromNode(config.id.get());
+            // Anchor node 
+            const analyticAnchorNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(followedEntity.id.get());
+            const inputAttributes = yield this.getAllCategoriesAndAttributesFromNode(trackingMethod.id.get());
+            return {
+                id: analyticNode._server_id,
+                name: analyticNode.getName().get(),
+                type: analyticNode.getType().get(),
+                analyticOnEntityName: entity.name.get(),
+                analyticOnEntityType: entity.entityType.get(),
+                config: analyticConfigAttributes,
+                inputs: inputAttributes,
+                anchor: {
+                    id: analyticAnchorNode._server_id,
+                    name: analyticAnchorNode.getName().get(),
+                    type: analyticAnchorNode.getType().get()
+                }
             };
-            return res;
+        });
+    }
+    createAnalytic(analyticDetails, contextNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const entity = yield this.getEntity(contextNode.getName().get(), analyticDetails.analyticOnEntityName);
+            if (!entity)
+                throw new Error(`Entity ${analyticDetails.analyticOnEntityName} not found in context ${contextNode.getName().get()}`);
+            const analyticInfo = {
+                name: analyticDetails.name,
+                description: ''
+            };
+            const anchorNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(analyticDetails.anchor.id);
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(anchorNode);
+            const analyticNodeRef = yield this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
+            const configRef = yield this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
+            //const configNode = SpinalGraphService.getRealNode(configRef.id.get());
+            //await this.addAttributesToNode(configNode, analyticDetails.config);
+            const trackingMethodRef = yield this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
+            //const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
+            //await this.addAttributesToNode(trackingMethodNode, analyticDetails.inputs);
+            yield this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
+            return this.getAnalyticDetails(analyticNodeRef.id.get());
         });
     }
     // #endregion ANALYTIC
@@ -574,20 +594,10 @@ class AnalyticNodeManagerService {
     }
     // #endregion FOLLOWED ENTITY
     // #region NODE DOCUMENTATION
-    /**
-     * Adds the specified attributes to the node with the specified ID.
-     * @async
-     * @param {SpinalNode<any>} node - The node to which to add the attributes.
-     * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
-     * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-     * @memberof AnalyticService
-     */
     addAttributesToNode(node, attributes) {
         return __awaiter(this, void 0, void 0, function* () {
             for (const categoryName of Object.keys(attributes)) {
-                for (const attribute of attributes[categoryName]) {
-                    yield spinal_env_viewer_plugin_documentation_service_1.default.addAttributeByCategoryName(node, categoryName, attribute.name, attribute.value, attribute.type, '');
-                }
+                spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, Object.assign({}, attributes[categoryName]));
             }
         });
     }

@@ -26,12 +26,14 @@ import { INodeDocumentation } from '../interfaces/IAttribute';
 import AttributeService, {
   attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
+import { SpinalAttribute } from 'spinal-models-documentation';
 
 import { parseValue } from './utils';
+import { VERSION } from '../version';
 
 export default class AnalyticNodeManagerService {
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  constructor() {}
+  constructor() { }
 
   // #region CONTEXT
 
@@ -81,6 +83,11 @@ export default class AnalyticNodeManagerService {
       undefined
     ).then((context) => {
       const contextId = context.getId().get();
+      attributeService.createOrUpdateAttrsAndCategories(context, "metadata",
+        {
+          version: VERSION
+        }
+      )
       return SpinalGraphService.getInfo(contextId);
     });
   }
@@ -160,10 +167,14 @@ export default class AnalyticNodeManagerService {
     const entities = await contextNode.getChildren(
       CONSTANTS.CONTEXT_TO_ENTITY_RELATION
     );
-    const entitiesModels = entities.map((el) =>
-      SpinalGraphService.getInfo(el.info.id.get())
+    const foundEntityNode = entities.find(
+      (el) => el.getName().get() === entityName
     );
-    return entitiesModels.find((entity) => entity.name.get() === entityName);
+
+    if (!foundEntityNode) return undefined;
+
+    SpinalGraphService._addNode(foundEntityNode);
+    return SpinalGraphService.getInfo(foundEntityNode.getId().get());
   }
 
   /**
@@ -298,53 +309,56 @@ export default class AnalyticNodeManagerService {
     if (!followedEntity) throw new Error('No followed entity node found');
     if (!entity) throw new Error('No entity node found');
 
-    const configNode = SpinalGraphService.getRealNode(config.id.get());
-    const trackingMethodNode = SpinalGraphService.getRealNode(
-      trackingMethod.id.get()
-    );
+    // Config node
+    const analyticConfigAttributes = await this.getAllCategoriesAndAttributesFromNode(config.id.get());
 
-    const configCategoryAttributes = (
-      await attributeService.getCategory(configNode)
-    ).map((el) => {
-      return el.nameCat;
-    });
-    const trackingMethodCategoryAttributes = (
-      await attributeService.getCategory(trackingMethodNode)
-    ).map((el) => {
-      return el.nameCat;
-    });
+    // Anchor node 
+    const analyticAnchorNode = SpinalGraphService.getRealNode(followedEntity.id.get());
 
-    const configInfo = {};
-    const trackingMethodInfo = {};
 
-    for (const cat of configCategoryAttributes) {
-      const attributes = await attributeService.getAttributesByCategory(
-        configNode,
-        cat
-      );
-      configInfo[cat] = attributes;
+    const inputAttributes = await this.getAllCategoriesAndAttributesFromNode(trackingMethod.id.get());
+    return {
+      id: analyticNode._server_id,
+      name: analyticNode.getName().get(),
+      type: analyticNode.getType().get(),
+      analyticOnEntityName: entity.name.get(),
+      analyticOnEntityType: entity.entityType.get(),
+      config: analyticConfigAttributes,
+      inputs: inputAttributes,
+      anchor: {
+        id: analyticAnchorNode._server_id,
+        name: analyticAnchorNode.getName().get(),
+        type: analyticAnchorNode.getType().get()
+      }
     }
-
-    for (const cat of trackingMethodCategoryAttributes) {
-      const attributes = await attributeService.getAttributesByCategory(
-        trackingMethodNode,
-        cat
-      );
-      trackingMethodInfo[cat] = attributes;
-    }
-
-    const analyticDetails = SpinalGraphService.getInfo(analyticId);
-
-    const followedEntityId = followedEntity.id.get();
-    const res: IAnalyticDetails = {
-      entityNodeInfo: entity,
-      analyticName: analyticDetails.name.get(),
-      config: configInfo,
-      trackingMethod: trackingMethodInfo,
-      followedEntityId,
-    };
-    return res;
   }
+
+  public async createAnalytic(analyticDetails: any, contextNode: SpinalNode<any>): Promise<any> {
+
+    const entity = await this.getEntity(contextNode.getName().get(), analyticDetails.analyticOnEntityName);
+    if (!entity) throw new Error(`Entity ${analyticDetails.analyticOnEntityName} not found in context ${contextNode.getName().get()}`);
+
+    const analyticInfo: IAnalytic = {
+      name: analyticDetails.name,
+      description: ''
+    };
+
+    const anchorNode = SpinalGraphService.getRealNode(analyticDetails.anchor.id);
+    SpinalGraphService._addNode(anchorNode);
+
+    const analyticNodeRef = await this.addAnalytic(analyticInfo, contextNode.getId().get(), entity.id.get()); // also creates inputs/outputs nodes
+
+    const configRef = await this.addConfig(analyticDetails.config, analyticNodeRef.id.get(), contextNode.getId().get());
+    //const configNode = SpinalGraphService.getRealNode(configRef.id.get());
+    //await this.addAttributesToNode(configNode, analyticDetails.config);
+    const trackingMethodRef = await this.addInputTrackingMethod(analyticDetails.inputs, contextNode.getId().get(), analyticNodeRef.id.get());
+    //const trackingMethodNode = SpinalGraphService.getRealNode(trackingMethodRef.id.get());
+    //await this.addAttributesToNode(trackingMethodNode, analyticDetails.inputs);
+    await this.addInputLinkToFollowedEntity(contextNode.getId().get(), analyticNodeRef.id.get(), anchorNode.getId().get());
+    return this.getAnalyticDetails(analyticNodeRef.id.get());
+  }
+
+
   // #endregion ANALYTIC
 
   // #region INPUTS/OUTPUTS
@@ -469,7 +483,7 @@ export default class AnalyticNodeManagerService {
    * @memberof AnalyticService
    */
   public async addConfig(
-    configAttributes: INodeDocumentation,
+    configAttributes: any,
     analyticId: string,
     contextId: string
   ): Promise<SpinalNodeRef> {
@@ -569,7 +583,7 @@ export default class AnalyticNodeManagerService {
    * @memberof AnalyticService
    */
   public async addTrackingMethod(
-    trackingMethodAttributes: INodeDocumentation,
+    trackingMethodAttributes: any,
     contextId: string,
     inputId: string
   ): Promise<SpinalNodeRef> {
@@ -725,29 +739,19 @@ export default class AnalyticNodeManagerService {
   // #endregion FOLLOWED ENTITY
 
   // #region NODE DOCUMENTATION
-  /**
-   * Adds the specified attributes to the node with the specified ID.
-   * @async
-   * @param {SpinalNode<any>} node - The node to which to add the attributes.
-   * @param {INodeDocumentation} attributes - An array of objects representing the attributes to add to the node.
-   * @returns {Promise<void>} A Promise that resolves when the attributes have been added.
-   * @memberof AnalyticService
-   */
+
   public async addAttributesToNode(
     node: SpinalNode<any>,
-    attributes: INodeDocumentation
-  ): Promise<void> {
+    attributes: Record<string, Record<string, string>>
+  ) {
     for (const categoryName of Object.keys(attributes)) {
-      for (const attribute of attributes[categoryName]) {
-        await AttributeService.addAttributeByCategoryName(
-          node,
-          categoryName,
-          attribute.name,
-          attribute.value,
-          attribute.type,
-          ''
-        );
-      }
+      attributeService.createOrUpdateAttrsAndCategories(
+        node,
+        categoryName,
+        {
+          ...attributes[categoryName]
+        }
+      )
     }
   }
 
@@ -794,7 +798,7 @@ export default class AnalyticNodeManagerService {
     return undefined;
   }
 
-  public async getAllCategoriesAndAttributesFromNode(nodeId: string) : Promise<IAnalyticConfig> {
+  public async getAllCategoriesAndAttributesFromNode(nodeId: string): Promise<IAnalyticConfig> {
     const node = SpinalGraphService.getRealNode(nodeId);
     const res = {};
     const categories = await attributeService.getCategory(node);

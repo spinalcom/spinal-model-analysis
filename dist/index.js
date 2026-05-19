@@ -1,10 +1,12 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.algos = exports.isGChatOrganCardResult = exports.isGChatMessageResult = exports.isResultSuccess = exports.CONSTANTS = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticOutputManagerService = exports.spinalAnalyticInputManagerService = exports.spinalAnalyticNodeManagerService = exports.spinalAnalyticExecutionService = void 0;
+exports.VERSION = exports.ALGORITHMS = exports.algos = exports.isGChatOrganCardResult = exports.isGChatMessageResult = exports.isResultSuccess = exports.CONSTANTS = exports.TrackingMethodModel = exports.AnalyticModel = exports.spinalAnalyticOutputManagerService = exports.spinalAnalyticInputManagerService = exports.spinalAnalyticNodeManagerService = exports.spinalAnalyticExecutionService = void 0;
 const AnalyticModel_1 = require("./models/AnalyticModel");
 Object.defineProperty(exports, "AnalyticModel", { enumerable: true, get: function () { return AnalyticModel_1.AnalyticModel; } });
 const TrackingMethodModel_1 = require("./models/TrackingMethodModel");
 Object.defineProperty(exports, "TrackingMethodModel", { enumerable: true, get: function () { return TrackingMethodModel_1.TrackingMethodModel; } });
+const version_1 = require("./version");
+Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
 const IAnalyticResult_1 = require("./interfaces/IAnalyticResult");
 Object.defineProperty(exports, "isResultSuccess", { enumerable: true, get: function () { return IAnalyticResult_1.isResultSuccess; } });
 Object.defineProperty(exports, "isGChatMessageResult", { enumerable: true, get: function () { return IAnalyticResult_1.isGChatMessageResult; } });
