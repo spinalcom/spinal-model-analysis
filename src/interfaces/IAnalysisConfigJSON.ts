@@ -95,9 +95,20 @@ export interface IBlockConfigJSON {
      *
      * Special refs:
      * - '$node': references the implicit work node (anchor target / current work node)
-     * - '$item': (inside FOREACH subWorkflow only) references the current iteration element
+     * - Any FOREACH itemRef name: references the iteration element of that FOREACH
      */
     inputs?: string[];
+
+    /**
+     * For FOREACH blocks only.
+     * The name by which the current iteration element is referenced inside the sub-workflow.
+     * Sub-blocks use this name in their `inputs` array to access the element.
+     * In nested FOREACH, each level defines its own itemRef, and inner sub-workflows
+     * can reference any ancestor FOREACH's itemRef.
+     *
+     * e.g., itemRef: "equipment" → sub-blocks use "equipment" in their inputs
+     */
+    itemRef?: string;
 
     /**
      * Register the output as a named variable (for input workflow).
@@ -110,6 +121,7 @@ export interface IBlockConfigJSON {
 
     /**
      * For FOREACH blocks: defines the sub-workflow to execute per element.
+     * Sub-blocks can reference the iteration element using the `itemRef` name.
      */
     subWorkflow?: {
         blocks: IBlockConfigJSON[];
@@ -119,7 +131,7 @@ export interface IBlockConfigJSON {
 
     /**
      * For IF blocks: sub-workflow executed when predicate (inputs[0]) is true.
-     * The optional payload (inputs[1]) is injected as '$item' in the branch.
+     * IF branches inherit the parent context, including all FOREACH itemRefs.
      */
     thenWorkflow?: {
         blocks: IBlockConfigJSON[];

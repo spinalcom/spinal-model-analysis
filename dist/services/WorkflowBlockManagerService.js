@@ -71,6 +71,9 @@ class WorkflowBlockManagerService {
         if (options === null || options === void 0 ? void 0 : options.foreachOutputBlockId) {
             blockInfo.foreachOutputBlockId = options.foreachOutputBlockId;
         }
+        if (options === null || options === void 0 ? void 0 : options.foreachItemRef) {
+            blockInfo.foreachItemRef = options.foreachItemRef;
+        }
         const blockNodeId = spinal_env_viewer_graph_service_1.SpinalGraphService.createNode(blockInfo);
         const blockNode = spinal_env_viewer_graph_service_1.SpinalGraphService.getRealNode(blockNodeId);
         if (!blockNode)
@@ -204,6 +207,14 @@ class WorkflowBlockManagerService {
             }
             else {
                 blockNode.info.foreachOutputBlockId.set(updates.foreachOutputBlockId);
+            }
+        }
+        if (updates.foreachItemRef !== undefined) {
+            if (!blockNode.info.foreachItemRef) {
+                blockNode.info.add_attr('foreachItemRef', updates.foreachItemRef);
+            }
+            else {
+                blockNode.info.foreachItemRef.set(updates.foreachItemRef);
             }
         }
         if (updates.ifThenOutputBlockId !== undefined) {
@@ -377,6 +388,9 @@ class WorkflowBlockManagerService {
         };
         if (registerAs) {
             block.registerAs = registerAs;
+        }
+        if (blockNode.info.foreachItemRef) {
+            block.foreachItemRef = blockNode.info.foreachItemRef.get();
         }
         return block;
     }

@@ -52,6 +52,7 @@ export default class WorkflowBlockManagerService {
             name?: string;
             registerAs?: string;
             foreachOutputBlockId?: string;
+            foreachItemRef?: string;
         }
     ): Promise<SpinalNode<any>> {
         const blockNode = this.createOrphanBlock(algorithmName, parameters, options);
@@ -83,6 +84,7 @@ export default class WorkflowBlockManagerService {
             name?: string;
             registerAs?: string;
             foreachOutputBlockId?: string;
+            foreachItemRef?: string;
         }
     ): SpinalNode<any> {
         const blockInfo: any = {
@@ -98,6 +100,9 @@ export default class WorkflowBlockManagerService {
         }
         if (options?.foreachOutputBlockId) {
             blockInfo.foreachOutputBlockId = options.foreachOutputBlockId;
+        }
+        if (options?.foreachItemRef) {
+            blockInfo.foreachItemRef = options.foreachItemRef;
         }
 
         const blockNodeId = SpinalGraphService.createNode(blockInfo);
@@ -267,6 +272,7 @@ export default class WorkflowBlockManagerService {
             registerAs?: string;
             name?: string;
             foreachOutputBlockId?: string;
+            foreachItemRef?: string;
             ifThenOutputBlockId?: string;
             ifElseOutputBlockId?: string;
             [key: string]: unknown;
@@ -293,6 +299,13 @@ export default class WorkflowBlockManagerService {
                 blockNode.info.add_attr('foreachOutputBlockId', updates.foreachOutputBlockId);
             } else {
                 blockNode.info.foreachOutputBlockId.set(updates.foreachOutputBlockId);
+            }
+        }
+        if (updates.foreachItemRef !== undefined) {
+            if (!blockNode.info.foreachItemRef) {
+                blockNode.info.add_attr('foreachItemRef', updates.foreachItemRef);
+            } else {
+                blockNode.info.foreachItemRef.set(updates.foreachItemRef);
             }
         }
         if (updates.ifThenOutputBlockId !== undefined) {
@@ -501,6 +514,10 @@ export default class WorkflowBlockManagerService {
 
         if (registerAs) {
             block.registerAs = registerAs;
+        }
+
+        if (blockNode.info.foreachItemRef) {
+            block.foreachItemRef = blockNode.info.foreachItemRef.get();
         }
 
         return block;

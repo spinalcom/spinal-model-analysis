@@ -64,6 +64,10 @@ export default class AnalyticNodeManagerService {
      */
     private blockToConfig;
     /**
+     * Converts an inputBlockId back to its ref string for JSON output.
+     */
+    private idToInputRef;
+    /**
      * Builds a map of block ID → ref name from an array of blocks.
      * Uses block.name as the ref (which was set from the original ref during creation).
      * Disambiguates duplicate names by appending a suffix.
@@ -78,9 +82,8 @@ export default class AnalyticNodeManagerService {
      * Determines how many "real" inputs an IF block has (excluding synthetic
      * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
      *
-     * - inputs[0]: always the boolean predicate
-     * - inputs[1]: only real if a sub-workflow block uses $item
-     * - inputs[2+]: always synthetic
+     * IF only has 1 real input: the boolean predicate (inputs[0]).
+     * Everything else is synthetic for topological ordering.
      */
     private getIfRealInputCount;
     linkNodeToAnchorNode(anchorNode: SpinalNode<any>, nodeToLink: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;

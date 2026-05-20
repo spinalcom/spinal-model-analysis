@@ -8,11 +8,16 @@ import { AlgorithmRegistry } from '../algorithms/definitions/core';
  */
 export declare const WORK_NODE_RESERVED_ID = "__WORK_NODE__";
 /**
- * Reserved block ID for the implicit ELEMENT block inside FOREACH sub-workflows.
- * The executor auto-injects this block with the current iteration element.
- * In JSON configs, sub-workflow blocks use the special ref '$item' to reference it.
+ * Prefix for virtual block IDs representing FOREACH iteration elements.
+ * Each FOREACH's element is stored as `__ITEM_<itemRef>__` in blockOutputs.
  */
-export declare const FOREACH_ELEMENT_RESERVED_ID = "__FOREACH_ELEMENT__";
+export declare const FOREACH_ITEM_PREFIX = "__ITEM_";
+export declare const FOREACH_ITEM_SUFFIX = "__";
+/**
+ * Generates the virtual block ID for a FOREACH item ref.
+ * Used in both the factory (to store in inputBlockIds) and the executor (to inject the element).
+ */
+export declare function foreachItemVirtualId(itemRef: string): string;
 /**
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
@@ -39,8 +44,9 @@ export interface WorkflowExecutionContext {
  * upstream block outputs. Handles special block types:
  * - FETCH_INPUT_REGISTER: reads a named variable from inputRegisters
  * - SET_INPUT_REGISTER: passes through and registers (via block.registerAs)
- * - ELEMENT: element source for FOREACH sub-workflows (value injected by executor)
- * - FOREACH: iterates over an array, executing a sub-workflow per element
+ * - FOREACH: iterates over an array, executing a sub-workflow per element.
+ *   The element is injected under a virtual ID derived from the block's foreachItemRef.
+ *   Nested FOREACH blocks propagate parent item refs to inner sub-contexts.
  * - IF: conditional branching, executes thenWorkflow or elseWorkflow based on predicate
  */
 export default class WorkflowExecutionService {
@@ -72,22 +78,22 @@ export default class WorkflowExecutionService {
      * Handles FOREACH: iterates over an array input, executing the sub-workflow
      * for each element. Collects results into an output array.
      *
-     * The current iteration element is automatically injected under
-     * FOREACH_ELEMENT_RESERVED_ID. Sub-workflow blocks reference it via '$item'.
-     * An explicit ELEMENT block is no longer required.
+     * The current iteration element is injected under the virtual ID derived from
+     * the block's foreachItemRef. Parent FOREACH item refs are propagated into
+     * the sub-context so nested sub-workflows can access any ancestor's element.
      */
     private executeForeach;
     /**
      * Handles IF: conditional branching with sub-workflows.
      *
      * inputs[0] = boolean predicate
-     * inputs[1] = optional payload (injected as $item in the chosen branch)
      *
      * If predicate is true → executes thenWorkflow
      * If predicate is false → executes elseWorkflow (if defined, else output = undefined)
      *
-     * IF sub-workflows inherit all parent block outputs, so branches can
-     * reference any block computed before the IF block.
+     * IF sub-workflows inherit all parent block outputs (including FOREACH item refs),
+     * so branches can reference any block computed before the IF block and any
+     * ancestor FOREACH element.
      */
     private executeIf;
     /**

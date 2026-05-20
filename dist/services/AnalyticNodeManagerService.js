@@ -241,34 +241,24 @@ class AnalyticNodeManagerService {
         if (Object.keys(block.parameters).length > 0) {
             config.parameters = block.parameters;
         }
-        // For IF blocks, only include "real" inputs (predicate + optional $item payload).
+        // For IF blocks, only include "real" inputs (predicate only).
         // Extra inputBlockIds are synthetic deps added for topological ordering by buildIfSubWorkflow.
         if (block.algorithmName === 'IF') {
             const realCount = this.getIfRealInputCount(block);
             const realIds = block.inputBlockIds.slice(0, realCount);
             if (realIds.length > 0) {
-                config.inputs = realIds.map((id) => {
-                    var _a, _b;
-                    if (id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)
-                        return '$node';
-                    if (id === WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID)
-                        return '$item';
-                    return (_b = (_a = idToRef.get(id)) !== null && _a !== void 0 ? _a : parentIdToRef === null || parentIdToRef === void 0 ? void 0 : parentIdToRef.get(id)) !== null && _b !== void 0 ? _b : id;
-                });
+                config.inputs = realIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
             }
         }
         else if (block.inputBlockIds.length > 0) {
-            config.inputs = block.inputBlockIds.map((id) => {
-                var _a, _b;
-                if (id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)
-                    return '$node';
-                if (id === WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID)
-                    return '$item';
-                return (_b = (_a = idToRef.get(id)) !== null && _a !== void 0 ? _a : parentIdToRef === null || parentIdToRef === void 0 ? void 0 : parentIdToRef.get(id)) !== null && _b !== void 0 ? _b : id;
-            });
+            config.inputs = block.inputBlockIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
         }
         if (block.registerAs) {
             config.registerAs = block.registerAs;
+        }
+        // FOREACH: add itemRef
+        if (block.foreachItemRef) {
+            config.itemRef = block.foreachItemRef;
         }
         if (block.subWorkflow) {
             config.subWorkflow = this.subWorkflowToConfig(block.subWorkflow, idToRef);
@@ -280,6 +270,19 @@ class AnalyticNodeManagerService {
             config.elseWorkflow = this.subWorkflowToConfig(block.elseWorkflow, idToRef);
         }
         return config;
+    }
+    /**
+     * Converts an inputBlockId back to its ref string for JSON output.
+     */
+    idToInputRef(id, idToRef, parentIdToRef) {
+        var _a, _b;
+        if (id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)
+            return '$node';
+        // Check for FOREACH item virtual IDs (__ITEM_<name>__)
+        if (id.startsWith(WorkflowExecutionService_1.FOREACH_ITEM_PREFIX) && id.endsWith(WorkflowExecutionService_1.FOREACH_ITEM_SUFFIX)) {
+            return id.slice(WorkflowExecutionService_1.FOREACH_ITEM_PREFIX.length, -WorkflowExecutionService_1.FOREACH_ITEM_SUFFIX.length);
+        }
+        return (_b = (_a = idToRef.get(id)) !== null && _a !== void 0 ? _a : parentIdToRef === null || parentIdToRef === void 0 ? void 0 : parentIdToRef.get(id)) !== null && _b !== void 0 ? _b : id;
     }
     /**
      * Builds a map of block ID → ref name from an array of blocks.
@@ -330,19 +333,10 @@ class AnalyticNodeManagerService {
      * Determines how many "real" inputs an IF block has (excluding synthetic
      * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
      *
-     * - inputs[0]: always the boolean predicate
-     * - inputs[1]: only real if a sub-workflow block uses $item
-     * - inputs[2+]: always synthetic
+     * IF only has 1 real input: the boolean predicate (inputs[0]).
+     * Everything else is synthetic for topological ordering.
      */
     getIfRealInputCount(block) {
-        const usesItem = (sub) => {
-            if (!sub)
-                return false;
-            return sub.blocks.some((b) => b.inputBlockIds.includes(WorkflowExecutionService_1.FOREACH_ELEMENT_RESERVED_ID));
-        };
-        if (usesItem(block.thenWorkflow) || usesItem(block.elseWorkflow)) {
-            return Math.min(2, block.inputBlockIds.length);
-        }
         return Math.min(1, block.inputBlockIds.length);
     }
     // #endregion DAG → JSON CONVERSION

@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FOREACH_ELEMENT_RESERVED_ID = exports.WORK_NODE_RESERVED_ID = void 0;
+exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = void 0;
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
  * Blocks that need the work node can reference this in their inputBlockIds.
@@ -17,11 +17,19 @@ exports.FOREACH_ELEMENT_RESERVED_ID = exports.WORK_NODE_RESERVED_ID = void 0;
  */
 exports.WORK_NODE_RESERVED_ID = '__WORK_NODE__';
 /**
- * Reserved block ID for the implicit ELEMENT block inside FOREACH sub-workflows.
- * The executor auto-injects this block with the current iteration element.
- * In JSON configs, sub-workflow blocks use the special ref '$item' to reference it.
+ * Prefix for virtual block IDs representing FOREACH iteration elements.
+ * Each FOREACH's element is stored as `__ITEM_<itemRef>__` in blockOutputs.
  */
-exports.FOREACH_ELEMENT_RESERVED_ID = '__FOREACH_ELEMENT__';
+exports.FOREACH_ITEM_PREFIX = '__ITEM_';
+exports.FOREACH_ITEM_SUFFIX = '__';
+/**
+ * Generates the virtual block ID for a FOREACH item ref.
+ * Used in both the factory (to store in inputBlockIds) and the executor (to inject the element).
+ */
+function foreachItemVirtualId(itemRef) {
+    return `${exports.FOREACH_ITEM_PREFIX}${itemRef}${exports.FOREACH_ITEM_SUFFIX}`;
+}
+exports.foreachItemVirtualId = foreachItemVirtualId;
 /**
  * DAG execution engine for workflow blocks.
  *
@@ -33,8 +41,9 @@ exports.FOREACH_ELEMENT_RESERVED_ID = '__FOREACH_ELEMENT__';
  * upstream block outputs. Handles special block types:
  * - FETCH_INPUT_REGISTER: reads a named variable from inputRegisters
  * - SET_INPUT_REGISTER: passes through and registers (via block.registerAs)
- * - ELEMENT: element source for FOREACH sub-workflows (value injected by executor)
- * - FOREACH: iterates over an array, executing a sub-workflow per element
+ * - FOREACH: iterates over an array, executing a sub-workflow per element.
+ *   The element is injected under a virtual ID derived from the block's foreachItemRef.
+ *   Nested FOREACH blocks propagate parent item refs to inner sub-contexts.
  * - IF: conditional branching, executes thenWorkflow or elseWorkflow based on predicate
  */
 class WorkflowExecutionService {
@@ -87,14 +96,6 @@ class WorkflowExecutionService {
                 this.executeFetchInputRegister(block, context);
                 return;
             }
-            // ── ELEMENT (legacy explicit block — value already injected by FOREACH executor) ──
-            if (block.algorithmName === 'ELEMENT') {
-                if (!context.blockOutputs.has(block.id)) {
-                    throw new Error(`ELEMENT block "${block.name}" has no injected value — ` +
-                        'it must be inside a FOREACH sub-workflow');
-                }
-                return; // value already set
-            }
             // ── FOREACH (higher-order iteration) ──
             if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
                 yield this.executeForeach(block, inputs, context);
@@ -127,20 +128,24 @@ class WorkflowExecutionService {
      * Handles FOREACH: iterates over an array input, executing the sub-workflow
      * for each element. Collects results into an output array.
      *
-     * The current iteration element is automatically injected under
-     * FOREACH_ELEMENT_RESERVED_ID. Sub-workflow blocks reference it via '$item'.
-     * An explicit ELEMENT block is no longer required.
+     * The current iteration element is injected under the virtual ID derived from
+     * the block's foreachItemRef. Parent FOREACH item refs are propagated into
+     * the sub-context so nested sub-workflows can access any ancestor's element.
      */
     executeForeach(block, inputs, context) {
         return __awaiter(this, void 0, void 0, function* () {
             if (!block.subWorkflow) {
                 throw new Error(`FOREACH block "${block.name}" has no subWorkflow defined`);
             }
+            if (!block.foreachItemRef) {
+                throw new Error(`FOREACH block "${block.name}" is missing foreachItemRef`);
+            }
             const inputArray = inputs[0];
             if (!Array.isArray(inputArray)) {
                 throw new Error(`FOREACH block "${block.name}" expects an array as its first input, ` +
                     `got ${typeof inputArray}`);
             }
+            const itemVirtualId = foreachItemVirtualId(block.foreachItemRef);
             const results = [];
             for (const element of inputArray) {
                 // Create an isolated sub-context for this iteration
@@ -149,8 +154,14 @@ class WorkflowExecutionService {
                     inputRegisters: new Map(context.inputRegisters),
                     blockOutputs: new Map(),
                 };
-                // Auto-inject the current element under the reserved ID
-                subContext.blockOutputs.set(exports.FOREACH_ELEMENT_RESERVED_ID, element);
+                // Propagate parent FOREACH item refs into the sub-context
+                for (const [key, value] of context.blockOutputs) {
+                    if (key.startsWith(exports.FOREACH_ITEM_PREFIX)) {
+                        subContext.blockOutputs.set(key, value);
+                    }
+                }
+                // Inject the current element under its named virtual ID
+                subContext.blockOutputs.set(itemVirtualId, element);
                 // Execute sub-workflow DAG
                 yield this.executeDAG({ blocks: block.subWorkflow.blocks }, subContext);
                 // Collect the designated output
@@ -164,13 +175,13 @@ class WorkflowExecutionService {
      * Handles IF: conditional branching with sub-workflows.
      *
      * inputs[0] = boolean predicate
-     * inputs[1] = optional payload (injected as $item in the chosen branch)
      *
      * If predicate is true → executes thenWorkflow
      * If predicate is false → executes elseWorkflow (if defined, else output = undefined)
      *
-     * IF sub-workflows inherit all parent block outputs, so branches can
-     * reference any block computed before the IF block.
+     * IF sub-workflows inherit all parent block outputs (including FOREACH item refs),
+     * so branches can reference any block computed before the IF block and any
+     * ancestor FOREACH element.
      */
     executeIf(block, inputs, context) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -179,7 +190,6 @@ class WorkflowExecutionService {
                 throw new Error(`IF block "${block.name}" expects a boolean as its first input, ` +
                     `got ${typeof predicate}`);
             }
-            const payload = inputs.length > 1 ? inputs[1] : undefined;
             // Pick the branch to execute
             const branch = predicate ? block.thenWorkflow : block.elseWorkflow;
             if (!branch) {
@@ -194,10 +204,6 @@ class WorkflowExecutionService {
                 inputRegisters: new Map(context.inputRegisters),
                 blockOutputs: new Map(context.blockOutputs),
             };
-            // Inject payload as $item if provided
-            if (payload !== undefined) {
-                subContext.blockOutputs.set(exports.FOREACH_ELEMENT_RESERVED_ID, payload);
-            }
             // Execute the branch sub-workflow
             yield this.executeDAG({ blocks: branch.blocks }, subContext);
             // Collect the branch output

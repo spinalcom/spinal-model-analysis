@@ -32,7 +32,7 @@ import { SpinalAttribute } from 'spinal-models-documentation';
 import { parseValue } from './utils';
 import { VERSION } from '../version';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
-import { WORK_NODE_RESERVED_ID, FOREACH_ELEMENT_RESERVED_ID } from './WorkflowExecutionService';
+import { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX } from './WorkflowExecutionService';
 import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 import { IWorkflowBlock, ISubWorkflow } from '../interfaces/IWorkflowBlock';
 
@@ -291,28 +291,25 @@ export default class AnalyticNodeManagerService {
       config.parameters = block.parameters;
     }
 
-    // For IF blocks, only include "real" inputs (predicate + optional $item payload).
+    // For IF blocks, only include "real" inputs (predicate only).
     // Extra inputBlockIds are synthetic deps added for topological ordering by buildIfSubWorkflow.
     if (block.algorithmName === 'IF') {
       const realCount = this.getIfRealInputCount(block);
       const realIds = block.inputBlockIds.slice(0, realCount);
       if (realIds.length > 0) {
-        config.inputs = realIds.map((id) => {
-          if (id === WORK_NODE_RESERVED_ID) return '$node';
-          if (id === FOREACH_ELEMENT_RESERVED_ID) return '$item';
-          return idToRef.get(id) ?? parentIdToRef?.get(id) ?? id;
-        });
+        config.inputs = realIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
       }
     } else if (block.inputBlockIds.length > 0) {
-      config.inputs = block.inputBlockIds.map((id) => {
-        if (id === WORK_NODE_RESERVED_ID) return '$node';
-        if (id === FOREACH_ELEMENT_RESERVED_ID) return '$item';
-        return idToRef.get(id) ?? parentIdToRef?.get(id) ?? id;
-      });
+      config.inputs = block.inputBlockIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
     }
 
     if (block.registerAs) {
       config.registerAs = block.registerAs;
+    }
+
+    // FOREACH: add itemRef
+    if (block.foreachItemRef) {
+      config.itemRef = block.foreachItemRef;
     }
 
     if (block.subWorkflow) {
@@ -326,6 +323,22 @@ export default class AnalyticNodeManagerService {
     }
 
     return config;
+  }
+
+  /**
+   * Converts an inputBlockId back to its ref string for JSON output.
+   */
+  private idToInputRef(
+    id: string,
+    idToRef: Map<string, string>,
+    parentIdToRef?: Map<string, string>
+  ): string {
+    if (id === WORK_NODE_RESERVED_ID) return '$node';
+    // Check for FOREACH item virtual IDs (__ITEM_<name>__)
+    if (id.startsWith(FOREACH_ITEM_PREFIX) && id.endsWith(FOREACH_ITEM_SUFFIX)) {
+      return id.slice(FOREACH_ITEM_PREFIX.length, -FOREACH_ITEM_SUFFIX.length);
+    }
+    return idToRef.get(id) ?? parentIdToRef?.get(id) ?? id;
   }
 
   /**
@@ -381,21 +394,10 @@ export default class AnalyticNodeManagerService {
    * Determines how many "real" inputs an IF block has (excluding synthetic
    * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
    *
-   * - inputs[0]: always the boolean predicate
-   * - inputs[1]: only real if a sub-workflow block uses $item
-   * - inputs[2+]: always synthetic
+   * IF only has 1 real input: the boolean predicate (inputs[0]).
+   * Everything else is synthetic for topological ordering.
    */
   private getIfRealInputCount(block: IWorkflowBlock): number {
-    const usesItem = (sub?: ISubWorkflow): boolean => {
-      if (!sub) return false;
-      return sub.blocks.some((b) =>
-        b.inputBlockIds.includes(FOREACH_ELEMENT_RESERVED_ID)
-      );
-    };
-
-    if (usesItem(block.thenWorkflow) || usesItem(block.elseWorkflow)) {
-      return Math.min(2, block.inputBlockIds.length);
-    }
     return Math.min(1, block.inputBlockIds.length);
   }
 

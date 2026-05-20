@@ -40,7 +40,9 @@ export {
 // Execution context & result types
 export {
   WORK_NODE_RESERVED_ID,
-  FOREACH_ELEMENT_RESERVED_ID,
+  FOREACH_ITEM_PREFIX,
+  FOREACH_ITEM_SUFFIX,
+  foreachItemVirtualId,
 } from './services/WorkflowExecutionService';
 export type {
   WorkflowExecutionContext,

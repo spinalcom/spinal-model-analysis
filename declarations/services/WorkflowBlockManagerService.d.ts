@@ -28,6 +28,7 @@ export default class WorkflowBlockManagerService {
         name?: string;
         registerAs?: string;
         foreachOutputBlockId?: string;
+        foreachItemRef?: string;
     }): Promise<SpinalNode<any>>;
     /**
      * Creates a block SpinalNode without attaching it to any parent.
@@ -43,6 +44,7 @@ export default class WorkflowBlockManagerService {
         name?: string;
         registerAs?: string;
         foreachOutputBlockId?: string;
+        foreachItemRef?: string;
     }): SpinalNode<any>;
     /**
      * Creates a sub-block for a FOREACH block using the dedicated FOREACH relation.
@@ -86,6 +88,7 @@ export default class WorkflowBlockManagerService {
         registerAs?: string;
         name?: string;
         foreachOutputBlockId?: string;
+        foreachItemRef?: string;
         ifThenOutputBlockId?: string;
         ifElseOutputBlockId?: string;
         [key: string]: unknown;

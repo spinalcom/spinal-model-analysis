@@ -51,18 +51,25 @@ export default class AnalysisFactoryService {
     private buildWorkflow;
     /**
      * Builds the sub-workflow for a FOREACH block.
-     * The special ref '$item' maps to FOREACH_ELEMENT_RESERVED_ID and is auto-injected
-     * at runtime — no explicit ELEMENT block is needed.
+     *
+     * The FOREACH's `itemRef` is the name by which the iteration element is referenced.
+     * Sub-blocks can reference it by name in their inputs.
+     * `parentRefToNode` provides access to blocks defined in the parent workflow scope.
      */
     private buildForeachSubWorkflow;
     /**
      * Builds a sub-workflow for an IF block (then or else branch).
      *
      * IF sub-workflows can reference:
-     * - '$item': the optional payload from inputs[1]
+     * - Any FOREACH itemRef (resolved to virtual ID — inherited at runtime)
      * - '$node': the implicit work node
      * - Any ref from the parent workflow (resolved as a virtual input)
      * - Other sub-workflow block refs
      */
     private buildIfSubWorkflow;
+    /**
+     * Checks if a source ref matches any known FOREACH itemRef.
+     * Returns the virtual ID if it matches, otherwise undefined.
+     */
+    private resolveItemRef;
 }

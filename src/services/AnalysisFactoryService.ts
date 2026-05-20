@@ -14,7 +14,7 @@ import {
     IBlockConfigJSON,
 } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
-import { WORK_NODE_RESERVED_ID, FOREACH_ELEMENT_RESERVED_ID } from './WorkflowExecutionService';
+import { WORK_NODE_RESERVED_ID, foreachItemVirtualId } from './WorkflowExecutionService';
 import { logMessage } from './utils';
 
 /**
@@ -207,10 +207,23 @@ export default class AnalysisFactoryService {
 
             // If this is a FOREACH block with a sub-workflow, build it
             if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
+                if (!blockDef.itemRef) {
+                    throw new Error(
+                        `[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef. ` +
+                        'Each FOREACH must declare a named ref for its iteration element.'
+                    );
+                }
+                // Store itemRef on the node
+                this.blockManager.updateBlock(blockNode, {
+                    foreachItemRef: blockDef.itemRef,
+                });
                 await this.buildForeachSubWorkflow(
                     blockNode,
                     contextNode,
-                    blockDef.subWorkflow
+                    blockDef.subWorkflow,
+                    blockDef.itemRef,
+                    refToNode,
+                    new Set([blockDef.itemRef])
                 );
             }
 
@@ -222,7 +235,8 @@ export default class AnalysisFactoryService {
                         contextNode,
                         blockDef.thenWorkflow,
                         'then',
-                        refToNode
+                        refToNode,
+                        new Set()
                     );
                 }
                 if (blockDef.elseWorkflow) {
@@ -231,7 +245,8 @@ export default class AnalysisFactoryService {
                         contextNode,
                         blockDef.elseWorkflow,
                         'else',
-                        refToNode
+                        refToNode,
+                        new Set()
                     );
                 }
             }
@@ -298,17 +313,23 @@ export default class AnalysisFactoryService {
 
     /**
      * Builds the sub-workflow for a FOREACH block.
-     * The special ref '$item' maps to FOREACH_ELEMENT_RESERVED_ID and is auto-injected
-     * at runtime — no explicit ELEMENT block is needed.
+     *
+     * The FOREACH's `itemRef` is the name by which the iteration element is referenced.
+     * Sub-blocks can reference it by name in their inputs.
+     * `parentRefToNode` provides access to blocks defined in the parent workflow scope.
      */
     private async buildForeachSubWorkflow(
         foreachNode: SpinalNode<any>,
         contextNode: SpinalNode<any>,
-        subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string }
+        subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
+        itemRef: string,
+        parentRefToNode?: Map<string, SpinalNode<any>>,
+        knownItemRefs: Set<string> = new Set()
     ): Promise<void> {
         const refToNode = new Map<string, SpinalNode<any>>();
+        const itemVirtualId = foreachItemVirtualId(itemRef);
 
-        // Phase 1: Create sub-blocks (skip implicit ELEMENT blocks)
+        // Phase 1: Create sub-blocks
         for (const blockDef of subWorkflowConfig.blocks) {
             const subBlockNode = await this.blockManager.createForeachSubBlock(
                 foreachNode,
@@ -324,10 +345,22 @@ export default class AnalysisFactoryService {
 
             // Recursively build nested FOREACH sub-workflows
             if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
+                if (!blockDef.itemRef) {
+                    throw new Error(
+                        `[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef.`
+                    );
+                }
+                this.blockManager.updateBlock(subBlockNode, {
+                    foreachItemRef: blockDef.itemRef,
+                });
+                const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
                 await this.buildForeachSubWorkflow(
                     subBlockNode,
                     contextNode,
-                    blockDef.subWorkflow
+                    blockDef.subWorkflow,
+                    blockDef.itemRef,
+                    refToNode,
+                    childItemRefs
                 );
             }
 
@@ -339,7 +372,8 @@ export default class AnalysisFactoryService {
                         contextNode,
                         blockDef.thenWorkflow,
                         'then',
-                        refToNode
+                        refToNode,
+                        knownItemRefs
                     );
                 }
                 if (blockDef.elseWorkflow) {
@@ -348,65 +382,59 @@ export default class AnalysisFactoryService {
                         contextNode,
                         blockDef.elseWorkflow,
                         'else',
-                        refToNode
+                        refToNode,
+                        knownItemRefs
                     );
                 }
             }
         }
 
-        // Phase 2: Wire dependencies between sub-blocks
+        // Phase 2: Wire dependencies and build inputBlockIds
         for (const blockDef of subWorkflowConfig.blocks) {
             if (!blockDef.inputs || blockDef.inputs.length === 0) continue;
 
             const dependentNode = refToNode.get(blockDef.ref);
             if (!dependentNode) continue;
 
-            const resolvedInputBlockIds: string[] = [];
+            const finalIds: string[] = [];
 
-            for (let slot = 0; slot < blockDef.inputs.length; slot++) {
-                const sourceRef = blockDef.inputs[slot];
-
-                if (sourceRef === '$item') {
-                    // Virtual reference to the implicit FOREACH element
-                    resolvedInputBlockIds.push(FOREACH_ELEMENT_RESERVED_ID);
+            for (const sourceRef of blockDef.inputs) {
+                // Check if it's the FOREACH item ref (current level or any ancestor)
+                const virtualId = this.resolveItemRef(sourceRef, itemRef, knownItemRefs);
+                if (virtualId) {
+                    finalIds.push(virtualId);
                     continue;
                 }
 
-                const sourceNode = refToNode.get(sourceRef);
-                if (!sourceNode) {
-                    throw new Error(
-                        `[AnalysisFactory] FOREACH sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                        'which does not exist in the sub-workflow. Use "$item" to reference the current iteration element.'
+                // Check local sub-workflow refs
+                const localNode = refToNode.get(sourceRef);
+                if (localNode) {
+                    await this.blockManager.addSubBlockDependency(
+                        localNode,
+                        dependentNode,
+                        contextNode
                     );
+                    finalIds.push(localNode.getId().get());
+                    continue;
                 }
 
-                await this.blockManager.addSubBlockDependency(
-                    sourceNode,
-                    dependentNode,
-                    contextNode,
-                    slot
-                );
-            }
-
-            // If there were '$item' refs, merge them into the inputBlockIds
-            if (resolvedInputBlockIds.some((id) => id === FOREACH_ELEMENT_RESERVED_ID)) {
-                const currentIds = JSON.parse(
-                    dependentNode.info.inputBlockIds?.get() ?? '[]'
-                ) as string[];
-
-                const finalIds: string[] = [];
-                let wireIdx = 0;
-                for (let slot = 0; slot < blockDef.inputs!.length; slot++) {
-                    if (blockDef.inputs![slot] === '$item') {
-                        finalIds.push(FOREACH_ELEMENT_RESERVED_ID);
-                    } else {
-                        finalIds.push(currentIds[wireIdx] ?? '');
-                        wireIdx++;
+                // Check parent workflow refs
+                if (parentRefToNode) {
+                    const parentNode = parentRefToNode.get(sourceRef);
+                    if (parentNode) {
+                        finalIds.push(parentNode.getId().get());
+                        continue;
                     }
                 }
 
-                dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
+                throw new Error(
+                    `[AnalysisFactory] FOREACH sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
+                    `which does not exist in the sub-workflow or parent workflow. ` +
+                    `Use "${itemRef}" to reference the current iteration element.`
+                );
             }
+
+            dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
         }
 
         // Set the output block ID on the FOREACH node
@@ -427,7 +455,7 @@ export default class AnalysisFactoryService {
      * Builds a sub-workflow for an IF block (then or else branch).
      *
      * IF sub-workflows can reference:
-     * - '$item': the optional payload from inputs[1]
+     * - Any FOREACH itemRef (resolved to virtual ID — inherited at runtime)
      * - '$node': the implicit work node
      * - Any ref from the parent workflow (resolved as a virtual input)
      * - Other sub-workflow block refs
@@ -437,7 +465,8 @@ export default class AnalysisFactoryService {
         contextNode: SpinalNode<any>,
         subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
         branch: 'then' | 'else',
-        parentRefToNode?: Map<string, SpinalNode<any>>
+        parentRefToNode?: Map<string, SpinalNode<any>>,
+        knownItemRefs: Set<string> = new Set()
     ): Promise<void> {
         const refToNode = new Map<string, SpinalNode<any>>();
 
@@ -462,10 +491,22 @@ export default class AnalysisFactoryService {
 
             // Recursively build nested FOREACH sub-workflows
             if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
+                if (!blockDef.itemRef) {
+                    throw new Error(
+                        `[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef.`
+                    );
+                }
+                this.blockManager.updateBlock(subBlockNode, {
+                    foreachItemRef: blockDef.itemRef,
+                });
+                const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
                 await this.buildForeachSubWorkflow(
                     subBlockNode,
                     contextNode,
-                    blockDef.subWorkflow
+                    blockDef.subWorkflow,
+                    blockDef.itemRef,
+                    refToNode,
+                    childItemRefs
                 );
             }
 
@@ -481,7 +522,8 @@ export default class AnalysisFactoryService {
                         contextNode,
                         blockDef.thenWorkflow,
                         'then',
-                        mergedRefToNode
+                        mergedRefToNode,
+                        knownItemRefs
                     );
                 }
                 if (blockDef.elseWorkflow) {
@@ -490,7 +532,8 @@ export default class AnalysisFactoryService {
                         contextNode,
                         blockDef.elseWorkflow,
                         'else',
-                        mergedRefToNode
+                        mergedRefToNode,
+                        knownItemRefs
                     );
                 }
             }
@@ -506,15 +549,16 @@ export default class AnalysisFactoryService {
             const finalIds: string[] = [];
 
             for (const sourceRef of blockDef.inputs) {
-                if (sourceRef === '$item') {
-                    finalIds.push(FOREACH_ELEMENT_RESERVED_ID);
+                // Check if it's a FOREACH item ref (any ancestor level)
+                const virtualId = this.resolveItemRef(sourceRef, undefined, knownItemRefs);
+                if (virtualId) {
+                    finalIds.push(virtualId);
                     continue;
                 }
 
                 // Check local sub-workflow refs first
                 const localNode = refToNode.get(sourceRef);
                 if (localNode) {
-                    // Create graph edge (no slot — we override inputBlockIds below)
                     await this.blockManager.addSubBlockDependency(
                         localNode,
                         dependentNode,
@@ -584,5 +628,31 @@ export default class AnalysisFactoryService {
 
             ifNode.info.inputBlockIds.set(JSON.stringify(ifInputBlockIds));
         }
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  HELPERS
+    // ─────────────────────────────────────────────────────
+
+    /**
+     * Checks if a source ref matches any known FOREACH itemRef.
+     * Returns the virtual ID if it matches, otherwise undefined.
+     */
+    private resolveItemRef(
+        sourceRef: string,
+        currentItemRef?: string,
+        knownItemRefs?: Set<string>
+    ): string | undefined {
+        // Direct match with the current FOREACH's itemRef
+        if (currentItemRef && sourceRef === currentItemRef) {
+            return foreachItemVirtualId(sourceRef);
+        }
+
+        // Match with any ancestor FOREACH's itemRef
+        if (knownItemRefs && knownItemRefs.has(sourceRef)) {
+            return foreachItemVirtualId(sourceRef);
+        }
+
+        return undefined;
     }
 }

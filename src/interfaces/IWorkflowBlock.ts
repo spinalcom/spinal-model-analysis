@@ -39,6 +39,13 @@ export interface IWorkflowBlock {
 
     /**
      * For FOREACH / MAP blocks only.
+     * The name by which the current iteration element is referenced in the sub-workflow.
+     * At runtime, the element is injected under a virtual ID derived from this name.
+     */
+    foreachItemRef?: string;
+
+    /**
+     * For FOREACH / MAP blocks only.
      * Defines the sub-workflow DAG to execute for each element of the input array.
      */
     subWorkflow?: ISubWorkflow;
@@ -58,14 +65,14 @@ export interface IWorkflowBlock {
 }
 
 /**
- * A sub-workflow embedded inside a FOREACH block.
+ * A sub-workflow embedded inside a FOREACH or IF block.
  *
- * At runtime, the current iteration element is automatically injected under
- * a reserved block ID. Sub-workflow blocks access it via the '$item' ref
- * in their inputs (mapped to FOREACH_ELEMENT_RESERVED_ID).
+ * For FOREACH: at runtime, the current iteration element is injected under
+ * a virtual ID derived from the FOREACH's foreachItemRef. Sub-workflow blocks
+ * reference it by the itemRef name in their inputs.
  *
- * An explicit ELEMENT block is still supported for backward compatibility
- * but is no longer required.
+ * For nested FOREACH, parent item refs are propagated to inner sub-contexts,
+ * so inner blocks can reference any ancestor's iteration element.
  */
 export interface ISubWorkflow {
     /** All blocks in the sub-workflow */
