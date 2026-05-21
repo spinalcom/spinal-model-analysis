@@ -22,7 +22,15 @@ export default class AnalysisFactoryService {
     private readonly blockManager;
     constructor(nodeManager: AnalyticNodeManagerService, blockManager: WorkflowBlockManagerService);
     /**
+     * Validates a JSON config without touching the database.
+     * Returns an array of error messages. Empty array = valid config.
+     *
+     * Call this before createFromJSON to avoid partial writes on invalid configs.
+     */
+    validateConfig(config: IAnalysisConfigJSON): string[];
+    /**
      * Creates a complete analysis from a JSON configuration.
+     * Validates the config first — throws if invalid to prevent partial writes.
      *
      * @param config - The JSON analysis descriptor
      * @returns The created analysis SpinalNode
@@ -72,4 +80,17 @@ export default class AnalysisFactoryService {
      * Returns the virtual ID if it matches, otherwise undefined.
      */
     private resolveItemRef;
+    /**
+     * Validates a workflow config (top-level: worknodeResolver, inputWorkflow, executionWorkflow).
+     */
+    private validateWorkflow;
+    /**
+     * Validates a single block definition.
+     */
+    private validateBlock;
+    /**
+     * Validates a sub-workflow (FOREACH subWorkflow, IF thenWorkflow/elseWorkflow).
+     * Sub-blocks can reference: local refs, parent refs, and known item refs.
+     */
+    private validateSubWorkflow;
 }

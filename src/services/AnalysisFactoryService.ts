@@ -49,7 +49,37 @@ export default class AnalysisFactoryService {
     // ─────────────────────────────────────────────────────
 
     /**
+     * Validates a JSON config without touching the database.
+     * Returns an array of error messages. Empty array = valid config.
+     *
+     * Call this before createFromJSON to avoid partial writes on invalid configs.
+     */
+    public validateConfig(config: IAnalysisConfigJSON): string[] {
+        const errors: string[] = [];
+
+        if (!config.contextName || typeof config.contextName !== 'string') {
+            errors.push('Missing or invalid "contextName"');
+        }
+        if (!config.analysisName || typeof config.analysisName !== 'string') {
+            errors.push('Missing or invalid "analysisName"');
+        }
+
+        if (config.worknodeResolver) {
+            errors.push(...this.validateWorkflow(config.worknodeResolver, 'worknodeResolver', new Set()));
+        }
+        if (config.inputWorkflow) {
+            errors.push(...this.validateWorkflow(config.inputWorkflow, 'inputWorkflow', new Set()));
+        }
+        if (config.executionWorkflow) {
+            errors.push(...this.validateWorkflow(config.executionWorkflow, 'executionWorkflow', new Set()));
+        }
+
+        return errors;
+    }
+
+    /**
      * Creates a complete analysis from a JSON configuration.
+     * Validates the config first — throws if invalid to prevent partial writes.
      *
      * @param config - The JSON analysis descriptor
      * @returns The created analysis SpinalNode
@@ -58,6 +88,15 @@ export default class AnalysisFactoryService {
         config: IAnalysisConfigJSON,
         graph: SpinalGraph<any>
     ): Promise<SpinalNode<any>> {
+        // Validate before touching the database
+        const errors = this.validateConfig(config);
+        if (errors.length > 0) {
+            throw new Error(
+                `[AnalysisFactory] Invalid config for "${config.analysisName ?? '(unnamed)'}": \n` +
+                errors.map((e) => `  - ${e}`).join('\n')
+            );
+        }
+
         logMessage(`[AnalysisFactory] Creating analysis: ${config.analysisName}`);
 
         // ── 1. Create or get context ──
@@ -654,5 +693,200 @@ export default class AnalysisFactoryService {
         }
 
         return undefined;
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  VALIDATION
+    // ─────────────────────────────────────────────────────
+
+    /**
+     * Validates a workflow config (top-level: worknodeResolver, inputWorkflow, executionWorkflow).
+     */
+    private validateWorkflow(
+        workflow: IWorkflowConfigJSON,
+        path: string,
+        parentItemRefs: Set<string>
+    ): string[] {
+        const errors: string[] = [];
+
+        if (!workflow.blocks || !Array.isArray(workflow.blocks)) {
+            errors.push(`${path}: "blocks" must be an array`);
+            return errors;
+        }
+
+        const refs = new Set<string>();
+        const knownItemRefs = new Set(parentItemRefs);
+
+        // Collect all refs first (for forward-reference resolution)
+        for (const block of workflow.blocks) {
+            if (!block.ref) {
+                errors.push(`${path}: block is missing "ref"`);
+                continue;
+            }
+            if (refs.has(block.ref)) {
+                errors.push(`${path}: duplicate block ref "${block.ref}"`);
+            }
+            refs.add(block.ref);
+
+            if (block.algorithmName === 'FOREACH' && block.itemRef) {
+                knownItemRefs.add(block.itemRef);
+            }
+        }
+
+        // Validate each block
+        for (const block of workflow.blocks) {
+            if (!block.ref) continue;
+            errors.push(
+                ...this.validateBlock(block, refs, knownItemRefs, `${path}.${block.ref}`)
+            );
+        }
+
+        return errors;
+    }
+
+    /**
+     * Validates a single block definition.
+     */
+    private validateBlock(
+        block: IBlockConfigJSON,
+        availableRefs: Set<string>,
+        knownItemRefs: Set<string>,
+        path: string
+    ): string[] {
+        const errors: string[] = [];
+
+        if (!block.algorithmName || typeof block.algorithmName !== 'string') {
+            errors.push(`${path}: missing or invalid "algorithmName"`);
+        }
+
+        // Validate inputs
+        if (block.inputs) {
+            for (const inputRef of block.inputs) {
+                if (inputRef === '$node') continue;
+                if (knownItemRefs.has(inputRef)) continue;
+                if (availableRefs.has(inputRef)) continue;
+                errors.push(
+                    `${path}: input "${inputRef}" does not resolve to a known block ref, itemRef, or "$node"`
+                );
+            }
+
+            // Self-reference check
+            if (block.inputs.includes(block.ref)) {
+                errors.push(`${path}: block references itself`);
+            }
+        }
+
+        // FOREACH validation
+        if (block.algorithmName === 'FOREACH') {
+            if (!block.itemRef) {
+                errors.push(`${path}: FOREACH block must have "itemRef"`);
+            }
+            if (!block.subWorkflow) {
+                errors.push(`${path}: FOREACH block must have "subWorkflow"`);
+            } else {
+                if (block.itemRef && availableRefs.has(block.itemRef)) {
+                    errors.push(`${path}: itemRef "${block.itemRef}" conflicts with an existing block ref`);
+                }
+                errors.push(
+                    ...this.validateSubWorkflow(
+                        block.subWorkflow,
+                        availableRefs,
+                        knownItemRefs,
+                        `${path}.subWorkflow`
+                    )
+                );
+            }
+        }
+
+        // IF validation
+        if (block.algorithmName === 'IF') {
+            if (!block.inputs || block.inputs.length < 1) {
+                errors.push(`${path}: IF block must have at least 1 input (the predicate)`);
+            }
+            if (!block.thenWorkflow && !block.elseWorkflow) {
+                errors.push(`${path}: IF block must have at least "thenWorkflow" or "elseWorkflow"`);
+            }
+            if (block.thenWorkflow) {
+                errors.push(
+                    ...this.validateSubWorkflow(
+                        block.thenWorkflow,
+                        availableRefs,
+                        knownItemRefs,
+                        `${path}.thenWorkflow`
+                    )
+                );
+            }
+            if (block.elseWorkflow) {
+                errors.push(
+                    ...this.validateSubWorkflow(
+                        block.elseWorkflow,
+                        availableRefs,
+                        knownItemRefs,
+                        `${path}.elseWorkflow`
+                    )
+                );
+            }
+        }
+
+        return errors;
+    }
+
+    /**
+     * Validates a sub-workflow (FOREACH subWorkflow, IF thenWorkflow/elseWorkflow).
+     * Sub-blocks can reference: local refs, parent refs, and known item refs.
+     */
+    private validateSubWorkflow(
+        subWorkflow: { blocks: IBlockConfigJSON[]; outputRef: string },
+        parentRefs: Set<string>,
+        parentItemRefs: Set<string>,
+        path: string
+    ): string[] {
+        const errors: string[] = [];
+
+        if (!subWorkflow.blocks || !Array.isArray(subWorkflow.blocks)) {
+            errors.push(`${path}: "blocks" must be an array`);
+            return errors;
+        }
+
+        if (!subWorkflow.outputRef) {
+            errors.push(`${path}: missing "outputRef"`);
+        }
+
+        const localRefs = new Set<string>();
+        const knownItemRefs = new Set(parentItemRefs);
+
+        // Collect local refs and nested itemRefs
+        for (const block of subWorkflow.blocks) {
+            if (!block.ref) {
+                errors.push(`${path}: block is missing "ref"`);
+                continue;
+            }
+            if (localRefs.has(block.ref)) {
+                errors.push(`${path}: duplicate block ref "${block.ref}"`);
+            }
+            localRefs.add(block.ref);
+
+            if (block.algorithmName === 'FOREACH' && block.itemRef) {
+                knownItemRefs.add(block.itemRef);
+            }
+        }
+
+        // Validate outputRef
+        if (subWorkflow.outputRef && !localRefs.has(subWorkflow.outputRef)) {
+            errors.push(`${path}: outputRef "${subWorkflow.outputRef}" does not match any block ref`);
+        }
+
+        // All resolvable refs: local + parent blocks + item refs
+        const allRefs = new Set([...localRefs, ...parentRefs]);
+
+        // Validate each block
+        for (const block of subWorkflow.blocks) {
+            if (!block.ref) continue;
+            errors.push(
+                ...this.validateBlock(block, allRefs, knownItemRefs, `${path}.${block.ref}`)
+            );
+        }
+
+        return errors;
     }
 }
