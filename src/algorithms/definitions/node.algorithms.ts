@@ -118,6 +118,49 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
   }),
 
   createAlgorithm({
+    name: 'FIND_NODE',
+    description: 'Returns the first node matching the specified criteria (like FILTER_NODE but returns a single node).',
+    inputTypes: ['SpinalNode', 'SpinalNode[]'],
+    outputType: 'SpinalNode',
+    parameters: [
+      { name: 'filterProperty', type: 'string', description: 'Name of the info property (must be in the info of the node)', required: true },
+      { name: 'regexFilter', type: 'string', description: 'Regex pattern to filter by', required: true },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const nodes = isSpinalNode(input)
+        ? [input]
+        : isNodeArray(input)
+          ? input
+          : (() => {
+            throw new Error('Expected SpinalNode or SpinalNode[] input');
+          })();
+
+      const rawRegexFilter = params?.regexFilter;
+      if (typeof rawRegexFilter !== 'string' || rawRegexFilter.length === 0) {
+        throw new Error('Invalid or missing regexFilter parameter');
+      }
+
+      const rawPropName = params?.filterProperty;
+      if (typeof rawPropName !== 'string' || rawPropName.length === 0) {
+        throw new Error('Invalid or missing filterProperty parameter');
+      }
+
+      const regexFilter = new RegExp(rawRegexFilter);
+      const propName = rawPropName;
+
+      const found = nodes.find(node => {
+        const infoProp = node.info[propName];
+        if (!infoProp || typeof infoProp.get !== 'function') return false;
+        const info: unknown = infoProp.get();
+        return typeof info === 'string' && regexFilter.test(info);
+      });
+
+      if (!found) throw new Error(`No node found matching ${propName} =~ /${rawRegexFilter}/`);
+      return found;
+    },
+  }),
+
+  createAlgorithm({
     name: 'ENDPOINT_NODE_CURRENT_VALUE',
     description: 'For a node representing an endpoint, returns the current value.',
     inputTypes: ['SpinalNode'],
