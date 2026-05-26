@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { SpinalDateValue } from 'spinal-model-timeseries';
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { SpinalAttribute } from 'spinal-models-documentation';
 import { IAlgorithmParameter } from '../../interfaces/IAlgorithmParameter';
 
 export type PrimitiveValue = string | number | boolean;
@@ -19,6 +20,8 @@ export type AlgorithmResult =
   | PrimitiveValue
   | SpinalNode<any>
   | SpinalNode<any>[]
+  | SpinalAttribute
+  | SpinalAttribute[]
   | undefined;
 export type AlgorithmRunResult = Promise<AlgorithmResult>;
 

@@ -20,6 +20,8 @@ import { FLOW_CONTROL_ALGORITHMS } from './definitions/flow-control.algorithms';
 import { REGISTER_ALGORITHMS } from './definitions/register.algorithms';
 import { BOOLEAN_ALGORITHMS } from './definitions/boolean.algorithms';
 import { CONVERSION_ALGORITHMS } from './definitions/conversion.algorithms';
+import { OBJECT_ALGORITHMS } from './definitions/object.algorithms';
+import { LIST_ALGORITHMS } from './definitions/list.algorithms';
 
 export {
   NUMBER_ALGORITHMS,
@@ -29,6 +31,8 @@ export {
   REGISTER_ALGORITHMS,
   BOOLEAN_ALGORITHMS,
   CONVERSION_ALGORITHMS,
+  OBJECT_ALGORITHMS,
+  LIST_ALGORITHMS,
 };
 
 export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
@@ -39,6 +43,8 @@ export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
   ...REGISTER_ALGORITHMS,
   ...BOOLEAN_ALGORITHMS,
   ...CONVERSION_ALGORITHMS,
+  ...OBJECT_ALGORITHMS,
+  ...LIST_ALGORITHMS,
 ];
 
 export const ALGORITHM_REGISTRY = new AlgorithmRegistry(

@@ -128,17 +128,23 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
         inputTypes: ['SpinalNode'],
         outputType: 'string',
         parameters: [
-            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
+            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             var _b, _c;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
             const categoryName = params === null || params === void 0 ? void 0 : params.categoryName;
-            if (typeof categoryName !== 'string' || categoryName.length === 0) {
+            if (categoryName !== undefined && (typeof categoryName !== 'string' || categoryName.length === 0)) {
                 throw new Error('Invalid or missing categoryName parameter');
             }
-            const attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(input, categoryName);
+            let attrs;
+            if (categoryName) {
+                attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(input, categoryName);
+            }
+            else {
+                attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAllAttributes(input);
+            }
             const result = {};
             for (const attr of attrs) {
                 const label = (_b = attr.label) === null || _b === void 0 ? void 0 : _b.get();
@@ -147,6 +153,59 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
                     result[label] = value;
             }
             return JSON.stringify(result);
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_ATTRIBUTE_MODEL',
+        description: 'Gets the SpinalAttribute model from a node by category and label. Useful for binding onChange listeners.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'SpinalAttribute',
+        parameters: [
+            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
+            { name: 'label', type: 'string', description: 'The attribute label', required: true },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            if (!isSpinalNode(input))
+                throw new Error('Expected SpinalNode input');
+            const categoryName = params === null || params === void 0 ? void 0 : params.categoryName;
+            const label = params === null || params === void 0 ? void 0 : params.label;
+            if (typeof categoryName !== 'string' || categoryName.length === 0) {
+                throw new Error('Invalid or missing categoryName parameter');
+            }
+            if (typeof label !== 'string' || label.length === 0) {
+                throw new Error('Invalid or missing label parameter');
+            }
+            const attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(input, categoryName);
+            const attr = attrs.find((a) => { var _a; return ((_a = a.label) === null || _a === void 0 ? void 0 : _a.get()) === label; });
+            if (!attr) {
+                throw new Error(`Attribute "${label}" not found in category "${categoryName}"`);
+            }
+            return attr;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_ALL_ATTRIBUTE_MODELS',
+        description: 'Gets all SpinalAttribute models of a node within a specific category. Useful for binding onChange listeners.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'SpinalAttribute[]',
+        parameters: [
+            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            if (!isSpinalNode(input))
+                throw new Error('Expected SpinalNode input');
+            const categoryName = params === null || params === void 0 ? void 0 : params.categoryName;
+            if (categoryName !== undefined && (typeof categoryName !== 'string' || categoryName.length === 0)) {
+                throw new Error('Invalid categoryName parameter');
+            }
+            let attrs;
+            if (categoryName) {
+                attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(input, categoryName);
+            }
+            else {
+                attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAllAttributes(input);
+            }
+            return attrs;
         }),
     }),
 ];

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.AlgorithmRegistry = exports.createAlgorithm = void 0;
+exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.LIST_ALGORITHMS = exports.OBJECT_ALGORITHMS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.AlgorithmRegistry = exports.createAlgorithm = void 0;
 var core_1 = require("./definitions/core");
 Object.defineProperty(exports, "createAlgorithm", { enumerable: true, get: function () { return core_1.createAlgorithm; } });
 Object.defineProperty(exports, "AlgorithmRegistry", { enumerable: true, get: function () { return core_1.AlgorithmRegistry; } });
@@ -19,6 +19,10 @@ const boolean_algorithms_1 = require("./definitions/boolean.algorithms");
 Object.defineProperty(exports, "BOOLEAN_ALGORITHMS", { enumerable: true, get: function () { return boolean_algorithms_1.BOOLEAN_ALGORITHMS; } });
 const conversion_algorithms_1 = require("./definitions/conversion.algorithms");
 Object.defineProperty(exports, "CONVERSION_ALGORITHMS", { enumerable: true, get: function () { return conversion_algorithms_1.CONVERSION_ALGORITHMS; } });
+const object_algorithms_1 = require("./definitions/object.algorithms");
+Object.defineProperty(exports, "OBJECT_ALGORITHMS", { enumerable: true, get: function () { return object_algorithms_1.OBJECT_ALGORITHMS; } });
+const list_algorithms_1 = require("./definitions/list.algorithms");
+Object.defineProperty(exports, "LIST_ALGORITHMS", { enumerable: true, get: function () { return list_algorithms_1.LIST_ALGORITHMS; } });
 exports.ALGORITHM_DEFINITIONS = [
     ...number_algorithms_1.NUMBER_ALGORITHMS,
     ...node_algorithms_1.NODE_ALGORITHMS,
@@ -27,6 +31,8 @@ exports.ALGORITHM_DEFINITIONS = [
     ...register_algorithms_1.REGISTER_ALGORITHMS,
     ...boolean_algorithms_1.BOOLEAN_ALGORITHMS,
     ...conversion_algorithms_1.CONVERSION_ALGORITHMS,
+    ...object_algorithms_1.OBJECT_ALGORITHMS,
+    ...list_algorithms_1.LIST_ALGORITHMS,
 ];
 exports.ALGORITHM_REGISTRY = new core_2.AlgorithmRegistry(exports.ALGORITHM_DEFINITIONS);
 exports.ALGORITHMS = exports.ALGORITHM_REGISTRY.toObject();

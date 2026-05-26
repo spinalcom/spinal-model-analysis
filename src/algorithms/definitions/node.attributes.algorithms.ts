@@ -3,6 +3,8 @@ import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import {
     attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
+
+import { SpinalAttribute } from 'spinal-models-documentation';
 import {
     AlgorithmDefinition,
     AlgorithmRunResult,
@@ -135,18 +137,21 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
         inputTypes: ['SpinalNode'],
         outputType: 'string',
         parameters: [
-            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
+            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
 
             const categoryName = params?.categoryName;
-            if (typeof categoryName !== 'string' || categoryName.length === 0) {
+            if (categoryName !== undefined && (typeof categoryName !== 'string' || categoryName.length === 0)) {
                 throw new Error('Invalid or missing categoryName parameter');
             }
-
-            const attrs = await attributeService.getAttributesByCategory(input, categoryName);
-
+            let attrs: SpinalAttribute[];
+            if (categoryName) {
+                attrs = await attributeService.getAttributesByCategory(input, categoryName);
+            } else {
+                attrs = await attributeService.getAllAttributes(input);
+            }
             const result: Record<string, unknown> = {};
             for (const attr of attrs) {
                 const label = attr.label?.get();
@@ -154,6 +159,61 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
                 if (label) result[label] = value;
             }
             return JSON.stringify(result);
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_ATTRIBUTE_MODEL',
+        description: 'Gets the SpinalAttribute model from a node by category and label. Useful for binding onChange listeners.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'SpinalAttribute',
+        parameters: [
+            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
+            { name: 'label', type: 'string', description: 'The attribute label', required: true },
+        ],
+        run: async (input, params): AlgorithmRunResult => {
+            if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
+
+            const categoryName = params?.categoryName;
+            const label = params?.label;
+            if (typeof categoryName !== 'string' || categoryName.length === 0) {
+                throw new Error('Invalid or missing categoryName parameter');
+            }
+            if (typeof label !== 'string' || label.length === 0) {
+                throw new Error('Invalid or missing label parameter');
+            }
+
+            const attrs = await attributeService.getAttributesByCategory(input, categoryName);
+            const attr = attrs.find((a: any) => a.label?.get() === label);
+            if (!attr) {
+                throw new Error(`Attribute "${label}" not found in category "${categoryName}"`);
+            }
+            return attr;
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_ALL_ATTRIBUTE_MODELS',
+        description: 'Gets all SpinalAttribute models of a node within a specific category. Useful for binding onChange listeners.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'SpinalAttribute[]',
+        parameters: [
+            { name: 'categoryName', type: 'string', description: 'The attribute category name', required: false },
+        ],
+        run: async (input, params): AlgorithmRunResult => {
+            if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
+
+            const categoryName = params?.categoryName;
+            if (categoryName !== undefined && (typeof categoryName !== 'string' || categoryName.length === 0)) {
+                throw new Error('Invalid categoryName parameter');
+            }
+            let attrs: SpinalAttribute[];
+            if (categoryName) {
+                attrs = await attributeService.getAttributesByCategory(input, categoryName);
+            } else {
+                attrs = await attributeService.getAllAttributes(input);
+            }
+            return attrs;
         },
     }),
 ];
