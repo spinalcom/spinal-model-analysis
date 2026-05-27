@@ -12,10 +12,14 @@ import {
     IAnalysisConfigJSON,
     IWorkflowConfigJSON,
     IBlockConfigJSON,
+    ITriggerConfigJSON,
 } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
 import { WORK_NODE_RESERVED_ID, foreachItemVirtualId } from './WorkflowExecutionService';
 import { logMessage } from './utils';
+import {
+    attributeService,
+} from 'spinal-env-viewer-plugin-documentation-service';
 
 /**
  * Factory service for creating complete analysis configurations from a JSON descriptor.
@@ -140,6 +144,12 @@ export default class AnalysisFactoryService {
                 await this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
             await this.buildWorkflow(executionNode, contextNode, config.executionWorkflow);
             logMessage(`[AnalysisFactory] Execution workflow created (${config.executionWorkflow.blocks.length} blocks)`);
+        }
+
+        // ── 5. Store trigger configurations ──
+        if (config.triggers && config.triggers.length > 0) {
+            await this.storeTriggerConfig(analysisNode, config.triggers);
+            logMessage(`[AnalysisFactory] Trigger config stored (${config.triggers.length} trigger(s))`);
         }
 
         logMessage(`[AnalysisFactory] Analysis "${config.analysisName}" fully created`);
@@ -888,5 +898,24 @@ export default class AnalysisFactoryService {
         }
 
         return errors;
+    }
+
+    // ─────────────────────────────────────────────────────
+    //  TRIGGER CONFIGURATION
+    // ─────────────────────────────────────────────────────
+
+    /**
+     * Stores trigger configurations as an attribute on the analysis trigger node.
+     */
+    private async storeTriggerConfig(
+        analysisNode: SpinalNode<any>,
+        triggers: ITriggerConfigJSON[]
+    ): Promise<void> {
+        const triggerNode = await this.nodeManager.getAnalysisTriggerNode(analysisNode);
+        await attributeService.createOrUpdateAttrsAndCategories(
+            triggerNode,
+            'triggerConfig',
+            { triggers: JSON.stringify(triggers) }
+        );
     }
 }

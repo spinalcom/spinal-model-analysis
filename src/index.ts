@@ -5,6 +5,7 @@ import WorkflowBlockManagerService from './services/WorkflowBlockManagerService'
 import WorkflowExecutionService from './services/WorkflowExecutionService';
 import AnalysisExecutionService from './services/AnalysisExecutionService';
 import AnalysisFactoryService from './services/AnalysisFactoryService';
+import AnalysisTriggerService from './services/AnalysisTriggerService';
 import { ALGORITHM_REGISTRY } from './algorithms/algorithms';
 
 const spinalAnalyticNodeManagerService = new AnalyticNodeManagerService();
@@ -18,6 +19,10 @@ const spinalAnalysisFactoryService = new AnalysisFactoryService(
   spinalAnalyticNodeManagerService,
   spinalWorkflowBlockManagerService
 );
+const spinalAnalysisTriggerService = new AnalysisTriggerService(
+  spinalAnalyticNodeManagerService,
+  ALGORITHM_REGISTRY
+);
 
 export {
   spinalAnalyticNodeManagerService,
@@ -25,6 +30,7 @@ export {
   spinalWorkflowExecutionService,
   spinalAnalysisExecutionService,
   spinalAnalysisFactoryService,
+  spinalAnalysisTriggerService,
   VERSION
 };
 
@@ -35,6 +41,7 @@ export {
   WorkflowExecutionService,
   AnalysisExecutionService,
   AnalysisFactoryService,
+  AnalysisTriggerService,
 };
 
 // Execution context & result types
@@ -64,7 +71,15 @@ export type {
   IAnalysisConfigJSON,
   IWorkflowConfigJSON,
   IBlockConfigJSON,
+  ITriggerConfigJSON,
 } from './interfaces/IAnalysisConfigJSON';
+
+// Trigger types
+export type {
+  IResolvedTrigger,
+  ICOVBindingResult,
+} from './services/AnalysisTriggerService';
+export { TRIGGER_TYPE } from './constants/analysisTrigger';
 
 // Constants
 export * from './constants/analysisContext';
