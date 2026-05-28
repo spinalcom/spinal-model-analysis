@@ -7,6 +7,8 @@ export {
   AlgorithmResult,
   AlgorithmRunResult,
   AlgorithmRunContext,
+  ExecutionMetadata,
+  ExecutionTriggerContext,
   PrimitiveValue,
   createAlgorithm,
   AlgorithmRegistry,

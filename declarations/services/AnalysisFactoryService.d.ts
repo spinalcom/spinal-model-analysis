@@ -93,4 +93,8 @@ export default class AnalysisFactoryService {
      * Sub-blocks can reference: local refs, parent refs, and known item refs.
      */
     private validateSubWorkflow;
+    /**
+     * Stores trigger configurations as an attribute on the analysis trigger node.
+     */
+    private storeTriggerConfig;
 }

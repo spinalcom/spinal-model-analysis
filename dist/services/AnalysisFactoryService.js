@@ -14,6 +14,7 @@ const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-servi
 const analysisAnchor_1 = require("../constants/analysisAnchor");
 const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
 const utils_1 = require("./utils");
+const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 /**
  * Factory service for creating complete analysis configurations from a JSON descriptor.
  *
@@ -105,6 +106,11 @@ class AnalysisFactoryService {
                 const executionNode = yield this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
                 yield this.buildWorkflow(executionNode, contextNode, config.executionWorkflow);
                 (0, utils_1.logMessage)(`[AnalysisFactory] Execution workflow created (${config.executionWorkflow.blocks.length} blocks)`);
+            }
+            // ── 5. Store trigger configurations ──
+            if (config.triggers && config.triggers.length > 0) {
+                yield this.storeTriggerConfig(analysisNode, config.triggers);
+                (0, utils_1.logMessage)(`[AnalysisFactory] Trigger config stored (${config.triggers.length} trigger(s))`);
             }
             (0, utils_1.logMessage)(`[AnalysisFactory] Analysis "${config.analysisName}" fully created`);
             return analysisNode;
@@ -596,6 +602,18 @@ class AnalysisFactoryService {
             errors.push(...this.validateBlock(block, allRefs, knownItemRefs, `${path}.${block.ref}`));
         }
         return errors;
+    }
+    // ─────────────────────────────────────────────────────
+    //  TRIGGER CONFIGURATION
+    // ─────────────────────────────────────────────────────
+    /**
+     * Stores trigger configurations as an attribute on the analysis trigger node.
+     */
+    storeTriggerConfig(analysisNode, triggers) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const triggerNode = yield this.nodeManager.getAnalysisTriggerNode(analysisNode);
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(triggerNode, 'triggerConfig', { triggers: JSON.stringify(triggers) });
+        });
     }
 }
 exports.default = AnalysisFactoryService;

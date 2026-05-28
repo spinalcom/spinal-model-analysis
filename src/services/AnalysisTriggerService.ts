@@ -8,7 +8,11 @@ import { ITriggerConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import WorkflowExecutionService, { WorkflowExecutionContext } from './WorkflowExecutionService';
-import { AlgorithmRegistry } from '../algorithms/definitions/core';
+import {
+    AlgorithmRegistry,
+    ExecutionMetadata,
+} from '../algorithms/definitions/core';
+import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
 
 const TRIGGER_CATEGORY = 'triggerConfig';
 const TRIGGER_ATTR_CONFIGS = 'triggers';
@@ -17,9 +21,12 @@ const TRIGGER_ATTR_CONFIGS = 'triggers';
  * Represents a resolved trigger configuration ready for use by the orchestrator program.
  */
 export interface IResolvedTrigger {
+    id?: string;
     type: TRIGGER_TYPE;
-    /** For INTERVAL_TIME: ms value. For CRON: cron expression. For COV: undefined. */
-    value?: string | number;
+    intervalTimeMs?: number;
+    cronExpression?: string;
+    inputRegister?: string;
+    threshold?: number;
 }
 
 /**
@@ -29,8 +36,14 @@ export interface IResolvedTrigger {
 export interface ICOVBindingResult {
     /** The work node this binding set belongs to */
     workNode: SpinalNode<any>;
-    /** Map of register name → resolved model value (to .bind() on) */
-    inputRegisters: Map<string, unknown>;
+    /** Trigger id if provided in config */
+    triggerId?: string;
+    /** Register name bound for this COV trigger */
+    inputRegister: string;
+    /** Optional deadband/threshold from trigger config */
+    threshold?: number;
+    /** Resolved model value to bind on */
+    model: unknown;
 }
 
 /**
@@ -94,10 +107,7 @@ export default class AnalysisTriggerService {
         if (typeof raw !== 'string') return [];
 
         const parsed: ITriggerConfigJSON[] = JSON.parse(raw);
-        return parsed.map((t) => ({
-            type: t.type as TRIGGER_TYPE,
-            value: t.value,
-        }));
+        return parsed.map((t) => this.normalizeTriggerConfig(t));
     }
 
     /**
@@ -128,9 +138,14 @@ export default class AnalysisTriggerService {
     public async resolveInputRegistersForBinding(
         analysisNode: SpinalNode<any>
     ): Promise<ICOVBindingResult[]> {
+        const triggers = await this.getTriggerConfig(analysisNode);
+        const covTriggers = triggers.filter((t) => t.type === TRIGGER_TYPE.COV);
+        if (covTriggers.length === 0) {
+            return [];
+        }
+
         // Step 1: Resolve anchor target
         const anchorNode = await this.nodeManager.getAnalysisAnchorNodeNode(analysisNode);
-        const { ANCHOR_NODE_TO_LINKED_NODE_RELATION } = await import('../constants/analysisAnchor');
         const targets = await anchorNode.getChildren(ANCHOR_NODE_TO_LINKED_NODE_RELATION);
         if (targets.length === 0) {
             throw new Error(`Analysis "${analysisNode.getName().get()}" anchor has no linked target node`);
@@ -144,7 +159,27 @@ export default class AnalysisTriggerService {
         const results: ICOVBindingResult[] = [];
         for (const workNode of workNodes) {
             const inputRegisters = await this.executeInputWorkflow(analysisNode, workNode);
-            results.push({ workNode, inputRegisters });
+            for (const trigger of covTriggers) {
+                if (!trigger.inputRegister) {
+                    throw new Error(
+                        `COV trigger${trigger.id ? ` "${trigger.id}"` : ''} is missing inputRegister`
+                    );
+                }
+                if (!inputRegisters.has(trigger.inputRegister)) {
+                    throw new Error(
+                        `COV trigger${trigger.id ? ` "${trigger.id}"` : ''} references unknown input register ` +
+                        `"${trigger.inputRegister}". Available: [${[...inputRegisters.keys()].join(', ')}]`
+                    );
+                }
+
+                results.push({
+                    workNode,
+                    triggerId: trigger.id,
+                    inputRegister: trigger.inputRegister,
+                    threshold: trigger.threshold,
+                    model: inputRegisters.get(trigger.inputRegister),
+                });
+            }
         }
 
         return results;
@@ -169,6 +204,7 @@ export default class AnalysisTriggerService {
             workNode: targetNode,
             inputRegisters: new Map(),
             blockOutputs: new Map(),
+            execution: this.getDefaultExecutionMetadata(),
         };
 
         await this.executor.executeDAG(dag, context);
@@ -197,6 +233,7 @@ export default class AnalysisTriggerService {
             workNode,
             inputRegisters: new Map(),
             blockOutputs: new Map(),
+            execution: this.getDefaultExecutionMetadata(),
         };
 
         await this.executor.executeDAG(dag, context);
@@ -213,5 +250,48 @@ export default class AnalysisTriggerService {
         const leaves = blocks.filter((b) => !dependedOnIds.has(b.id));
         if (leaves.length === 0) throw new Error('No leaf block found in workflow DAG');
         return leaves[leaves.length - 1];
+    }
+
+    private normalizeTriggerConfig(trigger: ITriggerConfigJSON): IResolvedTrigger {
+        if (trigger.type === TRIGGER_TYPE.INTERVAL_TIME) {
+            const interval =
+                typeof trigger.intervalTimeMs === 'number'
+                    ? trigger.intervalTimeMs
+                    : typeof (trigger as any).value === 'number'
+                        ? (trigger as any).value
+                        : undefined;
+            return {
+                id: trigger.id,
+                type: TRIGGER_TYPE.INTERVAL_TIME,
+                intervalTimeMs: interval,
+            };
+        }
+
+        if (trigger.type === TRIGGER_TYPE.CRON) {
+            const cron =
+                typeof trigger.cronExpression === 'string'
+                    ? trigger.cronExpression
+                    : typeof (trigger as any).value === 'string'
+                        ? (trigger as any).value
+                        : undefined;
+            return {
+                id: trigger.id,
+                type: TRIGGER_TYPE.CRON,
+                cronExpression: cron,
+            };
+        }
+
+        return {
+            id: trigger.id,
+            type: TRIGGER_TYPE.COV,
+            inputRegister: trigger.inputRegister,
+            threshold: trigger.threshold,
+        };
+    }
+
+    private getDefaultExecutionMetadata(): ExecutionMetadata {
+        return {
+            referenceTime: Date.now(),
+        };
     }
 }

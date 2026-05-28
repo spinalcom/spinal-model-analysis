@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AlgorithmRegistry = exports.createAlgorithm = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
+exports.AlgorithmRegistry = exports.createAlgorithm = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.TRIGGER_TYPE = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = exports.AnalysisTriggerService = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisTriggerService = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
 const version_1 = require("./version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
 const AnalyticNodeManagerService_1 = require("./services/AnalyticNodeManagerService");
@@ -27,6 +27,8 @@ const AnalysisExecutionService_1 = require("./services/AnalysisExecutionService"
 exports.AnalysisExecutionService = AnalysisExecutionService_1.default;
 const AnalysisFactoryService_1 = require("./services/AnalysisFactoryService");
 exports.AnalysisFactoryService = AnalysisFactoryService_1.default;
+const AnalysisTriggerService_1 = require("./services/AnalysisTriggerService");
+exports.AnalysisTriggerService = AnalysisTriggerService_1.default;
 const algorithms_1 = require("./algorithms/algorithms");
 const spinalAnalyticNodeManagerService = new AnalyticNodeManagerService_1.default();
 exports.spinalAnalyticNodeManagerService = spinalAnalyticNodeManagerService;
@@ -38,12 +40,16 @@ const spinalAnalysisExecutionService = new AnalysisExecutionService_1.default(sp
 exports.spinalAnalysisExecutionService = spinalAnalysisExecutionService;
 const spinalAnalysisFactoryService = new AnalysisFactoryService_1.default(spinalAnalyticNodeManagerService, spinalWorkflowBlockManagerService);
 exports.spinalAnalysisFactoryService = spinalAnalysisFactoryService;
+const spinalAnalysisTriggerService = new AnalysisTriggerService_1.default(spinalAnalyticNodeManagerService, algorithms_1.ALGORITHM_REGISTRY);
+exports.spinalAnalysisTriggerService = spinalAnalysisTriggerService;
 // Execution context & result types
 var WorkflowExecutionService_2 = require("./services/WorkflowExecutionService");
 Object.defineProperty(exports, "WORK_NODE_RESERVED_ID", { enumerable: true, get: function () { return WorkflowExecutionService_2.WORK_NODE_RESERVED_ID; } });
 Object.defineProperty(exports, "FOREACH_ITEM_PREFIX", { enumerable: true, get: function () { return WorkflowExecutionService_2.FOREACH_ITEM_PREFIX; } });
 Object.defineProperty(exports, "FOREACH_ITEM_SUFFIX", { enumerable: true, get: function () { return WorkflowExecutionService_2.FOREACH_ITEM_SUFFIX; } });
 Object.defineProperty(exports, "foreachItemVirtualId", { enumerable: true, get: function () { return WorkflowExecutionService_2.foreachItemVirtualId; } });
+var analysisTrigger_1 = require("./constants/analysisTrigger");
+Object.defineProperty(exports, "TRIGGER_TYPE", { enumerable: true, get: function () { return analysisTrigger_1.TRIGGER_TYPE; } });
 // Constants
 __exportStar(require("./constants/analysisContext"), exports);
 __exportStar(require("./constants/analysisNode"), exports);

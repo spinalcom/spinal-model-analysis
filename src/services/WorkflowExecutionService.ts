@@ -5,6 +5,7 @@ import {
     AlgorithmRegistry,
     AlgorithmRunContext,
     AlgorithmParams,
+    ExecutionMetadata,
 } from '../algorithms/definitions/core';
 
 /**
@@ -45,6 +46,9 @@ export interface WorkflowExecutionContext {
 
     /** Cached outputs of executed blocks, keyed by block ID */
     blockOutputs: Map<string, unknown>;
+
+    /** Metadata for this analysis execution (reference time, trigger context, etc.) */
+    execution: ExecutionMetadata;
 }
 
 /**
@@ -209,6 +213,7 @@ export default class WorkflowExecutionService {
                 workNode: context.workNode,
                 inputRegisters: new Map(context.inputRegisters),
                 blockOutputs: new Map(),
+                execution: context.execution,
             };
 
             // Propagate parent FOREACH item refs into the sub-context
@@ -277,6 +282,7 @@ export default class WorkflowExecutionService {
             workNode: context.workNode,
             inputRegisters: new Map(context.inputRegisters),
             blockOutputs: new Map(context.blockOutputs),
+            execution: context.execution,
         };
 
         // Execute the branch sub-workflow
@@ -316,6 +322,7 @@ export default class WorkflowExecutionService {
         // Build algorithm run context
         const algContext: AlgorithmRunContext = {
             selfNode: context.workNode,
+            execution: context.execution,
         };
 
         const output = await algorithm.run(

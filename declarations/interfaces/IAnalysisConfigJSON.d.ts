@@ -50,6 +50,21 @@ export interface IAnalysisConfigJSON {
     inputWorkflow?: IWorkflowConfigJSON;
     /** Execution workflow (optional — if omitted, nothing is executed) */
     executionWorkflow?: IWorkflowConfigJSON;
+    /** Trigger configurations (optional — defines how the analysis is started) */
+    triggers?: ITriggerConfigJSON[];
+}
+/**
+ * JSON descriptor for a single trigger configuration.
+ */
+export interface ITriggerConfigJSON {
+    /** The type of trigger */
+    type: 'INTERVAL_TIME' | 'CRON' | 'COV';
+    /**
+     * For INTERVAL_TIME: interval in milliseconds.
+     * For CRON: cron expression string.
+     * For COV: not used (binds on input registers automatically).
+     */
+    value?: string | number;
 }
 /**
  * JSON descriptor for a single workflow DAG (used for worknodeResolver, inputWorkflow, executionWorkflow).

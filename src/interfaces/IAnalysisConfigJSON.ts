@@ -68,15 +68,32 @@ export interface IAnalysisConfigJSON {
  * JSON descriptor for a single trigger configuration.
  */
 export interface ITriggerConfigJSON {
+    /** Optional user-defined trigger identifier (e.g., "Trigger1") */
+    id?: string;
+
     /** The type of trigger */
     type: 'INTERVAL_TIME' | 'CRON' | 'COV';
 
     /**
-     * For INTERVAL_TIME: interval in milliseconds.
-     * For CRON: cron expression string.
-     * For COV: not used (binds on input registers automatically).
+     * For INTERVAL_TIME triggers only: interval in milliseconds.
      */
-    value?: string | number;
+    intervalTimeMs?: number;
+
+    /**
+     * For CRON triggers only: cron expression string.
+     */
+    cronExpression?: string;
+
+    /**
+     * For COV triggers only: name of the input register to bind on (e.g., I0).
+     */
+    inputRegister?: string;
+
+    /**
+     * For COV triggers only: optional deadband/threshold.
+     * Trigger fires when absolute change is strictly greater than this value.
+     */
+    threshold?: number;
 }
 
 /**

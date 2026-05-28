@@ -25,8 +25,27 @@ export type AlgorithmResult =
   | undefined;
 export type AlgorithmRunResult = Promise<AlgorithmResult>;
 
+export interface ExecutionTriggerContext {
+  /** Optional user-defined trigger identifier (e.g., "Trigger1") */
+  id?: string;
+  /** Trigger type (INTERVAL_TIME, CRON, COV, etc.) */
+  type?: string;
+  /** For COV triggers: register name that was bound (e.g., I0) */
+  inputRegister?: string;
+  /** For COV triggers: optional deadband/threshold */
+  threshold?: number;
+}
+
+export interface ExecutionMetadata {
+  /** Reference time for this execution (ms epoch) */
+  referenceTime: number;
+  /** Optional trigger metadata describing what initiated the execution */
+  trigger?: ExecutionTriggerContext;
+}
+
 export interface AlgorithmRunContext {
   selfNode?: SpinalNode<any>;
+  execution?: ExecutionMetadata;
 }
 
 export interface AlgorithmDefinition {

@@ -34,6 +34,67 @@ export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
     }),
 
     createAlgorithm({
+        name: 'GET_EXECUTION_REFERENCE_TIME',
+        description:
+            'Returns the execution reference time (epoch ms) from execution context. ' +
+            'Useful for deterministic timeseries push/fetch operations.',
+        inputTypes: [],
+        outputType: 'number',
+        parameters: [],
+        run: async (_input, _params, context): AlgorithmRunResult => {
+            return context?.execution?.referenceTime ?? Date.now();
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_EXECUTION_TRIGGER_TYPE',
+        description:
+            'Returns the trigger type that initiated this execution (e.g., INTERVAL_TIME, CRON, COV).',
+        inputTypes: [],
+        outputType: 'string',
+        parameters: [],
+        run: async (_input, _params, context): AlgorithmRunResult => {
+            return context?.execution?.trigger?.type;
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_EXECUTION_TRIGGER_ID',
+        description:
+            'Returns the optional trigger identifier (e.g., Trigger1) that initiated this execution.',
+        inputTypes: [],
+        outputType: 'string',
+        parameters: [],
+        run: async (_input, _params, context): AlgorithmRunResult => {
+            return context?.execution?.trigger?.id;
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_EXECUTION_TRIGGER_INPUT_REGISTER',
+        description:
+            'For COV executions, returns the input register name that was bound (e.g., I0).',
+        inputTypes: [],
+        outputType: 'string',
+        parameters: [],
+        run: async (_input, _params, context): AlgorithmRunResult => {
+            return context?.execution?.trigger?.inputRegister;
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_EXECUTION_TRIGGER_THRESHOLD',
+        description:
+            'For COV executions with deadband, returns the threshold value.',
+        inputTypes: [],
+        outputType: 'number',
+        parameters: [],
+        run: async (_input, _params, context): AlgorithmRunResult => {
+            return context?.execution?.trigger?.threshold;
+        },
+    }),
+
+    createAlgorithm({
         name: 'SET_INPUT_REGISTER',
         description:
             'Passes through the input value unchanged. The DAG executor uses the block\'s ' +

@@ -77,6 +77,9 @@ export default class AnalysisFactoryService {
         if (config.executionWorkflow) {
             errors.push(...this.validateWorkflow(config.executionWorkflow, 'executionWorkflow', new Set()));
         }
+        if (config.triggers) {
+            errors.push(...this.validateTriggers(config.triggers));
+        }
 
         return errors;
     }
@@ -895,6 +898,58 @@ export default class AnalysisFactoryService {
             errors.push(
                 ...this.validateBlock(block, allRefs, knownItemRefs, `${path}.${block.ref}`)
             );
+        }
+
+        return errors;
+    }
+
+    /**
+     * Validates trigger configurations.
+     */
+    private validateTriggers(triggers: ITriggerConfigJSON[]): string[] {
+        const errors: string[] = [];
+
+        for (let i = 0; i < triggers.length; i++) {
+            const trigger = triggers[i];
+            const path = `triggers[${i}]`;
+
+            if (!trigger.type) {
+                errors.push(`${path}: missing "type"`);
+                continue;
+            }
+
+            if (trigger.type === 'INTERVAL_TIME') {
+                const interval =
+                    typeof trigger.intervalTimeMs === 'number'
+                        ? trigger.intervalTimeMs
+                        : typeof (trigger as any).value === 'number'
+                            ? (trigger as any).value
+                            : undefined;
+                if (typeof interval !== 'number' || interval <= 0) {
+                    errors.push(`${path}: INTERVAL_TIME requires "intervalTimeMs" > 0`);
+                }
+            }
+
+            if (trigger.type === 'CRON') {
+                const cron =
+                    typeof trigger.cronExpression === 'string'
+                        ? trigger.cronExpression
+                        : typeof (trigger as any).value === 'string'
+                            ? (trigger as any).value
+                            : undefined;
+                if (typeof cron !== 'string' || cron.trim().length === 0) {
+                    errors.push(`${path}: CRON requires non-empty "cronExpression"`);
+                }
+            }
+
+            if (trigger.type === 'COV') {
+                if (typeof trigger.inputRegister !== 'string' || trigger.inputRegister.trim().length === 0) {
+                    errors.push(`${path}: COV requires non-empty "inputRegister"`);
+                }
+                if (trigger.threshold !== undefined && typeof trigger.threshold !== 'number') {
+                    errors.push(`${path}: COV "threshold" must be a number when provided`);
+                }
+            }
         }
 
         return errors;

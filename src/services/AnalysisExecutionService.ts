@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
-import { AlgorithmRegistry } from '../algorithms/definitions/core';
+import {
+    AlgorithmRegistry,
+    ExecutionMetadata,
+} from '../algorithms/definitions/core';
 import { IWorkflowBlock } from '../interfaces/IWorkflowBlock';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
@@ -45,9 +48,14 @@ export default class AnalysisExecutionService {
      * @returns A summary of execution results per work node
      */
     public async executeAnalysis(
-        analysisNode: SpinalNode<any>
+        analysisNode: SpinalNode<any>,
+        metadata?: Partial<ExecutionMetadata>
     ): Promise<AnalysisExecutionResult> {
         const analysisName = analysisNode.getName().get();
+        const execution: ExecutionMetadata = {
+            referenceTime: metadata?.referenceTime ?? Date.now(),
+            trigger: metadata?.trigger,
+        };
         logMessage(`[AnalysisExecution] Starting analysis: ${analysisName}`);
 
         // ── Step 1: Resolve the anchor target node ──
@@ -57,7 +65,7 @@ export default class AnalysisExecutionService {
         );
 
         // ── Step 2: Resolve work nodes via the worknode resolver workflow ──
-        const workNodes = await this.resolveWorkNodes(analysisNode, targetNode);
+        const workNodes = await this.resolveWorkNodes(analysisNode, targetNode, execution);
         logMessage(
             `[AnalysisExecution] Resolved ${workNodes.length} work node(s)`
         );
@@ -74,7 +82,8 @@ export default class AnalysisExecutionService {
             try {
                 const inputRegisters = await this.executeInputWorkflow(
                     analysisNode,
-                    workNode
+                    workNode,
+                    execution
                 );
 
                 logMessage(
@@ -86,7 +95,8 @@ export default class AnalysisExecutionService {
                 const executionOutputs = await this.executeExecutionWorkflow(
                     analysisNode,
                     workNode,
-                    inputRegisters
+                    inputRegisters,
+                    execution
                 );
 
                 results.push({
@@ -123,6 +133,8 @@ export default class AnalysisExecutionService {
 
         return {
             analysisName,
+            referenceTime: execution.referenceTime,
+            trigger: execution.trigger,
             totalWorkNodes: workNodes.length,
             results,
         };
@@ -167,7 +179,8 @@ export default class AnalysisExecutionService {
      */
     private async resolveWorkNodes(
         analysisNode: SpinalNode<any>,
-        targetNode: SpinalNode<any>
+        targetNode: SpinalNode<any>,
+        execution: ExecutionMetadata
     ): Promise<SpinalNode<any>[]> {
         const resolverNode =
             await this.nodeManager.getAnalysisWorknodeResolverNode(analysisNode);
@@ -183,6 +196,7 @@ export default class AnalysisExecutionService {
             workNode: targetNode,
             inputRegisters: new Map(),
             blockOutputs: new Map(),
+            execution,
         };
 
         await this.executor.executeDAG(dag, context);
@@ -215,7 +229,8 @@ export default class AnalysisExecutionService {
      */
     private async executeInputWorkflow(
         analysisNode: SpinalNode<any>,
-        workNode: SpinalNode<any>
+        workNode: SpinalNode<any>,
+        execution: ExecutionMetadata
     ): Promise<Map<string, unknown>> {
         const inputNode =
             await this.nodeManager.getAnalysisInputNode(analysisNode);
@@ -230,6 +245,7 @@ export default class AnalysisExecutionService {
             workNode,
             inputRegisters: new Map(),
             blockOutputs: new Map(),
+            execution,
         };
 
         await this.executor.executeDAG(dag, context);
@@ -250,7 +266,8 @@ export default class AnalysisExecutionService {
     private async executeExecutionWorkflow(
         analysisNode: SpinalNode<any>,
         workNode: SpinalNode<any>,
-        inputRegisters: Map<string, unknown>
+        inputRegisters: Map<string, unknown>,
+        execution: ExecutionMetadata
     ): Promise<Record<string, unknown>> {
         const workflowNode =
             await this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
@@ -265,6 +282,7 @@ export default class AnalysisExecutionService {
             workNode,
             inputRegisters,
             blockOutputs: new Map(),
+            execution,
         };
 
         await this.executor.executeDAG(dag, context);
@@ -333,6 +351,13 @@ export default class AnalysisExecutionService {
 
 export interface AnalysisExecutionResult {
     analysisName: string;
+    referenceTime: number;
+    trigger?: {
+        id?: string;
+        type?: string;
+        inputRegister?: string;
+        threshold?: number;
+    };
     totalWorkNodes: number;
     results: WorkNodeExecutionResult[];
 }
