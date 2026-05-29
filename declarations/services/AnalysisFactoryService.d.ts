@@ -94,6 +94,10 @@ export default class AnalysisFactoryService {
      */
     private validateSubWorkflow;
     /**
+     * Validates trigger configurations.
+     */
+    private validateTriggers;
+    /**
      * Stores trigger configurations as an attribute on the analysis trigger node.
      */
     private storeTriggerConfig;

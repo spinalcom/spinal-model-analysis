@@ -1,6 +1,6 @@
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import { IWorkflowDAG } from '../interfaces/IWorkflowBlock';
-import { AlgorithmRegistry } from '../algorithms/definitions/core';
+import { AlgorithmRegistry, ExecutionMetadata } from '../algorithms/definitions/core';
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
  * Blocks that need the work node can reference this in their inputBlockIds.
@@ -32,6 +32,8 @@ export interface WorkflowExecutionContext {
     inputRegisters: Map<string, unknown>;
     /** Cached outputs of executed blocks, keyed by block ID */
     blockOutputs: Map<string, unknown>;
+    /** Metadata for this analysis execution (reference time, trigger context, etc.) */
+    execution: ExecutionMetadata;
 }
 /**
  * DAG execution engine for workflow blocks.

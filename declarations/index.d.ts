@@ -33,5 +33,5 @@ export * from './constants/analysisWorknodeResolver';
 export * from './constants/analysisAlgorithm';
 export * from './constants/analysisWorkflowBlock';
 export { ALGORITHM_DEFINITIONS, ALGORITHM_REGISTRY, ALGORITHMS, NUMBER_ALGORITHMS, NODE_ALGORITHMS, FLOW_CONTROL_ALGORITHMS, REGISTER_ALGORITHMS, } from './algorithms/algorithms';
-export { AlgorithmDefinition, AlgorithmInputValue, AlgorithmParamValue, AlgorithmParams, AlgorithmParameters, AlgorithmResult, AlgorithmRunResult, AlgorithmRunContext, PrimitiveValue, createAlgorithm, AlgorithmRegistry, } from './algorithms/definitions/core';
+export { AlgorithmDefinition, AlgorithmInputValue, AlgorithmParamValue, AlgorithmParams, AlgorithmParameters, AlgorithmResult, AlgorithmRunResult, AlgorithmRunContext, ExecutionMetadata, ExecutionTriggerContext, PrimitiveValue, createAlgorithm, AlgorithmRegistry, } from './algorithms/definitions/core';
 export default spinalAnalysisExecutionService;

@@ -1,5 +1,5 @@
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
-import { AlgorithmRegistry } from '../algorithms/definitions/core';
+import { AlgorithmRegistry, ExecutionMetadata } from '../algorithms/definitions/core';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 /**
  * Orchestrates the full analysis execution pipeline:
@@ -22,7 +22,7 @@ export default class AnalysisExecutionService {
      * @param analysisNode - The analysis SpinalNode containing anchor, workflows, etc.
      * @returns A summary of execution results per work node
      */
-    executeAnalysis(analysisNode: SpinalNode<any>): Promise<AnalysisExecutionResult>;
+    executeAnalysis(analysisNode: SpinalNode<any>, metadata?: Partial<ExecutionMetadata>): Promise<AnalysisExecutionResult>;
     /**
      * Retrieves the target node linked to the analysis anchor.
      * The anchor node has exactly one child (the target) via ANCHOR_NODE_TO_LINKED_NODE_RELATION.
@@ -63,6 +63,13 @@ export default class AnalysisExecutionService {
 }
 export interface AnalysisExecutionResult {
     analysisName: string;
+    referenceTime: number;
+    trigger?: {
+        id?: string;
+        type?: string;
+        inputRegister?: string;
+        threshold?: number;
+    };
     totalWorkNodes: number;
     results: WorkNodeExecutionResult[];
 }

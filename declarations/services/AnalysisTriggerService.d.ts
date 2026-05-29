@@ -7,9 +7,12 @@ import { AlgorithmRegistry } from '../algorithms/definitions/core';
  * Represents a resolved trigger configuration ready for use by the orchestrator program.
  */
 export interface IResolvedTrigger {
+    id?: string;
     type: TRIGGER_TYPE;
-    /** For INTERVAL_TIME: ms value. For CRON: cron expression. For COV: undefined. */
-    value?: string | number;
+    intervalTimeMs?: number;
+    cronExpression?: string;
+    inputRegister?: string;
+    threshold?: number;
 }
 /**
  * Result of resolving COV bindings for an analysis.
@@ -18,8 +21,14 @@ export interface IResolvedTrigger {
 export interface ICOVBindingResult {
     /** The work node this binding set belongs to */
     workNode: SpinalNode<any>;
-    /** Map of register name → resolved model value (to .bind() on) */
-    inputRegisters: Map<string, unknown>;
+    /** Trigger id if provided in config */
+    triggerId?: string;
+    /** Register name bound for this COV trigger */
+    inputRegister: string;
+    /** Optional deadband/threshold from trigger config */
+    threshold?: number;
+    /** Resolved model value to bind on */
+    model: unknown;
 }
 /**
  * Service responsible for managing trigger configurations on analysis nodes.
@@ -64,4 +73,6 @@ export default class AnalysisTriggerService {
     private resolveWorkNodes;
     private executeInputWorkflow;
     private findLeafBlock;
+    private normalizeTriggerConfig;
+    private getDefaultExecutionMetadata;
 }

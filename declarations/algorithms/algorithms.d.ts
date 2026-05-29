@@ -1,4 +1,4 @@
-export { AlgorithmDefinition, AlgorithmInputValue, AlgorithmParamValue, AlgorithmParams, AlgorithmParameters, AlgorithmResult, AlgorithmRunResult, AlgorithmRunContext, PrimitiveValue, createAlgorithm, AlgorithmRegistry, } from './definitions/core';
+export { AlgorithmDefinition, AlgorithmInputValue, AlgorithmParamValue, AlgorithmParams, AlgorithmParameters, AlgorithmResult, AlgorithmRunResult, AlgorithmRunContext, ExecutionMetadata, ExecutionTriggerContext, PrimitiveValue, createAlgorithm, AlgorithmRegistry, } from './definitions/core';
 import { AlgorithmDefinition, AlgorithmRegistry } from './definitions/core';
 import { NUMBER_ALGORITHMS } from './definitions/number.algorithms';
 import { NODE_ALGORITHMS } from './definitions/node.algorithms';

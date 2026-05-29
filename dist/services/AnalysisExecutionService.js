@@ -38,15 +38,20 @@ class AnalysisExecutionService {
      * @param analysisNode - The analysis SpinalNode containing anchor, workflows, etc.
      * @returns A summary of execution results per work node
      */
-    executeAnalysis(analysisNode) {
+    executeAnalysis(analysisNode, metadata) {
+        var _a;
         return __awaiter(this, void 0, void 0, function* () {
             const analysisName = analysisNode.getName().get();
+            const execution = {
+                referenceTime: (_a = metadata === null || metadata === void 0 ? void 0 : metadata.referenceTime) !== null && _a !== void 0 ? _a : Date.now(),
+                trigger: metadata === null || metadata === void 0 ? void 0 : metadata.trigger,
+            };
             (0, utils_1.logMessage)(`[AnalysisExecution] Starting analysis: ${analysisName}`);
             // ── Step 1: Resolve the anchor target node ──
             const targetNode = yield this.resolveAnchorTarget(analysisNode);
             (0, utils_1.logMessage)(`[AnalysisExecution] Anchor target resolved: ${targetNode.getName().get()}`);
             // ── Step 2: Resolve work nodes via the worknode resolver workflow ──
-            const workNodes = yield this.resolveWorkNodes(analysisNode, targetNode);
+            const workNodes = yield this.resolveWorkNodes(analysisNode, targetNode, execution);
             (0, utils_1.logMessage)(`[AnalysisExecution] Resolved ${workNodes.length} work node(s)`);
             // ── Step 3: Execute on each work node ──
             const results = [];
@@ -54,11 +59,11 @@ class AnalysisExecutionService {
                 const workNodeName = workNode.getName().get();
                 (0, utils_1.logMessage)(`[AnalysisExecution] Processing work node: ${workNodeName}`);
                 try {
-                    const inputRegisters = yield this.executeInputWorkflow(analysisNode, workNode);
+                    const inputRegisters = yield this.executeInputWorkflow(analysisNode, workNode, execution);
                     (0, utils_1.logMessage)(`[AnalysisExecution] Input workflow complete. Registers: [${[
                         ...inputRegisters.keys(),
                     ].join(', ')}]`);
-                    const executionOutputs = yield this.executeExecutionWorkflow(analysisNode, workNode, inputRegisters);
+                    const executionOutputs = yield this.executeExecutionWorkflow(analysisNode, workNode, inputRegisters, execution);
                     results.push({
                         workNodeId: workNode.getId().get(),
                         workNodeName,
@@ -83,6 +88,8 @@ class AnalysisExecutionService {
                 `${results.filter((r) => r.success).length}/${results.length} succeeded`);
             return {
                 analysisName,
+                referenceTime: execution.referenceTime,
+                trigger: execution.trigger,
                 totalWorkNodes: workNodes.length,
                 results,
             };
@@ -114,7 +121,7 @@ class AnalysisExecutionService {
      *
      * If the resolver workflow has no blocks, defaults to [targetNode].
      */
-    resolveWorkNodes(analysisNode, targetNode) {
+    resolveWorkNodes(analysisNode, targetNode, execution) {
         return __awaiter(this, void 0, void 0, function* () {
             const resolverNode = yield this.nodeManager.getAnalysisWorknodeResolverNode(analysisNode);
             const dag = yield this.blockManager.loadWorkflowDAG(resolverNode);
@@ -126,6 +133,7 @@ class AnalysisExecutionService {
                 workNode: targetNode,
                 inputRegisters: new Map(),
                 blockOutputs: new Map(),
+                execution,
             };
             yield this.executor.executeDAG(dag, context);
             // Get the output of the leaf block(s) — the final result
@@ -151,7 +159,7 @@ class AnalysisExecutionService {
      *
      * @returns The populated input registers map
      */
-    executeInputWorkflow(analysisNode, workNode) {
+    executeInputWorkflow(analysisNode, workNode, execution) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputNode = yield this.nodeManager.getAnalysisInputNode(analysisNode);
             const dag = yield this.blockManager.loadWorkflowDAG(inputNode);
@@ -162,6 +170,7 @@ class AnalysisExecutionService {
                 workNode,
                 inputRegisters: new Map(),
                 blockOutputs: new Map(),
+                execution,
             };
             yield this.executor.executeDAG(dag, context);
             return context.inputRegisters;
@@ -176,7 +185,7 @@ class AnalysisExecutionService {
      *
      * @returns A record of block outputs keyed by block name (ref)
      */
-    executeExecutionWorkflow(analysisNode, workNode, inputRegisters) {
+    executeExecutionWorkflow(analysisNode, workNode, inputRegisters, execution) {
         return __awaiter(this, void 0, void 0, function* () {
             const workflowNode = yield this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
             const dag = yield this.blockManager.loadWorkflowDAG(workflowNode);
@@ -187,6 +196,7 @@ class AnalysisExecutionService {
                 workNode,
                 inputRegisters,
                 blockOutputs: new Map(),
+                execution,
             };
             yield this.executor.executeDAG(dag, context);
             // Convert ID-keyed blockOutputs to name-keyed results

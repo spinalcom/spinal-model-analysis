@@ -39,6 +39,62 @@ exports.REGISTER_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'GET_EXECUTION_REFERENCE_TIME',
+        description: 'Returns the execution reference time (epoch ms) from execution context. ' +
+            'Useful for deterministic timeseries push/fetch operations.',
+        inputTypes: [],
+        outputType: 'number',
+        parameters: [],
+        run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a, _b;
+            return (_b = (_a = context === null || context === void 0 ? void 0 : context.execution) === null || _a === void 0 ? void 0 : _a.referenceTime) !== null && _b !== void 0 ? _b : Date.now();
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_EXECUTION_TRIGGER_TYPE',
+        description: 'Returns the trigger type that initiated this execution (e.g., INTERVAL_TIME, CRON, COV).',
+        inputTypes: [],
+        outputType: 'string',
+        parameters: [],
+        run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _c, _d;
+            return (_d = (_c = context === null || context === void 0 ? void 0 : context.execution) === null || _c === void 0 ? void 0 : _c.trigger) === null || _d === void 0 ? void 0 : _d.type;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_EXECUTION_TRIGGER_ID',
+        description: 'Returns the optional trigger identifier (e.g., Trigger1) that initiated this execution.',
+        inputTypes: [],
+        outputType: 'string',
+        parameters: [],
+        run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _e, _f;
+            return (_f = (_e = context === null || context === void 0 ? void 0 : context.execution) === null || _e === void 0 ? void 0 : _e.trigger) === null || _f === void 0 ? void 0 : _f.id;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_EXECUTION_TRIGGER_INPUT_REGISTER',
+        description: 'For COV executions, returns the input register name that was bound (e.g., I0).',
+        inputTypes: [],
+        outputType: 'string',
+        parameters: [],
+        run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _g, _h;
+            return (_h = (_g = context === null || context === void 0 ? void 0 : context.execution) === null || _g === void 0 ? void 0 : _g.trigger) === null || _h === void 0 ? void 0 : _h.inputRegister;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_EXECUTION_TRIGGER_THRESHOLD',
+        description: 'For COV executions with deadband, returns the threshold value.',
+        inputTypes: [],
+        outputType: 'number',
+        parameters: [],
+        run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _j, _k;
+            return (_k = (_j = context === null || context === void 0 ? void 0 : context.execution) === null || _j === void 0 ? void 0 : _j.trigger) === null || _k === void 0 ? void 0 : _k.threshold;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'SET_INPUT_REGISTER',
         description: 'Passes through the input value unchanged. The DAG executor uses the block\'s ' +
             'registerAs property to store this value as a named variable (e.g., I0, I1) ' +

@@ -153,6 +153,7 @@ class WorkflowExecutionService {
                     workNode: context.workNode,
                     inputRegisters: new Map(context.inputRegisters),
                     blockOutputs: new Map(),
+                    execution: context.execution,
                 };
                 // Propagate parent FOREACH item refs into the sub-context
                 for (const [key, value] of context.blockOutputs) {
@@ -203,6 +204,7 @@ class WorkflowExecutionService {
                 workNode: context.workNode,
                 inputRegisters: new Map(context.inputRegisters),
                 blockOutputs: new Map(context.blockOutputs),
+                execution: context.execution,
             };
             // Execute the branch sub-workflow
             yield this.executeDAG({ blocks: branch.blocks }, subContext);
@@ -234,6 +236,7 @@ class WorkflowExecutionService {
             // Build algorithm run context
             const algContext = {
                 selfNode: context.workNode,
+                execution: context.execution,
             };
             const output = yield algorithm.run(algInput, block.parameters, algContext);
             context.blockOutputs.set(block.id, output);

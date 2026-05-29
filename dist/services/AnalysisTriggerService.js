@@ -10,8 +10,10 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+const analysisTrigger_1 = require("../constants/analysisTrigger");
 const WorkflowBlockManagerService_1 = require("./WorkflowBlockManagerService");
 const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
+const analysisAnchor_1 = require("../constants/analysisAnchor");
 const TRIGGER_CATEGORY = 'triggerConfig';
 const TRIGGER_ATTR_CONFIGS = 'triggers';
 /**
@@ -59,10 +61,7 @@ class AnalysisTriggerService {
             if (typeof raw !== 'string')
                 return [];
             const parsed = JSON.parse(raw);
-            return parsed.map((t) => ({
-                type: t.type,
-                value: t.value,
-            }));
+            return parsed.map((t) => this.normalizeTriggerConfig(t));
         });
     }
     /**
@@ -89,10 +88,14 @@ class AnalysisTriggerService {
      */
     resolveInputRegistersForBinding(analysisNode) {
         return __awaiter(this, void 0, void 0, function* () {
+            const triggers = yield this.getTriggerConfig(analysisNode);
+            const covTriggers = triggers.filter((t) => t.type === analysisTrigger_1.TRIGGER_TYPE.COV);
+            if (covTriggers.length === 0) {
+                return [];
+            }
             // Step 1: Resolve anchor target
             const anchorNode = yield this.nodeManager.getAnalysisAnchorNodeNode(analysisNode);
-            const { ANCHOR_NODE_TO_LINKED_NODE_RELATION } = yield Promise.resolve().then(() => require('../constants/analysisAnchor'));
-            const targets = yield anchorNode.getChildren(ANCHOR_NODE_TO_LINKED_NODE_RELATION);
+            const targets = yield anchorNode.getChildren(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION);
             if (targets.length === 0) {
                 throw new Error(`Analysis "${analysisNode.getName().get()}" anchor has no linked target node`);
             }
@@ -103,7 +106,22 @@ class AnalysisTriggerService {
             const results = [];
             for (const workNode of workNodes) {
                 const inputRegisters = yield this.executeInputWorkflow(analysisNode, workNode);
-                results.push({ workNode, inputRegisters });
+                for (const trigger of covTriggers) {
+                    if (!trigger.inputRegister) {
+                        throw new Error(`COV trigger${trigger.id ? ` "${trigger.id}"` : ''} is missing inputRegister`);
+                    }
+                    if (!inputRegisters.has(trigger.inputRegister)) {
+                        throw new Error(`COV trigger${trigger.id ? ` "${trigger.id}"` : ''} references unknown input register ` +
+                            `"${trigger.inputRegister}". Available: [${[...inputRegisters.keys()].join(', ')}]`);
+                    }
+                    results.push({
+                        workNode,
+                        triggerId: trigger.id,
+                        inputRegister: trigger.inputRegister,
+                        threshold: trigger.threshold,
+                        model: inputRegisters.get(trigger.inputRegister),
+                    });
+                }
             }
             return results;
         });
@@ -122,6 +140,7 @@ class AnalysisTriggerService {
                 workNode: targetNode,
                 inputRegisters: new Map(),
                 blockOutputs: new Map(),
+                execution: this.getDefaultExecutionMetadata(),
             };
             yield this.executor.executeDAG(dag, context);
             // Find leaf block output
@@ -145,6 +164,7 @@ class AnalysisTriggerService {
                 workNode,
                 inputRegisters: new Map(),
                 blockOutputs: new Map(),
+                execution: this.getDefaultExecutionMetadata(),
             };
             yield this.executor.executeDAG(dag, context);
             return context.inputRegisters;
@@ -161,6 +181,43 @@ class AnalysisTriggerService {
         if (leaves.length === 0)
             throw new Error('No leaf block found in workflow DAG');
         return leaves[leaves.length - 1];
+    }
+    normalizeTriggerConfig(trigger) {
+        if (trigger.type === analysisTrigger_1.TRIGGER_TYPE.INTERVAL_TIME) {
+            const interval = typeof trigger.intervalTimeMs === 'number'
+                ? trigger.intervalTimeMs
+                : typeof trigger.value === 'number'
+                    ? trigger.value
+                    : undefined;
+            return {
+                id: trigger.id,
+                type: analysisTrigger_1.TRIGGER_TYPE.INTERVAL_TIME,
+                intervalTimeMs: interval,
+            };
+        }
+        if (trigger.type === analysisTrigger_1.TRIGGER_TYPE.CRON) {
+            const cron = typeof trigger.cronExpression === 'string'
+                ? trigger.cronExpression
+                : typeof trigger.value === 'string'
+                    ? trigger.value
+                    : undefined;
+            return {
+                id: trigger.id,
+                type: analysisTrigger_1.TRIGGER_TYPE.CRON,
+                cronExpression: cron,
+            };
+        }
+        return {
+            id: trigger.id,
+            type: analysisTrigger_1.TRIGGER_TYPE.COV,
+            inputRegister: trigger.inputRegister,
+            threshold: trigger.threshold,
+        };
+    }
+    getDefaultExecutionMetadata() {
+        return {
+            referenceTime: Date.now(),
+        };
     }
 }
 exports.default = AnalysisTriggerService;
