@@ -198,7 +198,53 @@ class AnalyticNodeManagerService {
                 result.inputWorkflow = this.dagToWorkflowConfig(inputDAG.blocks);
             if (executionDAG.blocks.length > 0)
                 result.executionWorkflow = this.dagToWorkflowConfig(executionDAG.blocks);
+            // ── Triggers ──
+            const triggers = yield this.getTriggerConfigs(analysisNode);
+            if (triggers.length > 0)
+                result.triggers = triggers;
             return result;
+        });
+    }
+    /**
+     * Reads the trigger configurations stored on the analysis trigger node.
+     * Returns a clean, round-trippable array of ITriggerConfigJSON (undefined
+     * fields stripped). Returns [] when no triggers are configured.
+     */
+    getTriggerConfigs(analysisNode) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const triggerNode = yield this.getAnalysisTriggerNode(analysisNode);
+            const attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(triggerNode, analysisTrigger_1.TRIGGER_CATEGORY);
+            const configAttr = attrs.find((a) => { var _a; return ((_a = a.label) === null || _a === void 0 ? void 0 : _a.get()) === analysisTrigger_1.TRIGGER_ATTR_CONFIGS; });
+            if (!configAttr)
+                return [];
+            const raw = (_a = configAttr.value) === null || _a === void 0 ? void 0 : _a.get();
+            if (typeof raw !== 'string')
+                return [];
+            let parsed;
+            try {
+                parsed = JSON.parse(raw);
+            }
+            catch (_b) {
+                return [];
+            }
+            if (!Array.isArray(parsed))
+                return [];
+            // Strip undefined/null fields so the emitted JSON stays clean.
+            return parsed.map((t) => {
+                const clean = { type: t.type };
+                if (t.id != null)
+                    clean.id = t.id;
+                if (t.intervalTimeMs != null)
+                    clean.intervalTimeMs = t.intervalTimeMs;
+                if (t.cronExpression != null)
+                    clean.cronExpression = t.cronExpression;
+                if (t.inputRegister != null)
+                    clean.inputRegister = t.inputRegister;
+                if (t.threshold != null)
+                    clean.threshold = t.threshold;
+                return clean;
+            });
         });
     }
     // #endregion ANALYSIS DETAILS

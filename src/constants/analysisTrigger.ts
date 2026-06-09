@@ -4,6 +4,11 @@ export const TRIGGER_NODE_NAME = 'Trigger';
 export const TRIGGER_NODE_TYPE = 'analysisTriggerNode';
 export const ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION = ANALYSIS_NODE_TYPE + 'Has' + TRIGGER_NODE_TYPE;
 
+/** Attribute category under which trigger configs are stored on the trigger node */
+export const TRIGGER_CATEGORY = 'triggerConfig';
+/** Attribute label holding the JSON-serialized trigger config array */
+export const TRIGGER_ATTR_CONFIGS = 'triggers';
+
 /**
  * Types of triggers that can start an analysis execution.
  */

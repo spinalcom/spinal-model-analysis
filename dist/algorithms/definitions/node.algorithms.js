@@ -175,6 +175,27 @@ exports.NODE_ALGORITHMS = [
         })
     }),
     (0, core_1.createAlgorithm)({
+        name: 'ENDPOINT_NODE_CURRENT_VALUE_MODEL',
+        description: 'For a node representing an endpoint, returns the bindable currentValue MODEL ' +
+            '(not the primitive value). Use this to populate an input register that a COV ' +
+            'trigger can bind on to react to value changes.',
+        inputTypes: ['SpinalNode'],
+        outputType: 'any',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            var _b;
+            if (!isSpinalNode(input))
+                throw new Error('Expected SpinalNode input');
+            const nodeElement = yield ((_b = input.element) === null || _b === void 0 ? void 0 : _b.load());
+            if (!nodeElement)
+                throw new Error('Node has no element to load');
+            const currentValue = nodeElement.currentValue;
+            if (currentValue === undefined)
+                throw new Error('Node element has no currentValue');
+            return currentValue;
+        })
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'SET_ENDPOINT_VALUE',
         description: 'Sets the current value of an endpoint node. Takes 2 inputs: [endpointNode, value]. ' +
             'Returns the value that was set.',
@@ -182,7 +203,7 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
-            var _b;
+            var _c;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
             }
@@ -191,7 +212,7 @@ exports.NODE_ALGORITHMS = [
             if (!isSpinalNode(node)) {
                 throw new Error('SET_ENDPOINT_VALUE: first input must be a SpinalNode');
             }
-            const nodeElement = yield ((_b = node.element) === null || _b === void 0 ? void 0 : _b.load());
+            const nodeElement = yield ((_c = node.element) === null || _c === void 0 ? void 0 : _c.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE: node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -212,7 +233,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _c;
+            var _d;
             if (!isSpinalNode(input)) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM expects a SpinalNode input');
             }
@@ -220,7 +241,7 @@ exports.NODE_ALGORITHMS = [
             if (value === undefined) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM requires a "value" parameter');
             }
-            const nodeElement = yield ((_c = input.element) === null || _c === void 0 ? void 0 : _c.load());
+            const nodeElement = yield ((_d = input.element) === null || _d === void 0 ? void 0 : _d.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE_PARAM: node has no element to load');
             const currentValue = nodeElement.currentValue;

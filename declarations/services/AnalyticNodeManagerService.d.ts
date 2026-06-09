@@ -49,6 +49,12 @@ export default class AnalyticNodeManagerService {
      */
     getAnalyticDetails(analysisNode: SpinalNode<any>): Promise<IAnalysisConfigJSON>;
     /**
+     * Reads the trigger configurations stored on the analysis trigger node.
+     * Returns a clean, round-trippable array of ITriggerConfigJSON (undefined
+     * fields stripped). Returns [] when no triggers are configured.
+     */
+    private getTriggerConfigs;
+    /**
      * Converts an array of in-memory workflow blocks back to a JSON workflow config.
      * Blocks are topologically sorted so dependencies appear before dependents.
      */

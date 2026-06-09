@@ -178,6 +178,25 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
   }),
 
   createAlgorithm({
+    name: 'ENDPOINT_NODE_CURRENT_VALUE_MODEL',
+    description:
+      'For a node representing an endpoint, returns the bindable currentValue MODEL ' +
+      '(not the primitive value). Use this to populate an input register that a COV ' +
+      'trigger can bind on to react to value changes.',
+    inputTypes: ['SpinalNode'],
+    outputType: 'any', // The underlying spinal model wrapping the value (bindable)
+    parameters: [],
+    run: async (input): AlgorithmRunResult => {
+      if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
+      const nodeElement = await input.element?.load();
+      if (!nodeElement) throw new Error('Node has no element to load');
+      const currentValue = nodeElement.currentValue;
+      if (currentValue === undefined) throw new Error('Node element has no currentValue');
+      return currentValue;
+    }
+  }),
+
+  createAlgorithm({
     name: 'SET_ENDPOINT_VALUE',
     description:
       'Sets the current value of an endpoint node. Takes 2 inputs: [endpointNode, value]. ' +

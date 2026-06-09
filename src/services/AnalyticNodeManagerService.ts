@@ -21,7 +21,7 @@ import { ANALYSIS_NODE_TO_ANCHOR_RELATION, ANCHOR_NODE_NAME, ANCHOR_NODE_TO_LINK
 import { EXECUTION_WORKFLOW_NODE_NAME, EXECUTION_WORKFLOW_NODE_TYPE, ANALYSIS_NODE_TO_EXECUTION_WORKFLOW_RELATION } from '../constants/analysisExecutionWorkflow'
 import { ANALYSIS_NODE_TO_INPUT_NODE_RELATION, INPUT_NODE_NAME, INPUT_NODE_TYPE } from '../constants/analysisInput'
 import { ANALYSIS_NODE_TO_OUTPUT_NODE_RELATION, OUTPUT_NODE_NAME, OUTPUT_NODE_TYPE } from '../constants/analysisOutput'
-import { ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION, TRIGGER_NODE_NAME, TRIGGER_NODE_TYPE } from '../constants/analysisTrigger'
+import { ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION, TRIGGER_NODE_NAME, TRIGGER_NODE_TYPE, TRIGGER_CATEGORY, TRIGGER_ATTR_CONFIGS } from '../constants/analysisTrigger'
 import { ANALYSIS_NODE_TO_WORKNODE_RESOLVER_RELATION, WORKNODE_RESOLVER_NODE_NAME, WORKNODE_RESOLVER_NODE_TYPE } from '../constants/analysisWorknodeResolver'
 
 import AttributeService, {
@@ -33,7 +33,7 @@ import { parseValue } from './utils';
 import { VERSION } from '../version';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX } from './WorkflowExecutionService';
-import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 import { IWorkflowBlock, ISubWorkflow } from '../interfaces/IWorkflowBlock';
 
 export default class AnalyticNodeManagerService {
@@ -235,7 +235,47 @@ export default class AnalyticNodeManagerService {
     if (executionDAG.blocks.length > 0)
       result.executionWorkflow = this.dagToWorkflowConfig(executionDAG.blocks);
 
+    // ── Triggers ──
+    const triggers = await this.getTriggerConfigs(analysisNode);
+    if (triggers.length > 0) result.triggers = triggers;
+
     return result;
+  }
+
+  /**
+   * Reads the trigger configurations stored on the analysis trigger node.
+   * Returns a clean, round-trippable array of ITriggerConfigJSON (undefined
+   * fields stripped). Returns [] when no triggers are configured.
+   */
+  private async getTriggerConfigs(
+    analysisNode: SpinalNode<any>
+  ): Promise<ITriggerConfigJSON[]> {
+    const triggerNode = await this.getAnalysisTriggerNode(analysisNode);
+    const attrs = await attributeService.getAttributesByCategory(triggerNode, TRIGGER_CATEGORY);
+    const configAttr = attrs.find((a: any) => a.label?.get() === TRIGGER_ATTR_CONFIGS);
+    if (!configAttr) return [];
+
+    const raw = configAttr.value?.get();
+    if (typeof raw !== 'string') return [];
+
+    let parsed: ITriggerConfigJSON[];
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return [];
+    }
+    if (!Array.isArray(parsed)) return [];
+
+    // Strip undefined/null fields so the emitted JSON stays clean.
+    return parsed.map((t) => {
+      const clean: ITriggerConfigJSON = { type: t.type };
+      if (t.id != null) clean.id = t.id;
+      if (t.intervalTimeMs != null) clean.intervalTimeMs = t.intervalTimeMs;
+      if (t.cronExpression != null) clean.cronExpression = t.cronExpression;
+      if (t.inputRegister != null) clean.inputRegister = t.inputRegister;
+      if (t.threshold != null) clean.threshold = t.threshold;
+      return clean;
+    });
   }
 
   // #endregion ANALYSIS DETAILS

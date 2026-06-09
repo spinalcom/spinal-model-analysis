@@ -3,7 +3,7 @@ import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import {
     attributeService,
 } from 'spinal-env-viewer-plugin-documentation-service';
-import { TRIGGER_TYPE } from '../constants/analysisTrigger';
+import { TRIGGER_TYPE, TRIGGER_CATEGORY, TRIGGER_ATTR_CONFIGS } from '../constants/analysisTrigger';
 import { ITriggerConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
@@ -13,9 +13,6 @@ import {
     ExecutionMetadata,
 } from '../algorithms/definitions/core';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
-
-const TRIGGER_CATEGORY = 'triggerConfig';
-const TRIGGER_ATTR_CONFIGS = 'triggers';
 
 /**
  * Represents a resolved trigger configuration ready for use by the orchestrator program.
@@ -155,29 +152,51 @@ export default class AnalysisTriggerService {
         // Step 2: Resolve work nodes
         const workNodes = await this.resolveWorkNodes(analysisNode, targetNode);
 
-        // Step 3: For each work node, run input workflow to get register models
+        // Validate trigger configs up front. A missing inputRegister is a config
+        // error (not work-node specific), so it should fail loudly rather than be skipped.
+        for (const trigger of covTriggers) {
+            if (!trigger.inputRegister) {
+                throw new Error(
+                    `COV trigger${trigger.id ? ` "${trigger.id}"` : ''} is missing inputRegister`
+                );
+            }
+        }
+
+        // Step 3: For each work node, run input workflow to get register models.
+        // Work nodes that don't have the structure the input workflow expects are
+        // skipped (no COV binding) rather than aborting the whole resolution — this
+        // mirrors how AnalysisExecutionService tolerates per-work-node failures.
         const results: ICOVBindingResult[] = [];
         for (const workNode of workNodes) {
-            const inputRegisters = await this.executeInputWorkflow(analysisNode, workNode);
+            let inputRegisters: Map<string, unknown>;
+            try {
+                inputRegisters = await this.executeInputWorkflow(analysisNode, workNode);
+            } catch (error: any) {
+                const msg = error instanceof Error ? error.message : String(error);
+                console.warn(
+                    `[AnalysisTrigger] Skipping work node "${workNode.getName().get()}" for COV ` +
+                    `binding — input workflow failed: ${msg}`
+                );
+                continue;
+            }
+
             for (const trigger of covTriggers) {
-                if (!trigger.inputRegister) {
-                    throw new Error(
-                        `COV trigger${trigger.id ? ` "${trigger.id}"` : ''} is missing inputRegister`
+                const register = trigger.inputRegister!;
+                if (!inputRegisters.has(register)) {
+                    console.warn(
+                        `[AnalysisTrigger] Skipping work node "${workNode.getName().get()}" for COV ` +
+                        `trigger${trigger.id ? ` "${trigger.id}"` : ''} — input register "${register}" ` +
+                        `was not produced. Available: [${[...inputRegisters.keys()].join(', ')}]`
                     );
-                }
-                if (!inputRegisters.has(trigger.inputRegister)) {
-                    throw new Error(
-                        `COV trigger${trigger.id ? ` "${trigger.id}"` : ''} references unknown input register ` +
-                        `"${trigger.inputRegister}". Available: [${[...inputRegisters.keys()].join(', ')}]`
-                    );
+                    continue;
                 }
 
                 results.push({
                     workNode,
                     triggerId: trigger.id,
-                    inputRegister: trigger.inputRegister,
+                    inputRegister: register,
                     threshold: trigger.threshold,
-                    model: inputRegisters.get(trigger.inputRegister),
+                    model: inputRegisters.get(register),
                 });
             }
         }
