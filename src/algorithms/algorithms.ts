@@ -24,6 +24,7 @@ import { BOOLEAN_ALGORITHMS } from './definitions/boolean.algorithms';
 import { CONVERSION_ALGORITHMS } from './definitions/conversion.algorithms';
 import { OBJECT_ALGORITHMS } from './definitions/object.algorithms';
 import { LIST_ALGORITHMS } from './definitions/list.algorithms';
+import { TIMESERIES_ALGORITHMS } from './definitions/timeseries.algorithms';
 
 export {
   NUMBER_ALGORITHMS,
@@ -35,6 +36,7 @@ export {
   CONVERSION_ALGORITHMS,
   OBJECT_ALGORITHMS,
   LIST_ALGORITHMS,
+  TIMESERIES_ALGORITHMS,
 };
 
 export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
@@ -47,6 +49,7 @@ export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
   ...CONVERSION_ALGORITHMS,
   ...OBJECT_ALGORITHMS,
   ...LIST_ALGORITHMS,
+  ...TIMESERIES_ALGORITHMS,
 ];
 
 export const ALGORITHM_REGISTRY = new AlgorithmRegistry(

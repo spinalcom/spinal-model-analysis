@@ -22,6 +22,7 @@ export type AlgorithmResult =
   | SpinalNode<any>[]
   | SpinalAttribute
   | SpinalAttribute[]
+  | SpinalDateValue[]
   | undefined;
 export type AlgorithmRunResult = Promise<AlgorithmResult>;
 

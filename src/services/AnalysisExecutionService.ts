@@ -74,56 +74,7 @@ export default class AnalysisExecutionService {
         const results: WorkNodeExecutionResult[] = [];
 
         for (const workNode of workNodes) {
-            const workNodeName = workNode.getName().get();
-            logMessage(
-                `[AnalysisExecution] Processing work node: ${workNodeName}`
-            );
-
-            try {
-                const inputRegisters = await this.executeInputWorkflow(
-                    analysisNode,
-                    workNode,
-                    execution
-                );
-
-                logMessage(
-                    `[AnalysisExecution] Input workflow complete. Registers: [${[
-                        ...inputRegisters.keys(),
-                    ].join(', ')}]`
-                );
-
-                const executionOutputs = await this.executeExecutionWorkflow(
-                    analysisNode,
-                    workNode,
-                    inputRegisters,
-                    execution
-                );
-
-                results.push({
-                    workNodeId: workNode.getId().get(),
-                    workNodeName,
-                    success: true,
-                    inputRegisters: Object.fromEntries(inputRegisters),
-                    executionOutputs,
-                });
-
-                logMessage(
-                    `[AnalysisExecution] Execution workflow complete for: ${workNodeName}`
-                );
-            } catch (error: any) {
-                const errorMessage =
-                    error instanceof Error ? error.message : String(error);
-                console.error(
-                    `[AnalysisExecution] Error on work node "${workNodeName}": ${errorMessage}`
-                );
-
-                results.push({
-                    workNodeId: workNode.getId().get(),
-                    workNodeName,
-                    success: false,
-                    error: errorMessage,
-                });
-            }
+            results.push(await this.executeOnWorkNode(analysisNode, workNode, execution));
         }
 
         logMessage(
@@ -138,6 +89,104 @@ export default class AnalysisExecutionService {
             totalWorkNodes: workNodes.length,
             results,
         };
+    }
+
+    /**
+     * Executes the analysis pipeline for a single, already-resolved work node.
+     *
+     * Unlike {@link executeAnalysis}, this skips anchor resolution and the
+     * worknode resolver entirely — the caller supplies the exact work node to
+     * run on. This is what a COV trigger uses: when a bound model changes, only
+     * the work node that owns that model should run, not every work node.
+     *
+     * @param analysisNode - The analysis SpinalNode
+     * @param workNode - The specific work node to run the input + execution workflows on
+     * @param metadata - Optional execution metadata (referenceTime, trigger info)
+     */
+    public async executeAnalysisForWorkNode(
+        analysisNode: SpinalNode<any>,
+        workNode: SpinalNode<any>,
+        metadata?: Partial<ExecutionMetadata>
+    ): Promise<AnalysisExecutionResult> {
+        const analysisName = analysisNode.getName().get();
+        const execution: ExecutionMetadata = {
+            referenceTime: metadata?.referenceTime ?? Date.now(),
+            trigger: metadata?.trigger,
+        };
+        logMessage(
+            `[AnalysisExecution] Starting single-work-node analysis: ${analysisName} ` +
+            `on "${workNode.getName().get()}"`
+        );
+
+        const result = await this.executeOnWorkNode(analysisNode, workNode, execution);
+
+        return {
+            analysisName,
+            referenceTime: execution.referenceTime,
+            trigger: execution.trigger,
+            totalWorkNodes: 1,
+            results: [result],
+        };
+    }
+
+    /**
+     * Runs the input + execution workflows for one work node and reports the
+     * outcome. Failures are caught and reported as an unsuccessful result rather
+     * than thrown, so one bad work node never aborts the others.
+     */
+    private async executeOnWorkNode(
+        analysisNode: SpinalNode<any>,
+        workNode: SpinalNode<any>,
+        execution: ExecutionMetadata
+    ): Promise<WorkNodeExecutionResult> {
+        const workNodeName = workNode.getName().get();
+        logMessage(`[AnalysisExecution] Processing work node: ${workNodeName}`);
+
+        try {
+            const inputRegisters = await this.executeInputWorkflow(
+                analysisNode,
+                workNode,
+                execution
+            );
+
+            logMessage(
+                `[AnalysisExecution] Input workflow complete. Registers: [${[
+                    ...inputRegisters.keys(),
+                ].join(', ')}]`
+            );
+
+            const executionOutputs = await this.executeExecutionWorkflow(
+                analysisNode,
+                workNode,
+                inputRegisters,
+                execution
+            );
+
+            logMessage(
+                `[AnalysisExecution] Execution workflow complete for: ${workNodeName}`
+            );
+
+            return {
+                workNodeId: workNode.getId().get(),
+                workNodeName,
+                success: true,
+                inputRegisters: Object.fromEntries(inputRegisters),
+                executionOutputs,
+            };
+        } catch (error: any) {
+            const errorMessage =
+                error instanceof Error ? error.message : String(error);
+            console.error(
+                `[AnalysisExecution] Error on work node "${workNodeName}": ${errorMessage}`
+            );
+
+            return {
+                workNodeId: workNode.getId().get(),
+                workNodeName,
+                success: false,
+                error: errorMessage,
+            };
+        }
     }
 
     // ─────────────────────────────────────────────────────

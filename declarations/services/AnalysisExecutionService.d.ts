@@ -24,6 +24,25 @@ export default class AnalysisExecutionService {
      */
     executeAnalysis(analysisNode: SpinalNode<any>, metadata?: Partial<ExecutionMetadata>): Promise<AnalysisExecutionResult>;
     /**
+     * Executes the analysis pipeline for a single, already-resolved work node.
+     *
+     * Unlike {@link executeAnalysis}, this skips anchor resolution and the
+     * worknode resolver entirely — the caller supplies the exact work node to
+     * run on. This is what a COV trigger uses: when a bound model changes, only
+     * the work node that owns that model should run, not every work node.
+     *
+     * @param analysisNode - The analysis SpinalNode
+     * @param workNode - The specific work node to run the input + execution workflows on
+     * @param metadata - Optional execution metadata (referenceTime, trigger info)
+     */
+    executeAnalysisForWorkNode(analysisNode: SpinalNode<any>, workNode: SpinalNode<any>, metadata?: Partial<ExecutionMetadata>): Promise<AnalysisExecutionResult>;
+    /**
+     * Runs the input + execution workflows for one work node and reports the
+     * outcome. Failures are caught and reported as an unsuccessful result rather
+     * than thrown, so one bad work node never aborts the others.
+     */
+    private executeOnWorkNode;
+    /**
      * Retrieves the target node linked to the analysis anchor.
      * The anchor node has exactly one child (the target) via ANCHOR_NODE_TO_LINKED_NODE_RELATION.
      */

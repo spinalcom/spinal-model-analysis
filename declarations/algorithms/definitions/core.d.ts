@@ -7,7 +7,7 @@ export type AlgorithmInputValue = PrimitiveValue | SpinalDateValue[] | SpinalNod
 export type AlgorithmParamValue = PrimitiveValue;
 export type AlgorithmParams = Record<string, AlgorithmParamValue>;
 export type AlgorithmParameters = IAlgorithmParameter[];
-export type AlgorithmResult = PrimitiveValue | SpinalNode<any> | SpinalNode<any>[] | SpinalAttribute | SpinalAttribute[] | undefined;
+export type AlgorithmResult = PrimitiveValue | SpinalNode<any> | SpinalNode<any>[] | SpinalAttribute | SpinalAttribute[] | SpinalDateValue[] | undefined;
 export type AlgorithmRunResult = Promise<AlgorithmResult>;
 export interface ExecutionTriggerContext {
     /** Optional user-defined trigger identifier (e.g., "Trigger1") */

@@ -47,6 +47,21 @@ exports.NUMBER_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'SUBTRACT',
+        description: 'Subtracts numbers in order from a number array input: input[0] − input[1] − … ' +
+            'Requires at least two numbers (e.g. two block inputs [a, b] → a − b).',
+        inputTypes: ['number'],
+        outputType: 'number',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            if (!isNumberArray(input))
+                throw new Error('Expected number[] input');
+            if (input.length < 2)
+                throw new Error('SUBTRACT requires at least two numbers');
+            return input.reduce((acc, current) => acc - current);
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'RANDOM_NUMBER',
         description: 'Generates a random number between min and max (inclusive). No input required.',
         inputTypes: [],

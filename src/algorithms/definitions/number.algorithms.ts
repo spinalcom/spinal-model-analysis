@@ -37,6 +37,20 @@ export const NUMBER_ALGORITHMS: AlgorithmDefinition[] = [
     },
   }),
   createAlgorithm({
+    name: 'SUBTRACT',
+    description:
+      'Subtracts numbers in order from a number array input: input[0] − input[1] − … ' +
+      'Requires at least two numbers (e.g. two block inputs [a, b] → a − b).',
+    inputTypes: ['number'],
+    outputType: 'number',
+    parameters: [],
+    run: async (input): AlgorithmRunResult => {
+      if (!isNumberArray(input)) throw new Error('Expected number[] input');
+      if (input.length < 2) throw new Error('SUBTRACT requires at least two numbers');
+      return input.reduce((acc, current) => acc - current);
+    },
+  }),
+  createAlgorithm({
     name: 'RANDOM_NUMBER',
     description: 'Generates a random number between min and max (inclusive). No input required.',
     inputTypes: [],
