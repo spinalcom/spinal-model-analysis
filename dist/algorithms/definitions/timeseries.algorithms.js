@@ -10,6 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TIMESERIES_ALGORITHMS = void 0;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const spinal_model_timeseries_1 = require("spinal-model-timeseries");
 const core_1 = require("./core");
 const SingletonTimeSeries_1 = require("../../services/SingletonTimeSeries");
@@ -224,6 +226,72 @@ exports.TIMESERIES_ALGORITHMS = [
             if (series.length === 0)
                 return resolveEmpty(params, 'TIMESERIES_DELTA');
             return series[series.length - 1].value - series[0].value;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'PUSH_ENDPOINT_VALUE',
+        description: 'Records a value on an endpoint: updates the node element\'s currentValue (like ' +
+            'SET_ENDPOINT_VALUE) AND appends a point to the endpoint\'s timeseries (creating ' +
+            'the timeseries if it does not exist yet). Takes 2 inputs: [endpointNode, value]. ' +
+            'The timeseries point is dated at the execution reference time by default, or at ' +
+            'the optional "date" parameter. Returns the value that was recorded.',
+        inputTypes: ['SpinalNode', 'any'],
+        outputType: 'any',
+        parameters: [
+            {
+                name: 'date',
+                type: 'number',
+                description: 'Timestamp for the timeseries point, epoch ms or a parseable date string. ' +
+                    'Defaults to the execution reference time (or now if unavailable).',
+                required: false,
+            },
+        ],
+        run: (input, params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _d, _e, _f;
+            if (!Array.isArray(input) || input.length < 2) {
+                throw new Error('PUSH_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
+            }
+            const node = input[0];
+            const rawValue = input[1];
+            if (!isSpinalNode(node)) {
+                throw new Error('PUSH_ENDPOINT_VALUE: first input must be a SpinalNode');
+            }
+            // Coerce the value to a number (or boolean) — the timeseries only stores numerics.
+            let value;
+            if (typeof rawValue === 'boolean') {
+                value = rawValue;
+            }
+            else {
+                const n = Number(rawValue);
+                if (isNaN(n)) {
+                    throw new Error(`PUSH_ENDPOINT_VALUE: value must be numeric or boolean, got ${JSON.stringify(rawValue)}`);
+                }
+                value = n;
+            }
+            // ── 1. Update the node's current value (same as SET_ENDPOINT_VALUE) ──
+            const nodeElement = yield ((_d = node.element) === null || _d === void 0 ? void 0 : _d.load());
+            if (!nodeElement)
+                throw new Error('PUSH_ENDPOINT_VALUE: node has no element to load');
+            const currentValue = nodeElement.currentValue;
+            if (currentValue === undefined) {
+                throw new Error('PUSH_ENDPOINT_VALUE: node element has no currentValue');
+            }
+            currentValue.set(value);
+            // ── 2. Append to the timeseries (creating it if missing) ──
+            // The timeseries service resolves the endpoint by id through SpinalGraphService,
+            // so register the node first (idempotent) — our work nodes come from raw traversal
+            // and may not be in the registry, which would otherwise make the push silently fail.
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(node);
+            const nodeId = node.getId().get();
+            const date = (params === null || params === void 0 ? void 0 : params.date) !== undefined
+                ? parseTime(params.date, 'date')
+                : (_f = (_e = context === null || context === void 0 ? void 0 : context.execution) === null || _e === void 0 ? void 0 : _e.referenceTime) !== null && _f !== void 0 ? _f : Date.now();
+            const service = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
+            const ok = yield service.insertFromEndpoint(nodeId, value, date);
+            if (!ok) {
+                throw new Error(`PUSH_ENDPOINT_VALUE: failed to append to the timeseries of "${node.getName().get()}"`);
+            }
+            return value;
         }),
     }),
 ];

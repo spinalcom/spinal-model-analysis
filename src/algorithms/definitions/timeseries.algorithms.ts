@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { SpinalNode, SpinalGraphService } from 'spinal-env-viewer-graph-service';
 import { SpinalTimeSeries } from 'spinal-model-timeseries';
 import type { SpinalDateValue } from 'spinal-model-timeseries';
 import {
@@ -244,6 +244,82 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
       const series = asSeries(input, 'TIMESERIES_DELTA');
       if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_DELTA');
       return series[series.length - 1].value - series[0].value;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'PUSH_ENDPOINT_VALUE',
+    description:
+      'Records a value on an endpoint: updates the node element\'s currentValue (like ' +
+      'SET_ENDPOINT_VALUE) AND appends a point to the endpoint\'s timeseries (creating ' +
+      'the timeseries if it does not exist yet). Takes 2 inputs: [endpointNode, value]. ' +
+      'The timeseries point is dated at the execution reference time by default, or at ' +
+      'the optional "date" parameter. Returns the value that was recorded.',
+    inputTypes: ['SpinalNode', 'any'],
+    outputType: 'any',
+    parameters: [
+      {
+        name: 'date',
+        type: 'number',
+        description:
+          'Timestamp for the timeseries point, epoch ms or a parseable date string. ' +
+          'Defaults to the execution reference time (or now if unavailable).',
+        required: false,
+      },
+    ],
+    run: async (input, params, context): AlgorithmRunResult => {
+      if (!Array.isArray(input) || input.length < 2) {
+        throw new Error('PUSH_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
+      }
+      const node = input[0];
+      const rawValue = input[1];
+      if (!isSpinalNode(node)) {
+        throw new Error('PUSH_ENDPOINT_VALUE: first input must be a SpinalNode');
+      }
+
+      // Coerce the value to a number (or boolean) — the timeseries only stores numerics.
+      let value: number | boolean;
+      if (typeof rawValue === 'boolean') {
+        value = rawValue;
+      } else {
+        const n = Number(rawValue);
+        if (isNaN(n)) {
+          throw new Error(
+            `PUSH_ENDPOINT_VALUE: value must be numeric or boolean, got ${JSON.stringify(rawValue)}`
+          );
+        }
+        value = n;
+      }
+
+      // ── 1. Update the node's current value (same as SET_ENDPOINT_VALUE) ──
+      const nodeElement = await (node as SpinalNode<any>).element?.load();
+      if (!nodeElement) throw new Error('PUSH_ENDPOINT_VALUE: node has no element to load');
+      const currentValue = nodeElement.currentValue;
+      if (currentValue === undefined) {
+        throw new Error('PUSH_ENDPOINT_VALUE: node element has no currentValue');
+      }
+      currentValue.set(value);
+
+      // ── 2. Append to the timeseries (creating it if missing) ──
+      // The timeseries service resolves the endpoint by id through SpinalGraphService,
+      // so register the node first (idempotent) — our work nodes come from raw traversal
+      // and may not be in the registry, which would otherwise make the push silently fail.
+      SpinalGraphService._addNode(node as SpinalNode<any>);
+      const nodeId = (node as SpinalNode<any>).getId().get();
+      const date =
+        params?.date !== undefined
+          ? parseTime(params.date, 'date')
+          : context?.execution?.referenceTime ?? Date.now();
+
+      const service = SingletonServiceTimeseries.getInstance();
+      const ok = await service.insertFromEndpoint(nodeId, value, date);
+      if (!ok) {
+        throw new Error(
+          `PUSH_ENDPOINT_VALUE: failed to append to the timeseries of "${(node as SpinalNode<any>).getName().get()}"`
+        );
+      }
+
+      return value as any;
     },
   }),
 ];
