@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = void 0;
+exports.describeValue = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = void 0;
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
  * Blocks that need the work node can reference this in their inputBlockIds.
@@ -30,6 +30,28 @@ function foreachItemVirtualId(itemRef) {
     return `${exports.FOREACH_ITEM_PREFIX}${itemRef}${exports.FOREACH_ITEM_SUFFIX}`;
 }
 exports.foreachItemVirtualId = foreachItemVirtualId;
+/**
+ * Produces a short, bounded description of a runtime value for error messages —
+ * enough to diagnose type mismatches (e.g. a register holding a model instead of
+ * a node) without dumping large objects.
+ */
+function describeValue(value) {
+    var _a;
+    if (value === null)
+        return 'null';
+    if (value === undefined)
+        return 'undefined';
+    if (Array.isArray(value))
+        return `array(length=${value.length})`;
+    const t = typeof value;
+    if (t !== 'object')
+        return `${t} ${JSON.stringify(value)}`;
+    const ctor = (_a = value.constructor) === null || _a === void 0 ? void 0 : _a.name;
+    return ctor ? `object<${ctor}>` : 'object';
+}
+exports.describeValue = describeValue;
+/** Marks an Error as already carrying block context, so it isn't wrapped again as it bubbles up. */
+const BLOCK_TAGGED = Symbol('blockTagged');
 /**
  * DAG execution engine for workflow blocks.
  *
@@ -89,25 +111,37 @@ class WorkflowExecutionService {
     // ─────────────────────────────────────────────────────
     executeBlock(block, context) {
         return __awaiter(this, void 0, void 0, function* () {
-            // Gather ordered inputs from upstream blocks
-            const inputs = this.resolveInputs(block, context);
-            // ── FETCH_INPUT_REGISTER (reads from inputRegisters) ──
-            if (block.algorithmName === 'FETCH_INPUT_REGISTER') {
-                this.executeFetchInputRegister(block, context);
-                return;
+            try {
+                // Gather ordered inputs from upstream blocks
+                const inputs = this.resolveInputs(block, context);
+                // ── FETCH_INPUT_REGISTER (reads from inputRegisters) ──
+                if (block.algorithmName === 'FETCH_INPUT_REGISTER') {
+                    this.executeFetchInputRegister(block, context);
+                    return;
+                }
+                // ── FOREACH (higher-order iteration) ──
+                if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
+                    yield this.executeForeach(block, inputs, context);
+                    return;
+                }
+                // ── IF (conditional branching) ──
+                if (block.algorithmName === 'IF' && (block.thenWorkflow || block.elseWorkflow)) {
+                    yield this.executeIf(block, inputs, context);
+                    return;
+                }
+                // ── Normal algorithm execution ──
+                yield this.executeNormalBlock(block, inputs, context);
             }
-            // ── FOREACH (higher-order iteration) ──
-            if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
-                yield this.executeForeach(block, inputs, context);
-                return;
+            catch (error) {
+                // Already tagged by a nested block (FOREACH/IF sub-workflow) — let it bubble
+                // up unchanged so the message points at the innermost failing block.
+                if (error && error[BLOCK_TAGGED])
+                    throw error;
+                const baseMessage = error instanceof Error ? error.message : String(error);
+                const tagged = new Error(`Block "${block.name}" (${block.algorithmName}): ${baseMessage}`);
+                tagged[BLOCK_TAGGED] = true;
+                throw tagged;
             }
-            // ── IF (conditional branching) ──
-            if (block.algorithmName === 'IF' && (block.thenWorkflow || block.elseWorkflow)) {
-                yield this.executeIf(block, inputs, context);
-                return;
-            }
-            // ── Normal algorithm execution ──
-            yield this.executeNormalBlock(block, inputs, context);
         });
     }
     /**
@@ -238,7 +272,17 @@ class WorkflowExecutionService {
                 selfNode: context.workNode,
                 execution: context.execution,
             };
-            const output = yield algorithm.run(algInput, block.parameters, algContext);
+            let output;
+            try {
+                output = yield algorithm.run(algInput, block.parameters, algContext);
+            }
+            catch (error) {
+                const baseMessage = error instanceof Error ? error.message : String(error);
+                const tagged = new Error(`Block "${block.name}" (${block.algorithmName}): ${baseMessage} ` +
+                    `[received input: ${describeValue(algInput)}]`);
+                tagged[BLOCK_TAGGED] = true;
+                throw tagged;
+            }
             context.blockOutputs.set(block.id, output);
             // If the block registers its output as a named variable
             if (block.registerAs) {

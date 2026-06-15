@@ -31,6 +31,24 @@ export function foreachItemVirtualId(itemRef: string): string {
 }
 
 /**
+ * Produces a short, bounded description of a runtime value for error messages —
+ * enough to diagnose type mismatches (e.g. a register holding a model instead of
+ * a node) without dumping large objects.
+ */
+export function describeValue(value: unknown): string {
+    if (value === null) return 'null';
+    if (value === undefined) return 'undefined';
+    if (Array.isArray(value)) return `array(length=${value.length})`;
+    const t = typeof value;
+    if (t !== 'object') return `${t} ${JSON.stringify(value)}`;
+    const ctor = (value as { constructor?: { name?: string } }).constructor?.name;
+    return ctor ? `object<${ctor}>` : 'object';
+}
+
+/** Marks an Error as already carrying block context, so it isn't wrapped again as it bubbles up. */
+const BLOCK_TAGGED = Symbol('blockTagged');
+
+/**
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
  */
@@ -124,29 +142,41 @@ export default class WorkflowExecutionService {
         block: IWorkflowBlock,
         context: WorkflowExecutionContext
     ): Promise<void> {
-        // Gather ordered inputs from upstream blocks
-        const inputs = this.resolveInputs(block, context);
+        try {
+            // Gather ordered inputs from upstream blocks
+            const inputs = this.resolveInputs(block, context);
 
-        // ── FETCH_INPUT_REGISTER (reads from inputRegisters) ──
-        if (block.algorithmName === 'FETCH_INPUT_REGISTER') {
-            this.executeFetchInputRegister(block, context);
-            return;
+            // ── FETCH_INPUT_REGISTER (reads from inputRegisters) ──
+            if (block.algorithmName === 'FETCH_INPUT_REGISTER') {
+                this.executeFetchInputRegister(block, context);
+                return;
+            }
+
+            // ── FOREACH (higher-order iteration) ──
+            if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
+                await this.executeForeach(block, inputs, context);
+                return;
+            }
+
+            // ── IF (conditional branching) ──
+            if (block.algorithmName === 'IF' && (block.thenWorkflow || block.elseWorkflow)) {
+                await this.executeIf(block, inputs, context);
+                return;
+            }
+
+            // ── Normal algorithm execution ──
+            await this.executeNormalBlock(block, inputs, context);
+        } catch (error: any) {
+            // Already tagged by a nested block (FOREACH/IF sub-workflow) — let it bubble
+            // up unchanged so the message points at the innermost failing block.
+            if (error && error[BLOCK_TAGGED]) throw error;
+            const baseMessage = error instanceof Error ? error.message : String(error);
+            const tagged: any = new Error(
+                `Block "${block.name}" (${block.algorithmName}): ${baseMessage}`
+            );
+            tagged[BLOCK_TAGGED] = true;
+            throw tagged;
         }
-
-        // ── FOREACH (higher-order iteration) ──
-        if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
-            await this.executeForeach(block, inputs, context);
-            return;
-        }
-
-        // ── IF (conditional branching) ──
-        if (block.algorithmName === 'IF' && (block.thenWorkflow || block.elseWorkflow)) {
-            await this.executeIf(block, inputs, context);
-            return;
-        }
-
-        // ── Normal algorithm execution ──
-        await this.executeNormalBlock(block, inputs, context);
     }
 
     /**
@@ -325,11 +355,22 @@ export default class WorkflowExecutionService {
             execution: context.execution,
         };
 
-        const output = await algorithm.run(
-            algInput,
-            block.parameters as AlgorithmParams,
-            algContext
-        );
+        let output: unknown;
+        try {
+            output = await algorithm.run(
+                algInput,
+                block.parameters as AlgorithmParams,
+                algContext
+            );
+        } catch (error: any) {
+            const baseMessage = error instanceof Error ? error.message : String(error);
+            const tagged: any = new Error(
+                `Block "${block.name}" (${block.algorithmName}): ${baseMessage} ` +
+                `[received input: ${describeValue(algInput)}]`
+            );
+            tagged[BLOCK_TAGGED] = true;
+            throw tagged;
+        }
 
         context.blockOutputs.set(block.id, output);
 

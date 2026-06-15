@@ -301,6 +301,12 @@ class AnalysisFactoryService {
                     continue;
                 const finalIds = [];
                 for (const sourceRef of blockDef.inputs) {
+                    // '$node' is the implicit work node — pre-seeded at runtime under
+                    // WORK_NODE_RESERVED_ID, so it needs no graph edge.
+                    if (sourceRef === '$node') {
+                        finalIds.push(WorkflowExecutionService_1.WORK_NODE_RESERVED_ID);
+                        continue;
+                    }
                     // Check if it's the FOREACH item ref (current level or any ancestor)
                     const virtualId = this.resolveItemRef(sourceRef, itemRef, knownItemRefs);
                     if (virtualId) {
@@ -396,6 +402,12 @@ class AnalysisFactoryService {
                     continue;
                 const finalIds = [];
                 for (const sourceRef of blockDef.inputs) {
+                    // '$node' is the implicit work node — pre-seeded at runtime under
+                    // WORK_NODE_RESERVED_ID, so it needs no graph edge.
+                    if (sourceRef === '$node') {
+                        finalIds.push(WorkflowExecutionService_1.WORK_NODE_RESERVED_ID);
+                        continue;
+                    }
                     // Check if it's a FOREACH item ref (any ancestor level)
                     const virtualId = this.resolveItemRef(sourceRef, undefined, knownItemRefs);
                     if (virtualId) {

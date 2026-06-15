@@ -19,6 +19,12 @@ export declare const FOREACH_ITEM_SUFFIX = "__";
  */
 export declare function foreachItemVirtualId(itemRef: string): string;
 /**
+ * Produces a short, bounded description of a runtime value for error messages —
+ * enough to diagnose type mismatches (e.g. a register holding a model instead of
+ * a node) without dumping large objects.
+ */
+export declare function describeValue(value: unknown): string;
+/**
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
  */
