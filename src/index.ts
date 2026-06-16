@@ -67,6 +67,7 @@ export type {
 } from './interfaces/IWorkflowBlock';
 export type { IAlgorithm } from './interfaces/IAlgorithm';
 export type { IAlgorithmParameter } from './interfaces/IAlgorithmParameter';
+export type { IAlgorithmInput } from './interfaces/IAlgorithmInput';
 export type {
   IAnalysisConfigJSON,
   IWorkflowConfigJSON,

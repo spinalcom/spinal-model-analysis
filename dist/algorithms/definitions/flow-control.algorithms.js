@@ -18,7 +18,10 @@ exports.FLOW_CONTROL_ALGORITHMS = [
             'payload as inputs[1]. Executes thenWorkflow if true, elseWorkflow if false. ' +
             'The payload is injected as $item in the chosen branch. ' +
             'Handled by the DAG executor — this run() is never called directly.',
-        inputTypes: ['boolean'],
+        inputs: [
+            { name: 'predicate', types: ['boolean'], description: 'Boolean deciding which branch runs (then/else).', required: true },
+            { name: 'payload', types: ['any'], description: 'Optional value injected as $item into the chosen branch.', required: false },
+        ],
         outputType: 'any',
         parameters: [],
         run: () => __awaiter(void 0, void 0, void 0, function* () {

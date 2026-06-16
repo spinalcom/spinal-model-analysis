@@ -3,6 +3,7 @@ import { SpinalDateValue } from 'spinal-model-timeseries';
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import { SpinalAttribute } from 'spinal-models-documentation';
 import { IAlgorithmParameter } from '../../interfaces/IAlgorithmParameter';
+import { IAlgorithmInput } from '../../interfaces/IAlgorithmInput';
 
 export type PrimitiveValue = string | number | boolean;
 export type AlgorithmInputValue =
@@ -49,10 +50,12 @@ export interface AlgorithmRunContext {
   execution?: ExecutionMetadata;
 }
 
+export type AlgorithmInputs = IAlgorithmInput[];
+
 export interface AlgorithmDefinition {
   readonly name: string;
   readonly description: string;
-  readonly inputTypes: readonly string[];
+  readonly inputs: readonly IAlgorithmInput[];
   readonly outputType: string;
   readonly parameters: AlgorithmParameters;
   run: (
@@ -67,7 +70,7 @@ export const createAlgorithm = (
 ): AlgorithmDefinition => {
   return Object.freeze({
     ...definition,
-    inputTypes: [...definition.inputTypes],
+    inputs: definition.inputs.map((i) => ({ ...i })),
     parameters: [...definition.parameters],
   });
 };

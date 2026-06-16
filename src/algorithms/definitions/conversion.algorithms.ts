@@ -9,7 +9,9 @@ export const CONVERSION_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'PARSE_NUMBER',
         description:
             'Parses a number from a string input. Throws if the string cannot be parsed into a valid number.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'value', types: ['string'], description: 'The string to parse into a number.', required: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: async (input): AlgorithmRunResult => {
@@ -25,7 +27,9 @@ export const CONVERSION_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'BOOLEAN_TO_NUMBER',
         description: 'Converts a boolean to a number: true → 1, false → 0.',
-        inputTypes: ['boolean'],
+        inputs: [
+            { name: 'value', types: ['boolean'], description: 'The boolean to convert.', required: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: async (input): AlgorithmRunResult => {
@@ -37,7 +41,9 @@ export const CONVERSION_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'NUMBER_TO_BOOLEAN',
         description: 'Converts a number to a boolean: 0 → false, anything else → true.',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'value', types: ['number'], description: 'The number to convert.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [],
         run: async (input): AlgorithmRunResult => {

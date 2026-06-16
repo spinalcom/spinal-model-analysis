@@ -11,7 +11,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AlgorithmRegistry = exports.createAlgorithm = void 0;
 const createAlgorithm = (definition) => {
-    return Object.freeze(Object.assign(Object.assign({}, definition), { inputTypes: [...definition.inputTypes], parameters: [...definition.parameters] }));
+    return Object.freeze(Object.assign(Object.assign({}, definition), { inputs: definition.inputs.map((i) => (Object.assign({}, i))), parameters: [...definition.parameters] }));
 };
 exports.createAlgorithm = createAlgorithm;
 class AlgorithmRegistry {

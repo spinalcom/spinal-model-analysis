@@ -28,7 +28,7 @@ exports.REGISTER_ALGORITHMS = [
         name: 'CURRENT_NODE',
         description: 'Returns the current work node from the execution context. ' +
             'Used as a root/source block in workflows to inject the work node into the DAG.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'SpinalNode',
         parameters: [],
         run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -42,7 +42,7 @@ exports.REGISTER_ALGORITHMS = [
         name: 'GET_EXECUTION_REFERENCE_TIME',
         description: 'Returns the execution reference time (epoch ms) from execution context. ' +
             'Useful for deterministic timeseries push/fetch operations.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'number',
         parameters: [],
         run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -53,7 +53,7 @@ exports.REGISTER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_EXECUTION_TRIGGER_TYPE',
         description: 'Returns the trigger type that initiated this execution (e.g., INTERVAL_TIME, CRON, COV).',
-        inputTypes: [],
+        inputs: [],
         outputType: 'string',
         parameters: [],
         run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -64,7 +64,7 @@ exports.REGISTER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_EXECUTION_TRIGGER_ID',
         description: 'Returns the optional trigger identifier (e.g., Trigger1) that initiated this execution.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'string',
         parameters: [],
         run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -75,7 +75,7 @@ exports.REGISTER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_EXECUTION_TRIGGER_INPUT_REGISTER',
         description: 'For COV executions, returns the input register name that was bound (e.g., I0).',
-        inputTypes: [],
+        inputs: [],
         outputType: 'string',
         parameters: [],
         run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -86,7 +86,7 @@ exports.REGISTER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_EXECUTION_TRIGGER_THRESHOLD',
         description: 'For COV executions with deadband, returns the threshold value.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'number',
         parameters: [],
         run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
@@ -99,7 +99,9 @@ exports.REGISTER_ALGORITHMS = [
         description: 'Passes through the input value unchanged. The DAG executor uses the block\'s ' +
             'registerAs property to store this value as a named variable (e.g., I0, I1) ' +
             'for later use in the execution workflow.',
-        inputTypes: ['any'],
+        inputs: [
+            { name: 'value', types: ['any'], description: 'The value to register under the block\'s registerAs name.', required: true },
+        ],
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -111,7 +113,7 @@ exports.REGISTER_ALGORITHMS = [
         name: 'FETCH_INPUT_REGISTER',
         description: 'Fetches a named input variable (e.g., I0, I1) that was set during the input workflow. ' +
             'Handled by the DAG executor — the run() function is never called directly.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'any',
         parameters: [
             {
@@ -129,7 +131,7 @@ exports.REGISTER_ALGORITHMS = [
         name: 'ELEMENT',
         description: 'Source block for FOREACH sub-workflows. Injects the current array element. ' +
             'The DAG executor provides the value — this run() is never called directly.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'any',
         parameters: [],
         run: () => __awaiter(void 0, void 0, void 0, function* () {
@@ -142,7 +144,9 @@ exports.REGISTER_ALGORITHMS = [
             'on each element. Results are collected into an output array. ' +
             'The sub-workflow must contain an ELEMENT block as the element source. ' +
             'Handled by the DAG executor — this run() is never called directly.',
-        inputTypes: ['any[]'],
+        inputs: [
+            { name: 'items', types: ['any[]'], description: 'The array to iterate over.', required: true },
+        ],
         outputType: 'any[]',
         parameters: [],
         run: () => __awaiter(void 0, void 0, void 0, function* () {

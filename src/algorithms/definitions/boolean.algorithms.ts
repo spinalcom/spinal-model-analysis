@@ -9,7 +9,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'GREATER_THAN',
         description:
             'Returns true if the numeric input is strictly greater than the threshold parameter.',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'value', types: ['number'], description: 'The value compared against the threshold.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'The threshold value', required: true },
@@ -26,7 +28,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'LESS_THAN',
         description:
             'Returns true if the numeric input is strictly less than the threshold parameter.',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'value', types: ['number'], description: 'The value compared against the threshold.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'The threshold value', required: true },
@@ -43,7 +47,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'BETWEEN',
         description:
             'Returns true if the numeric input is within [min, max] (inclusive).',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'value', types: ['number'], description: 'The value tested against the [min, max] range.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'min', type: 'number', description: 'Lower bound (inclusive)', required: true },
@@ -64,7 +70,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'NOT_BETWEEN',
         description:
             'Returns true if the numeric input is outside [min, max] (exclusive of the range).',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'value', types: ['number'], description: 'The value tested against the [min, max] range.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'min', type: 'number', description: 'Lower bound', required: true },
@@ -85,7 +93,10 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'DIFFERENCE_THRESHOLD',
         description:
             'Takes two number inputs and returns true if the absolute difference exceeds the threshold.',
-        inputTypes: ['number', 'number'],
+        inputs: [
+            { name: 'a', types: ['number'], description: 'First value.', required: true },
+            { name: 'b', types: ['number'], description: 'Second value.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'Maximum allowed absolute difference', required: true },
@@ -111,7 +122,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'AND',
         description:
             'Logical AND: returns true only if all boolean inputs are true. Accepts a single boolean or boolean array.',
-        inputTypes: ['boolean'],
+        inputs: [
+            { name: 'values', types: ['boolean'], description: 'One or more booleans; true only if all are true.', required: true, variadic: true },
+        ],
         outputType: 'boolean',
         parameters: [],
         run: async (input): AlgorithmRunResult => {
@@ -132,7 +145,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'OR',
         description:
             'Logical OR: returns true if any boolean input is true. Accepts a single boolean or boolean array.',
-        inputTypes: ['boolean'],
+        inputs: [
+            { name: 'values', types: ['boolean'], description: 'One or more booleans; true if any is true.', required: true, variadic: true },
+        ],
         outputType: 'boolean',
         parameters: [],
         run: async (input): AlgorithmRunResult => {
@@ -152,7 +167,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'NOT',
         description: 'Logical NOT: inverts a boolean input.',
-        inputTypes: ['boolean'],
+        inputs: [
+            { name: 'value', types: ['boolean'], description: 'The boolean to invert.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [],
         run: async (input): AlgorithmRunResult => {

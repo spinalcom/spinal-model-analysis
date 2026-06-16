@@ -9,7 +9,7 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'CREATE_OBJECT',
         description: 'Creates a new object from a JSON string parameter, or an empty object if none provided.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'string',
         parameters: [
             { name: 'json', type: 'string', description: 'Optional JSON string to initialize the object', required: false },
@@ -28,7 +28,9 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'GET_PROPERTY',
         description: 'Gets a property value from a JSON object string by key. Supports nested access with dot notation (e.g. "a.b.c").',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'key', type: 'string', description: 'The property key (supports dot notation for nested access)', required: true },
@@ -59,7 +61,9 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'SET_PROPERTY',
         description: 'Sets a property on a JSON object string. Takes input as the JSON string. Supports nested keys with dot notation.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'key', type: 'string', description: 'The property key (supports dot notation for nested access)', required: true },
@@ -102,7 +106,10 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'SET_PROPERTY_DYNAMIC',
         description: 'Sets a property on a JSON object string using a dynamic value input. Takes 2 inputs: [jsonString, value].',
-        inputTypes: ['string', 'any'],
+        inputs: [
+            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string).', required: true },
+            { name: 'value', types: ['any'], description: 'The value to set on the property.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'key', type: 'string', description: 'The property key (supports dot notation)', required: true },
@@ -138,7 +145,9 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'DELETE_PROPERTY',
         description: 'Deletes a property from a JSON object string by key. Supports dot notation.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'key', type: 'string', description: 'The property key to delete (supports dot notation)', required: true },
@@ -169,7 +178,10 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'MERGE_OBJECTS',
         description: 'Merges two JSON object strings into one (shallow merge, second overrides first). Takes 2 inputs: [obj1, obj2].',
-        inputTypes: ['string', 'string'],
+        inputs: [
+            { name: 'object1', types: ['string'], description: 'The first JSON object (as a JSON string).', required: true },
+            { name: 'object2', types: ['string'], description: 'The second JSON object (as a JSON string); its keys override the first.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: async (input): AlgorithmRunResult => {
@@ -190,7 +202,9 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'HAS_PROPERTY',
         description: 'Checks if a property exists in a JSON object string. Returns true/false.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'key', type: 'string', description: 'The property key to check (supports dot notation)', required: true },
@@ -220,7 +234,9 @@ export const OBJECT_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'GET_KEYS',
         description: 'Returns the keys of a JSON object as a JSON array string.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: async (input): AlgorithmRunResult => {

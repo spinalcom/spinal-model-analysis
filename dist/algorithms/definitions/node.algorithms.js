@@ -23,7 +23,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'FIRST_NODE',
         description: 'Returns the node input, or first node of a node array.',
-        inputTypes: ['SpinalNode', 'SpinalNode[]'],
+        inputs: [
+            { name: 'nodes', types: ['SpinalNode', 'SpinalNode[]'], description: 'A node, or a list of nodes (the first is returned).', required: true },
+        ],
         outputType: 'SpinalNode',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -40,7 +42,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_NODE_SERVER_ID',
         description: 'Returns the ID of a SpinalNode.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose server id to return.', required: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -52,7 +56,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_NODE_CHILDREN',
         description: 'Returns the children of a SpinalNode.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose children to return.', required: true },
+        ],
         outputType: 'SpinalNode[]',
         parameters: [
             { name: 'regex', type: 'string', description: 'Regex pattern to relation used to get children nodes', required: false },
@@ -67,7 +73,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_NODE_PARENTS',
         description: 'Returns the parents of a SpinalNode.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose parents to return.', required: true },
+        ],
         outputType: 'SpinalNode[]',
         parameters: [
             { name: 'regex', type: 'string', description: 'Regex pattern to relation used to get parent nodes', required: false }
@@ -82,7 +90,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'FILTER_NODE',
         description: 'Filter Nodes based on specified criteria.',
-        inputTypes: ['SpinalNode', 'SpinalNode[]'],
+        inputs: [
+            { name: 'nodes', types: ['SpinalNode', 'SpinalNode[]'], description: 'A node or list of nodes to filter.', required: true },
+        ],
         outputType: 'SpinalNode[]',
         parameters: [
             { name: 'filterProperty', type: 'string', description: 'Name of the info property ( must be in the info of the node)', required: true },
@@ -119,7 +129,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'FIND_NODE',
         description: 'Returns the first node matching the specified criteria (like FILTER_NODE but returns a single node).',
-        inputTypes: ['SpinalNode', 'SpinalNode[]'],
+        inputs: [
+            { name: 'nodes', types: ['SpinalNode', 'SpinalNode[]'], description: 'A node or list of nodes to search.', required: true },
+        ],
         outputType: 'SpinalNode',
         parameters: [
             { name: 'filterProperty', type: 'string', description: 'Name of the info property (must be in the info of the node)', required: true },
@@ -158,7 +170,9 @@ exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'ENDPOINT_NODE_CURRENT_VALUE',
         description: 'For a node representing an endpoint, returns the current value.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node whose current value to read.', required: true },
+        ],
         outputType: 'any',
         parameters: [],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
@@ -179,7 +193,9 @@ exports.NODE_ALGORITHMS = [
         description: 'For a node representing an endpoint, returns the bindable currentValue MODEL ' +
             '(not the primitive value). Use this to populate an input register that a COV ' +
             'trigger can bind on to react to value changes.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node whose current value model to return.', required: true },
+        ],
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -199,7 +215,10 @@ exports.NODE_ALGORITHMS = [
         name: 'SET_ENDPOINT_VALUE',
         description: 'Sets the current value of an endpoint node. Takes 2 inputs: [endpointNode, value]. ' +
             'Returns the value that was set.',
-        inputTypes: ['SpinalNode', 'any'],
+        inputs: [
+            { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node to update.', required: true },
+            { name: 'value', types: ['any'], description: 'The value to set on the endpoint.', required: true },
+        ],
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -227,7 +246,9 @@ exports.NODE_ALGORITHMS = [
         name: 'SET_ENDPOINT_VALUE_PARAM',
         description: 'Sets the current value of an endpoint node to a static parameter value. ' +
             'Takes 1 input: endpointNode, and a "value" parameter. Returns the value that was set.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node to update.', required: true },
+        ],
         outputType: 'any',
         parameters: [
             { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },

@@ -21,7 +21,9 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_ATTRIBUTE',
         description: 'Gets the value of an attribute from a node by category and label.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node to read the attribute from.', required: true },
+        ],
         outputType: 'any',
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
@@ -49,7 +51,10 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'SET_ATTRIBUTE',
         description: 'Sets an attribute on a node by category and label. Can create or only update based on the createIfNotExist parameter.',
-        inputTypes: ['SpinalNode', 'any'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node to set the attribute on.', required: true },
+            { name: 'value', types: ['any'], description: 'The value to set on the attribute.', required: true },
+        ],
         outputType: 'any',
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
@@ -87,7 +92,9 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'SET_ATTRIBUTE_PARAM',
         description: 'Sets an attribute on a node using a static parameter value. Can create or only update based on the createIfNotExist parameter.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node to set the attribute on.', required: true },
+        ],
         outputType: 'any',
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
@@ -125,7 +132,9 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_ALL_ATTRIBUTES',
         description: 'Gets all attributes of a node within a specific category. Returns a string representation.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose attributes to return.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: false },
@@ -158,7 +167,9 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_ATTRIBUTE_MODEL',
         description: 'Gets the SpinalAttribute model from a node by category and label. Useful for binding onChange listeners.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node to read the attribute model from.', required: true },
+        ],
         outputType: 'SpinalAttribute',
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
@@ -186,7 +197,9 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GET_ALL_ATTRIBUTE_MODELS',
         description: 'Gets all SpinalAttribute models of a node within a specific category. Useful for binding onChange listeners.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose attribute models to return.', required: true },
+        ],
         outputType: 'SpinalAttribute[]',
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: false },

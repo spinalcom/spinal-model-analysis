@@ -18,7 +18,9 @@ exports.NUMBER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'COPY_FIRST_NUMBER',
         description: 'Returns the number input, or first value of a number array.',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'numbers', types: ['number'], description: 'One or more numbers; the first one is returned.', required: true, variadic: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -35,7 +37,9 @@ exports.NUMBER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'SUM_NUMBERS',
         description: 'Sums all numbers from a number array input.',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'numbers', types: ['number'], description: 'One or more numbers to sum.', required: true, variadic: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -50,7 +54,9 @@ exports.NUMBER_ALGORITHMS = [
         name: 'SUBTRACT',
         description: 'Subtracts numbers in order from a number array input: input[0] − input[1] − … ' +
             'Requires at least two numbers (e.g. two block inputs [a, b] → a − b).',
-        inputTypes: ['number'],
+        inputs: [
+            { name: 'numbers', types: ['number'], description: 'Two or more numbers; subsequent values are subtracted from the first.', required: true, variadic: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -64,7 +70,7 @@ exports.NUMBER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'RANDOM_NUMBER',
         description: 'Generates a random number between min and max (inclusive). No input required.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'number',
         parameters: [
             { name: 'min', type: 'number', description: 'Lower bound (inclusive)', required: true },

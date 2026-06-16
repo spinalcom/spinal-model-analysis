@@ -16,7 +16,7 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'CREATE_LIST',
         description: 'Creates a new JSON array from an optional JSON string parameter, or an empty array if none provided.',
-        inputTypes: [],
+        inputs: [],
         outputType: 'string',
         parameters: [
             { name: 'json', type: 'string', description: 'Optional JSON array string to initialize the list', required: false },
@@ -35,7 +35,10 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_PUSH',
         description: 'Appends a value to the end of a JSON array. Takes 2 inputs: [arrayJson, value].',
-        inputTypes: ['string', 'any'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string).', required: true },
+            { name: 'value', types: ['any'], description: 'The value to add.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -55,7 +58,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_PUSH_PARAM',
         description: 'Appends a static parameter value to the end of a JSON array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'value', type: 'string', description: 'The value to push (will be parsed as JSON if possible)', required: true },
@@ -83,7 +88,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_POP',
         description: 'Removes and returns the last element of a JSON array. Returns the modified array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -101,7 +108,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_SHIFT',
         description: 'Removes and returns the first element of a JSON array. Returns the modified array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -119,7 +128,10 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_UNSHIFT',
         description: 'Prepends a value to the beginning of a JSON array. Takes 2 inputs: [arrayJson, value].',
-        inputTypes: ['string', 'any'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string).', required: true },
+            { name: 'value', types: ['any'], description: 'The value to add.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -139,7 +151,10 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_CONCAT',
         description: 'Concatenates two JSON arrays. Takes 2 inputs: [array1, array2].',
-        inputTypes: ['string', 'string'],
+        inputs: [
+            { name: 'list1', types: ['string'], description: 'The first JSON array (as a JSON string).', required: true },
+            { name: 'list2', types: ['string'], description: 'The second JSON array (as a JSON string).', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -161,7 +176,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_GET',
         description: 'Gets an element at a specific index from a JSON array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'index', type: 'number', description: 'The index of the element to get (supports negative indexing)', required: true },
@@ -189,7 +206,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_LENGTH',
         description: 'Returns the length of a JSON array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'number',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -204,7 +223,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_INCLUDES',
         description: 'Checks if a JSON array contains a specific value.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'boolean',
         parameters: [
             { name: 'value', type: 'string', description: 'The value to search for (will be parsed as JSON if possible)', required: true },
@@ -231,7 +252,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_INDEX_OF',
         description: 'Returns the first index of a value in a JSON array, or -1 if not found.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'number',
         parameters: [
             { name: 'value', type: 'string', description: 'The value to search for (will be parsed as JSON if possible)', required: true },
@@ -258,7 +281,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_SLICE',
         description: 'Returns a slice of a JSON array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [
             { name: 'start', type: 'number', description: 'Start index (inclusive, supports negative)', required: false },
@@ -278,7 +303,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_REVERSE',
         description: 'Reverses a JSON array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -293,7 +320,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_FLATTEN',
         description: 'Flattens a nested JSON array by one level.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
@@ -308,7 +337,9 @@ exports.LIST_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LIST_UNIQUE',
         description: 'Removes duplicate primitive values from a JSON array.',
-        inputTypes: ['string'],
+        inputs: [
+            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+        ],
         outputType: 'string',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {

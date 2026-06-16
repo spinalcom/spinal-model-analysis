@@ -111,7 +111,9 @@ exports.TIMESERIES_ALGORITHMS = [
             'The time window can be given as an absolute range (start/end) or relative to the ' +
             'execution reference time (windowMs/lastHours/lastDays back from end). ' +
             'If the endpoint has no timeseries, an empty array is returned.',
-        inputTypes: ['SpinalNode'],
+        inputs: [
+            { name: 'endpoint', types: ['SpinalNode'], description: 'The BmsEndpoint node whose timeseries to fetch.', required: true },
+        ],
         outputType: 'SpinalDateValue[]',
         parameters: [
             {
@@ -186,7 +188,9 @@ exports.TIMESERIES_ALGORITHMS = [
         name: 'TIMESERIES_FIRST',
         description: 'Returns the value of the first (earliest) point of a timeseries ({ date, value }[]). ' +
             'Throws if the series is empty, unless defaultOnEmpty is provided.',
-        inputTypes: ['SpinalDateValue[]'],
+        inputs: [
+            { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to reduce.', required: true },
+        ],
         outputType: 'number',
         parameters: [DEFAULT_ON_EMPTY_PARAM],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
@@ -200,7 +204,9 @@ exports.TIMESERIES_ALGORITHMS = [
         name: 'TIMESERIES_LAST',
         description: 'Returns the value of the last (latest) point of a timeseries ({ date, value }[]). ' +
             'Throws if the series is empty, unless defaultOnEmpty is provided.',
-        inputTypes: ['SpinalDateValue[]'],
+        inputs: [
+            { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to reduce.', required: true },
+        ],
         outputType: 'number',
         parameters: [DEFAULT_ON_EMPTY_PARAM],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
@@ -218,7 +224,9 @@ exports.TIMESERIES_ALGORITHMS = [
             'includeValueAtBegin=true so the baseline at the window start is used as "first". ' +
             'A single point yields 0. Throws if the series is empty, unless defaultOnEmpty is provided ' +
             '(e.g. 0 for a dysfunctional endpoint that should contribute nothing to a sum).',
-        inputTypes: ['SpinalDateValue[]'],
+        inputs: [
+            { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to reduce.', required: true },
+        ],
         outputType: 'number',
         parameters: [DEFAULT_ON_EMPTY_PARAM],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
@@ -235,7 +243,10 @@ exports.TIMESERIES_ALGORITHMS = [
             'the timeseries if it does not exist yet). Takes 2 inputs: [endpointNode, value]. ' +
             'The timeseries point is dated at the execution reference time by default, or at ' +
             'the optional "date" parameter. Returns the value that was recorded.',
-        inputTypes: ['SpinalNode', 'any'],
+        inputs: [
+            { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node to record the value on.', required: true },
+            { name: 'value', types: ['any'], description: 'The value to set as currentValue and append to the timeseries.', required: true },
+        ],
         outputType: 'any',
         parameters: [
             {
