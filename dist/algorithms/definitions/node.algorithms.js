@@ -10,6 +10,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.NODE_ALGORITHMS = void 0;
+/* eslint-disable @typescript-eslint/no-explicit-any */
+const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const core_1 = require("./core");
 const isSpinalNode = (value) => {
     return (Boolean(value) &&
@@ -37,6 +39,28 @@ exports.NODE_ALGORITHMS = [
                 return input[0];
             }
             throw new Error('Expected SpinalNode or SpinalNode[] input');
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'GET_CONTEXT',
+        description: 'Returns the context (SpinalContext) with the given name from the graph. ' +
+            'Takes no input — the context is looked up by the "name" parameter. ' +
+            'Throws if no context with that name exists.',
+        inputs: [],
+        outputType: 'SpinalNode',
+        parameters: [
+            { name: 'name', type: 'string', description: 'The name of the context to fetch.', required: true },
+        ],
+        run: (_input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            const name = params === null || params === void 0 ? void 0 : params.name;
+            if (typeof name !== 'string' || name.length === 0) {
+                throw new Error('GET_CONTEXT requires a non-empty "name" parameter');
+            }
+            const context = spinal_env_viewer_graph_service_1.SpinalGraphService.getContext(name);
+            if (!context) {
+                throw new Error(`GET_CONTEXT: no context found with name "${name}"`);
+            }
+            return context;
         }),
     }),
     (0, core_1.createAlgorithm)({

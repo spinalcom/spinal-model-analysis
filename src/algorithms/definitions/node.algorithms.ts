@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { SpinalNode, SpinalGraphService } from 'spinal-env-viewer-graph-service';
 import {
   AlgorithmDefinition,
   AlgorithmRunResult,
@@ -34,6 +34,29 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
         return input[0];
       }
       throw new Error('Expected SpinalNode or SpinalNode[] input');
+    },
+  }),
+  createAlgorithm({
+    name: 'GET_CONTEXT',
+    description:
+      'Returns the context (SpinalContext) with the given name from the graph. ' +
+      'Takes no input — the context is looked up by the "name" parameter. ' +
+      'Throws if no context with that name exists.',
+    inputs: [],
+    outputType: 'SpinalNode',
+    parameters: [
+      { name: 'name', type: 'string', description: 'The name of the context to fetch.', required: true },
+    ],
+    run: async (_input, params): AlgorithmRunResult => {
+      const name = params?.name;
+      if (typeof name !== 'string' || name.length === 0) {
+        throw new Error('GET_CONTEXT requires a non-empty "name" parameter');
+      }
+      const context = SpinalGraphService.getContext(name);
+      if (!context) {
+        throw new Error(`GET_CONTEXT: no context found with name "${name}"`);
+      }
+      return context as unknown as SpinalNode<any>;
     },
   }),
   createAlgorithm({

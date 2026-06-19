@@ -41,7 +41,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             if (typeof label !== 'string' || label.length === 0) {
                 throw new Error('Invalid or missing label parameter');
             }
-            const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(input, categoryName);
+            const attr = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(input, categoryName, label);
             if (attr === -1) {
                 throw new Error(`Attribute "${label}" not found in category "${categoryName}"`);
             }

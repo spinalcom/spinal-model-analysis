@@ -43,7 +43,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
                 throw new Error('Invalid or missing label parameter');
             }
 
-            const attr = await attributeService.findOneAttributeInCategory(input, categoryName);
+            const attr = await attributeService.findOneAttributeInCategory(input, categoryName, label);
             if (attr === -1) {
                 throw new Error(`Attribute "${label}" not found in category "${categoryName}"`);
             }

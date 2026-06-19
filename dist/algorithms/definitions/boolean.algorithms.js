@@ -11,50 +11,46 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.BOOLEAN_ALGORITHMS = void 0;
 const core_1 = require("./core");
+/** Numeric input types: a number or a numeric string (e.g. a GET_ATTRIBUTE value). */
+const NUMERIC_TYPES = ['number', 'string'];
 exports.BOOLEAN_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'GREATER_THAN',
         description: 'Returns true if the numeric input is strictly greater than the threshold parameter.',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value compared against the threshold.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value compared against the threshold.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'The threshold value', required: true },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            if (typeof input !== 'number')
-                throw new Error('GREATER_THAN expects a number input');
-            const threshold = params === null || params === void 0 ? void 0 : params.threshold;
-            if (typeof threshold !== 'number')
-                throw new Error('GREATER_THAN requires a numeric threshold parameter');
-            return input > threshold;
+            const value = (0, core_1.toNumber)(input, 'GREATER_THAN input');
+            const threshold = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.threshold, 'GREATER_THAN threshold');
+            return value > threshold;
         }),
     }),
     (0, core_1.createAlgorithm)({
         name: 'LESS_THAN',
         description: 'Returns true if the numeric input is strictly less than the threshold parameter.',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value compared against the threshold.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value compared against the threshold.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'The threshold value', required: true },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            if (typeof input !== 'number')
-                throw new Error('LESS_THAN expects a number input');
-            const threshold = params === null || params === void 0 ? void 0 : params.threshold;
-            if (typeof threshold !== 'number')
-                throw new Error('LESS_THAN requires a numeric threshold parameter');
-            return input < threshold;
+            const value = (0, core_1.toNumber)(input, 'LESS_THAN input');
+            const threshold = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.threshold, 'LESS_THAN threshold');
+            return value < threshold;
         }),
     }),
     (0, core_1.createAlgorithm)({
         name: 'BETWEEN',
         description: 'Returns true if the numeric input is within [min, max] (inclusive).',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value tested against the [min, max] range.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value tested against the [min, max] range.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
@@ -62,21 +58,17 @@ exports.BOOLEAN_ALGORITHMS = [
             { name: 'max', type: 'number', description: 'Upper bound (inclusive)', required: true },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            if (typeof input !== 'number')
-                throw new Error('BETWEEN expects a number input');
-            const min = params === null || params === void 0 ? void 0 : params.min;
-            const max = params === null || params === void 0 ? void 0 : params.max;
-            if (typeof min !== 'number' || typeof max !== 'number') {
-                throw new Error('BETWEEN requires numeric min and max parameters');
-            }
-            return input >= min && input <= max;
+            const value = (0, core_1.toNumber)(input, 'BETWEEN input');
+            const min = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.min, 'BETWEEN min');
+            const max = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.max, 'BETWEEN max');
+            return value >= min && value <= max;
         }),
     }),
     (0, core_1.createAlgorithm)({
         name: 'NOT_BETWEEN',
         description: 'Returns true if the numeric input is outside [min, max] (exclusive of the range).',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value tested against the [min, max] range.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value tested against the [min, max] range.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
@@ -84,22 +76,18 @@ exports.BOOLEAN_ALGORITHMS = [
             { name: 'max', type: 'number', description: 'Upper bound', required: true },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            if (typeof input !== 'number')
-                throw new Error('NOT_BETWEEN expects a number input');
-            const min = params === null || params === void 0 ? void 0 : params.min;
-            const max = params === null || params === void 0 ? void 0 : params.max;
-            if (typeof min !== 'number' || typeof max !== 'number') {
-                throw new Error('NOT_BETWEEN requires numeric min and max parameters');
-            }
-            return input < min || input > max;
+            const value = (0, core_1.toNumber)(input, 'NOT_BETWEEN input');
+            const min = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.min, 'NOT_BETWEEN min');
+            const max = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.max, 'NOT_BETWEEN max');
+            return value < min || value > max;
         }),
     }),
     (0, core_1.createAlgorithm)({
         name: 'DIFFERENCE_THRESHOLD',
         description: 'Takes two number inputs and returns true if the absolute difference exceeds the threshold.',
         inputs: [
-            { name: 'a', types: ['number'], description: 'First value.', required: true },
-            { name: 'b', types: ['number'], description: 'Second value.', required: true },
+            { name: 'a', types: NUMERIC_TYPES, description: 'First value.', required: true },
+            { name: 'b', types: NUMERIC_TYPES, description: 'Second value.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
@@ -109,15 +97,9 @@ exports.BOOLEAN_ALGORITHMS = [
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('DIFFERENCE_THRESHOLD expects 2 numeric inputs');
             }
-            const a = input[0];
-            const b = input[1];
-            if (typeof a !== 'number' || typeof b !== 'number') {
-                throw new Error('DIFFERENCE_THRESHOLD expects numeric inputs');
-            }
-            const threshold = params === null || params === void 0 ? void 0 : params.threshold;
-            if (typeof threshold !== 'number') {
-                throw new Error('DIFFERENCE_THRESHOLD requires a numeric threshold parameter');
-            }
+            const a = (0, core_1.toNumber)(input[0], 'DIFFERENCE_THRESHOLD input a');
+            const b = (0, core_1.toNumber)(input[1], 'DIFFERENCE_THRESHOLD input b');
+            const threshold = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.threshold, 'DIFFERENCE_THRESHOLD threshold');
             return Math.abs(a - b) > threshold;
         }),
     }),

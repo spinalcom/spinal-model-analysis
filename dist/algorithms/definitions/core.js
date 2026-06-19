@@ -9,7 +9,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.AlgorithmRegistry = exports.createAlgorithm = void 0;
+exports.AlgorithmRegistry = exports.createAlgorithm = exports.toNumber = void 0;
+/**
+ * Coerces a value into a number for numeric algorithms.
+ * Accepts a real number or a numeric string (spinal attribute values come through
+ * as strings, e.g. GET_ATTRIBUTE). Throws a clear error for genuinely non-numeric
+ * values instead of silently producing NaN.
+ */
+const toNumber = (value, label = 'value') => {
+    if (typeof value === 'number' && !isNaN(value))
+        return value;
+    if (typeof value === 'string' && value.trim() !== '') {
+        const n = Number(value);
+        if (!isNaN(n))
+            return n;
+    }
+    throw new Error(`Expected a number (or numeric string) for ${label}, got ${JSON.stringify(value)}`);
+};
+exports.toNumber = toNumber;
 const createAlgorithm = (definition) => {
     return Object.freeze(Object.assign(Object.assign({}, definition), { inputs: definition.inputs.map((i) => (Object.assign({}, i))), parameters: [...definition.parameters] }));
 };

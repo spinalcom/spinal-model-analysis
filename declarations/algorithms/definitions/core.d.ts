@@ -39,6 +39,13 @@ export interface AlgorithmDefinition {
     readonly parameters: AlgorithmParameters;
     run: (input: AlgorithmInputValue | AlgorithmInputValue[], params?: AlgorithmParams, context?: AlgorithmRunContext) => AlgorithmRunResult;
 }
+/**
+ * Coerces a value into a number for numeric algorithms.
+ * Accepts a real number or a numeric string (spinal attribute values come through
+ * as strings, e.g. GET_ATTRIBUTE). Throws a clear error for genuinely non-numeric
+ * values instead of silently producing NaN.
+ */
+export declare const toNumber: (value: unknown, label?: string) => number;
 export declare const createAlgorithm: (definition: AlgorithmDefinition) => AlgorithmDefinition;
 export declare class AlgorithmRegistry {
     private readonly registry;

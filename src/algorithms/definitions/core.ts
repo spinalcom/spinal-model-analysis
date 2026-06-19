@@ -65,6 +65,23 @@ export interface AlgorithmDefinition {
   ) => AlgorithmRunResult;
 }
 
+/**
+ * Coerces a value into a number for numeric algorithms.
+ * Accepts a real number or a numeric string (spinal attribute values come through
+ * as strings, e.g. GET_ATTRIBUTE). Throws a clear error for genuinely non-numeric
+ * values instead of silently producing NaN.
+ */
+export const toNumber = (value: unknown, label = 'value'): number => {
+  if (typeof value === 'number' && !isNaN(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const n = Number(value);
+    if (!isNaN(n)) return n;
+  }
+  throw new Error(
+    `Expected a number (or numeric string) for ${label}, got ${JSON.stringify(value)}`
+  );
+};
+
 export const createAlgorithm = (
   definition: AlgorithmDefinition
 ): AlgorithmDefinition => {

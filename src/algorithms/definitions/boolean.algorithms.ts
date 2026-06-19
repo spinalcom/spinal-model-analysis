@@ -2,7 +2,11 @@ import {
     AlgorithmDefinition,
     AlgorithmRunResult,
     createAlgorithm,
+    toNumber,
 } from './core';
+
+/** Numeric input types: a number or a numeric string (e.g. a GET_ATTRIBUTE value). */
+const NUMERIC_TYPES = ['number', 'string'];
 
 export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
@@ -10,17 +14,16 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         description:
             'Returns true if the numeric input is strictly greater than the threshold parameter.',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value compared against the threshold.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value compared against the threshold.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'The threshold value', required: true },
         ],
         run: async (input, params): AlgorithmRunResult => {
-            if (typeof input !== 'number') throw new Error('GREATER_THAN expects a number input');
-            const threshold = params?.threshold as number;
-            if (typeof threshold !== 'number') throw new Error('GREATER_THAN requires a numeric threshold parameter');
-            return input > threshold;
+            const value = toNumber(input, 'GREATER_THAN input');
+            const threshold = toNumber(params?.threshold, 'GREATER_THAN threshold');
+            return value > threshold;
         },
     }),
 
@@ -29,17 +32,16 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         description:
             'Returns true if the numeric input is strictly less than the threshold parameter.',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value compared against the threshold.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value compared against the threshold.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
             { name: 'threshold', type: 'number', description: 'The threshold value', required: true },
         ],
         run: async (input, params): AlgorithmRunResult => {
-            if (typeof input !== 'number') throw new Error('LESS_THAN expects a number input');
-            const threshold = params?.threshold as number;
-            if (typeof threshold !== 'number') throw new Error('LESS_THAN requires a numeric threshold parameter');
-            return input < threshold;
+            const value = toNumber(input, 'LESS_THAN input');
+            const threshold = toNumber(params?.threshold, 'LESS_THAN threshold');
+            return value < threshold;
         },
     }),
 
@@ -48,7 +50,7 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         description:
             'Returns true if the numeric input is within [min, max] (inclusive).',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value tested against the [min, max] range.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value tested against the [min, max] range.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
@@ -56,13 +58,10 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
             { name: 'max', type: 'number', description: 'Upper bound (inclusive)', required: true },
         ],
         run: async (input, params): AlgorithmRunResult => {
-            if (typeof input !== 'number') throw new Error('BETWEEN expects a number input');
-            const min = params?.min as number;
-            const max = params?.max as number;
-            if (typeof min !== 'number' || typeof max !== 'number') {
-                throw new Error('BETWEEN requires numeric min and max parameters');
-            }
-            return input >= min && input <= max;
+            const value = toNumber(input, 'BETWEEN input');
+            const min = toNumber(params?.min, 'BETWEEN min');
+            const max = toNumber(params?.max, 'BETWEEN max');
+            return value >= min && value <= max;
         },
     }),
 
@@ -71,7 +70,7 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         description:
             'Returns true if the numeric input is outside [min, max] (exclusive of the range).',
         inputs: [
-            { name: 'value', types: ['number'], description: 'The value tested against the [min, max] range.', required: true },
+            { name: 'value', types: NUMERIC_TYPES, description: 'The value tested against the [min, max] range.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
@@ -79,13 +78,10 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
             { name: 'max', type: 'number', description: 'Upper bound', required: true },
         ],
         run: async (input, params): AlgorithmRunResult => {
-            if (typeof input !== 'number') throw new Error('NOT_BETWEEN expects a number input');
-            const min = params?.min as number;
-            const max = params?.max as number;
-            if (typeof min !== 'number' || typeof max !== 'number') {
-                throw new Error('NOT_BETWEEN requires numeric min and max parameters');
-            }
-            return input < min || input > max;
+            const value = toNumber(input, 'NOT_BETWEEN input');
+            const min = toNumber(params?.min, 'NOT_BETWEEN min');
+            const max = toNumber(params?.max, 'NOT_BETWEEN max');
+            return value < min || value > max;
         },
     }),
 
@@ -94,8 +90,8 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         description:
             'Takes two number inputs and returns true if the absolute difference exceeds the threshold.',
         inputs: [
-            { name: 'a', types: ['number'], description: 'First value.', required: true },
-            { name: 'b', types: ['number'], description: 'Second value.', required: true },
+            { name: 'a', types: NUMERIC_TYPES, description: 'First value.', required: true },
+            { name: 'b', types: NUMERIC_TYPES, description: 'Second value.', required: true },
         ],
         outputType: 'boolean',
         parameters: [
@@ -105,15 +101,9 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('DIFFERENCE_THRESHOLD expects 2 numeric inputs');
             }
-            const a = input[0];
-            const b = input[1];
-            if (typeof a !== 'number' || typeof b !== 'number') {
-                throw new Error('DIFFERENCE_THRESHOLD expects numeric inputs');
-            }
-            const threshold = params?.threshold as number;
-            if (typeof threshold !== 'number') {
-                throw new Error('DIFFERENCE_THRESHOLD requires a numeric threshold parameter');
-            }
+            const a = toNumber(input[0], 'DIFFERENCE_THRESHOLD input a');
+            const b = toNumber(input[1], 'DIFFERENCE_THRESHOLD input b');
+            const threshold = toNumber(params?.threshold, 'DIFFERENCE_THRESHOLD threshold');
             return Math.abs(a - b) > threshold;
         },
     }),
