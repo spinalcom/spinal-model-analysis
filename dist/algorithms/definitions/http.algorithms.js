@@ -89,18 +89,49 @@ const tokenizeShell = (input) => {
     return tokens;
 };
 /**
+ * Heuristic: does a positional token look like an HTTP(S) URL? Used to avoid
+ * mistaking a stray flag value for the URL. Accepts explicit http(s):// URLs and
+ * scheme-less hosts (domain / IPv4 / localhost) with optional :port and /path or ?query.
+ */
+const looksLikeUrl = (token) => {
+    if (!token || /\s/.test(token))
+        return false;
+    if (/^https?:\/\//i.test(token))
+        return true;
+    return /^(localhost|[\w-]+(\.[\w-]+)+|\d{1,3}(\.\d{1,3}){3})(:\d+)?([/?].*)?$/i.test(token);
+};
+/**
+ * Encodes a single --data-urlencode field, following curl's forms:
+ *   "content"       -> percent-encode the whole content
+ *   "=content"      -> percent-encode content (no name)
+ *   "name=content"  -> name + "=" + percent-encode(content)
+ */
+const urlEncodeDataField = (raw) => {
+    if (raw.startsWith('@')) {
+        throw new Error('CURL_REQUEST: file-based data (@file) is not supported');
+    }
+    const eq = raw.indexOf('=');
+    if (eq === -1)
+        return encodeURIComponent(raw);
+    const name = raw.slice(0, eq);
+    const value = raw.slice(eq + 1);
+    return name ? `${name}=${encodeURIComponent(value)}` : encodeURIComponent(value);
+};
+/**
  * Parses a curl command string into an HTTP request descriptor.
  * Supports the common flags used for API calls: -X/--request, -H/--header,
- * -d/--data(-raw/-ascii/-binary), --json, -u/--user, -G/--get, -b/--cookie,
- * -A/--user-agent, -e/--referer. Cosmetic flags (-k, -s, -L, --compressed, …)
- * are ignored. File-based data (@file) and form uploads (-F) are not supported.
+ * -d/--data(-raw/-ascii/-binary), --data-urlencode, --json, -u/--user, -G/--get,
+ * -b/--cookie, -A/--user-agent, -e/--referer. Cosmetic flags (-k, -s, -L,
+ * --compressed, …) are ignored. File-based data (@file) and form uploads (-F)
+ * are not supported.
  */
 const parseCurl = (curlStr) => {
+    var _a;
     let tokens = tokenizeShell(curlStr.trim());
     if (tokens[0] === 'curl')
         tokens = tokens.slice(1);
     let method;
-    let url;
+    const positional = [];
     const headers = {};
     let data;
     let auth;
@@ -142,6 +173,9 @@ const parseCurl = (curlStr) => {
             case '--data-ascii':
             case '--data-binary':
                 appendData(valueOf());
+                break;
+            case '--data-urlencode':
+                appendData(urlEncodeDataField(valueOf()));
                 break;
             case '--json':
                 isJson = true;
@@ -199,14 +233,20 @@ const parseCurl = (curlStr) => {
                 valueOf();
                 break;
             default:
-                if (!flag.startsWith('-') && url === undefined) {
-                    url = token;
+                if (!flag.startsWith('-')) {
+                    positional.push(token);
                 }
         }
         i++;
     }
-    if (!url)
-        throw new Error('CURL_REQUEST: no URL found in the curl command');
+    // Choose the URL: prefer a token that looks like one (filters out any stray
+    // flag value); if there's exactly one positional token, trust it even if the
+    // heuristic is unsure (handles unusual-but-unambiguous URLs).
+    const url = (_a = positional.find(looksLikeUrl)) !== null && _a !== void 0 ? _a : (positional.length === 1 ? positional[0] : undefined);
+    if (!url) {
+        throw new Error('CURL_REQUEST: no URL found in the curl command' +
+            (positional.length ? ` (candidates: ${positional.join(', ')})` : ''));
+    }
     if (!method)
         method = data !== undefined && !isGet ? 'POST' : 'GET';
     method = method.toUpperCase();
@@ -221,7 +261,9 @@ const parseCurl = (curlStr) => {
             ? 'application/json'
             : 'application/x-www-form-urlencoded';
     }
-    return { method, url, headers, data, auth, query };
+    // curl prepends http:// to scheme-less URLs; axios requires an explicit scheme.
+    const fullUrl = /^https?:\/\//i.test(url) ? url : `http://${url}`;
+    return { method, url: fullUrl, headers, data, auth, query };
 };
 const DEFAULT_TIMEOUT_MS = 30000;
 exports.HTTP_ALGORITHMS = [
