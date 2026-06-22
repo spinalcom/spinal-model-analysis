@@ -109,6 +109,7 @@ export {
   CONVERSION_ALGORITHMS,
   OBJECT_ALGORITHMS,
   TIMESERIES_ALGORITHMS,
+  HTTP_ALGORITHMS,
 } from './algorithms/algorithms';
 
 export {
