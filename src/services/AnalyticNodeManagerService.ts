@@ -343,6 +343,11 @@ export default class AnalyticNodeManagerService {
       config.inputs = block.inputBlockIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
     }
 
+    // Order-only dependencies (`after`) — emit refs, same id→ref mapping as inputs.
+    if (block.orderBlockIds && block.orderBlockIds.length > 0) {
+      config.after = block.orderBlockIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
+    }
+
     if (block.registerAs) {
       config.registerAs = block.registerAs;
     }
@@ -416,7 +421,8 @@ export default class AnalyticNodeManagerService {
     const visit = (block: IWorkflowBlock) => {
       if (visited.has(block.id)) return;
       visited.add(block.id);
-      for (const depId of block.inputBlockIds) {
+      // Predecessors = data inputs + order-only deps, so dependents serialize after both.
+      for (const depId of [...block.inputBlockIds, ...(block.orderBlockIds ?? [])]) {
         const dep = blockMap.get(depId);
         if (dep) visit(dep);
       }

@@ -361,6 +361,65 @@ export default class AnalysisFactoryService {
                 dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
             }
         }
+
+        // ── Phase 3: Wire order-only dependencies (`after`) ──
+        this.wireAfter(workflowConfig.blocks, 'workflow', refToNode);
+    }
+
+    /**
+     * Resolves the order-only dependencies (`after`) of each block to block IDs and
+     * stores them. Order-only deps gate execution but pass no data, so — unlike inputs —
+     * they add no graph edge and no input slot; they only widen the topological sort.
+     */
+    private wireAfter(
+        blocks: IBlockConfigJSON[],
+        scope: 'workflow' | 'FOREACH' | 'IF',
+        refToNode: Map<string, SpinalNode<any>>,
+        parentRefToNode?: Map<string, SpinalNode<any>>,
+        knownItemRefs?: Set<string>
+    ): void {
+        for (const blockDef of blocks) {
+            if (!blockDef.after || blockDef.after.length === 0) continue;
+            const dependentNode = refToNode.get(blockDef.ref);
+            if (!dependentNode) continue;
+
+            const orderIds = blockDef.after.map((ref) =>
+                this.resolveOrderRef(ref, blockDef.ref, scope, refToNode, parentRefToNode, knownItemRefs)
+            );
+            this.blockManager.setOrderBlockIds(dependentNode, orderIds);
+        }
+    }
+
+    /**
+     * Resolves a single `after` ref to a block ID (or virtual ID for $node / itemRefs).
+     * Virtual / parent IDs are always available before the block runs, so when they
+     * fall outside the current DAG the topological sort simply skips them (a no-op).
+     */
+    private resolveOrderRef(
+        ref: string,
+        ownRef: string,
+        scope: 'workflow' | 'FOREACH' | 'IF',
+        refToNode: Map<string, SpinalNode<any>>,
+        parentRefToNode?: Map<string, SpinalNode<any>>,
+        knownItemRefs?: Set<string>
+    ): string {
+        if (ref === '$node') return WORK_NODE_RESERVED_ID;
+
+        const itemVirtual = this.resolveItemRef(ref, undefined, knownItemRefs);
+        if (itemVirtual) return itemVirtual;
+
+        const local = refToNode.get(ref);
+        if (local) return local.getId().get();
+
+        if (parentRefToNode) {
+            const parent = parentRefToNode.get(ref);
+            if (parent) return parent.getId().get();
+        }
+
+        throw new Error(
+            `[AnalysisFactory] ${scope} block "${ownRef}" has an "after" ref "${ref}" that does not ` +
+            'resolve to a known block, itemRef, or "$node".'
+        );
     }
 
     /**
@@ -495,6 +554,9 @@ export default class AnalysisFactoryService {
 
             dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
         }
+
+        // Wire order-only dependencies (`after`) for the sub-blocks.
+        this.wireAfter(subWorkflowConfig.blocks, 'FOREACH', refToNode, parentRefToNode, knownItemRefs);
 
         // Set the output block ID on the FOREACH node
         const outputRef = subWorkflowConfig.outputRef;
@@ -654,6 +716,9 @@ export default class AnalysisFactoryService {
             dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
         }
 
+        // Wire order-only dependencies (`after`) for the branch sub-blocks.
+        this.wireAfter(subWorkflowConfig.blocks, 'IF', refToNode, parentRefToNode, knownItemRefs);
+
         // Set the output block ID on the IF node
         const outputRef = subWorkflowConfig.outputRef;
         const outputNode = refToNode.get(outputRef);
@@ -800,6 +865,21 @@ export default class AnalysisFactoryService {
             // Self-reference check
             if (block.inputs.includes(block.ref)) {
                 errors.push(`${path}: block references itself`);
+            }
+        }
+
+        // Validate order-only deps (`after`) — same ref rules as inputs
+        if (block.after) {
+            for (const afterRef of block.after) {
+                if (afterRef === '$node') continue;
+                if (knownItemRefs.has(afterRef)) continue;
+                if (availableRefs.has(afterRef)) continue;
+                errors.push(
+                    `${path}: after "${afterRef}" does not resolve to a known block ref, itemRef, or "$node"`
+                );
+            }
+            if (block.after.includes(block.ref)) {
+                errors.push(`${path}: block lists itself in "after"`);
             }
         }
 

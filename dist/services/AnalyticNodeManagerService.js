@@ -299,6 +299,10 @@ class AnalyticNodeManagerService {
         else if (block.inputBlockIds.length > 0) {
             config.inputs = block.inputBlockIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
         }
+        // Order-only dependencies (`after`) — emit refs, same id→ref mapping as inputs.
+        if (block.orderBlockIds && block.orderBlockIds.length > 0) {
+            config.after = block.orderBlockIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
+        }
         if (block.registerAs) {
             config.registerAs = block.registerAs;
         }
@@ -360,10 +364,12 @@ class AnalyticNodeManagerService {
         const visited = new Set();
         const result = [];
         const visit = (block) => {
+            var _a;
             if (visited.has(block.id))
                 return;
             visited.add(block.id);
-            for (const depId of block.inputBlockIds) {
+            // Predecessors = data inputs + order-only deps, so dependents serialize after both.
+            for (const depId of [...block.inputBlockIds, ...((_a = block.orderBlockIds) !== null && _a !== void 0 ? _a : [])]) {
                 const dep = blockMap.get(depId);
                 if (dep)
                     visit(dep);

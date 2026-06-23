@@ -135,6 +135,15 @@ export interface IBlockConfigJSON {
     inputs?: string[];
 
     /**
+     * Order-only dependencies: refs of blocks that must run BEFORE this block,
+     * without their output being passed in. Use this to sequence side-effecting
+     * blocks that don't have a data dependency (e.g. run a READ after a DELAY that
+     * doesn't feed it). Data dependencies in `inputs` already imply ordering — only
+     * list a ref here when there is no data flow. Accepts the same refs as `inputs`.
+     */
+    after?: string[];
+
+    /**
      * For FOREACH blocks only.
      * The name by which the current iteration element is referenced inside the sub-workflow.
      * Sub-blocks use this name in their `inputs` array to access the element.

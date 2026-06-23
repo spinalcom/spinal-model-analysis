@@ -124,6 +124,17 @@ export default class WorkflowBlockManagerService {
      */
     private getInputBlockIds;
     /**
+     * Reads the order-only block IDs from a block node's info.
+     * Returns [] for blocks created before this field existed.
+     */
+    private getOrderBlockIds;
+    /**
+     * Sets the order-only block IDs on a block node (order-only dependencies that
+     * gate execution but pass no data). Adds the info attribute if missing, so it
+     * also works on blocks created before this field existed.
+     */
+    setOrderBlockIds(blockNode: SpinalNode<any>, ids: string[]): void;
+    /**
      * Gets all block nodes that are direct children of a workflow node.
      */
     getWorkflowBlocks(workflowNode: SpinalNode<any>): Promise<SpinalNode<any>[]>;

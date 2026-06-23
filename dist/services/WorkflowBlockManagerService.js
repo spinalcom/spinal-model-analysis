@@ -64,6 +64,7 @@ class WorkflowBlockManagerService {
             algorithmName,
             parameters: JSON.stringify(parameters),
             inputBlockIds: JSON.stringify([]),
+            orderBlockIds: JSON.stringify([]),
         };
         if (options === null || options === void 0 ? void 0 : options.registerAs) {
             blockInfo.registerAs = options.registerAs;
@@ -93,6 +94,7 @@ class WorkflowBlockManagerService {
                 algorithmName,
                 parameters: JSON.stringify(parameters),
                 inputBlockIds: JSON.stringify([]),
+                orderBlockIds: JSON.stringify([]),
             };
             if (options === null || options === void 0 ? void 0 : options.registerAs) {
                 blockInfo.registerAs = options.registerAs;
@@ -117,6 +119,7 @@ class WorkflowBlockManagerService {
                 algorithmName,
                 parameters: JSON.stringify(parameters),
                 inputBlockIds: JSON.stringify([]),
+                orderBlockIds: JSON.stringify([]),
             };
             if (options === null || options === void 0 ? void 0 : options.registerAs) {
                 blockInfo.registerAs = options.registerAs;
@@ -376,6 +379,7 @@ class WorkflowBlockManagerService {
             /* invalid JSON — use empty params */
         }
         const inputBlockIds = this.getInputBlockIds(blockNode);
+        const orderBlockIds = this.getOrderBlockIds(blockNode);
         const registerAs = blockNode.info.registerAs
             ? blockNode.info.registerAs.get()
             : undefined;
@@ -385,6 +389,7 @@ class WorkflowBlockManagerService {
             algorithmName,
             parameters,
             inputBlockIds,
+            orderBlockIds,
         };
         if (registerAs) {
             block.registerAs = registerAs;
@@ -410,6 +415,35 @@ class WorkflowBlockManagerService {
         }
         catch (_b) {
             return [];
+        }
+    }
+    /**
+     * Reads the order-only block IDs from a block node's info.
+     * Returns [] for blocks created before this field existed.
+     */
+    getOrderBlockIds(blockNode) {
+        var _a;
+        try {
+            const raw = (_a = blockNode.info.orderBlockIds) === null || _a === void 0 ? void 0 : _a.get();
+            if (!raw)
+                return [];
+            return JSON.parse(raw);
+        }
+        catch (_b) {
+            return [];
+        }
+    }
+    /**
+     * Sets the order-only block IDs on a block node (order-only dependencies that
+     * gate execution but pass no data). Adds the info attribute if missing, so it
+     * also works on blocks created before this field existed.
+     */
+    setOrderBlockIds(blockNode, ids) {
+        if (!blockNode.info.orderBlockIds) {
+            blockNode.info.add_attr('orderBlockIds', JSON.stringify(ids));
+        }
+        else {
+            blockNode.info.orderBlockIds.set(JSON.stringify(ids));
         }
     }
     /**

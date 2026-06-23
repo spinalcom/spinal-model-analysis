@@ -93,6 +93,7 @@ export default class WorkflowBlockManagerService {
             algorithmName,
             parameters: JSON.stringify(parameters),
             inputBlockIds: JSON.stringify([]),
+            orderBlockIds: JSON.stringify([]),
         };
 
         if (options?.registerAs) {
@@ -132,6 +133,7 @@ export default class WorkflowBlockManagerService {
             algorithmName,
             parameters: JSON.stringify(parameters),
             inputBlockIds: JSON.stringify([]),
+            orderBlockIds: JSON.stringify([]),
         };
 
         if (options?.registerAs) {
@@ -172,6 +174,7 @@ export default class WorkflowBlockManagerService {
             algorithmName,
             parameters: JSON.stringify(parameters),
             inputBlockIds: JSON.stringify([]),
+            orderBlockIds: JSON.stringify([]),
         };
 
         if (options?.registerAs) {
@@ -499,6 +502,7 @@ export default class WorkflowBlockManagerService {
         }
 
         const inputBlockIds = this.getInputBlockIds(blockNode);
+        const orderBlockIds = this.getOrderBlockIds(blockNode);
 
         const registerAs = blockNode.info.registerAs
             ? blockNode.info.registerAs.get()
@@ -510,6 +514,7 @@ export default class WorkflowBlockManagerService {
             algorithmName,
             parameters,
             inputBlockIds,
+            orderBlockIds,
         };
 
         if (registerAs) {
@@ -537,6 +542,33 @@ export default class WorkflowBlockManagerService {
             return JSON.parse(raw);
         } catch {
             return [];
+        }
+    }
+
+    /**
+     * Reads the order-only block IDs from a block node's info.
+     * Returns [] for blocks created before this field existed.
+     */
+    private getOrderBlockIds(blockNode: SpinalNode<any>): string[] {
+        try {
+            const raw = blockNode.info.orderBlockIds?.get();
+            if (!raw) return [];
+            return JSON.parse(raw);
+        } catch {
+            return [];
+        }
+    }
+
+    /**
+     * Sets the order-only block IDs on a block node (order-only dependencies that
+     * gate execution but pass no data). Adds the info attribute if missing, so it
+     * also works on blocks created before this field existed.
+     */
+    public setOrderBlockIds(blockNode: SpinalNode<any>, ids: string[]): void {
+        if (!blockNode.info.orderBlockIds) {
+            blockNode.info.add_attr('orderBlockIds', JSON.stringify(ids));
+        } else {
+            blockNode.info.orderBlockIds.set(JSON.stringify(ids));
         }
     }
 

@@ -11,7 +11,32 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.FLOW_CONTROL_ALGORITHMS = void 0;
 const core_1 = require("./core");
+/** Upper bound on DELAY so a stray duration can't block a work node indefinitely. */
+const MAX_DELAY_MS = 5 * 60 * 1000;
 exports.FLOW_CONTROL_ALGORITHMS = [
+    (0, core_1.createAlgorithm)({
+        name: 'DELAY',
+        description: 'Waits for the given duration, then returns its input unchanged. Useful to pace a ' +
+            'workflow, rate-limit calls, or sequence a downstream block to run after a delay ' +
+            '(the downstream block depends on this block\'s output). ' +
+            `Duration is capped at ${MAX_DELAY_MS} ms to avoid blocking the engine.`,
+        inputs: [
+            { name: 'value', types: ['any'], description: 'Any value; returned unchanged after the delay.', required: true },
+        ],
+        outputType: 'any',
+        parameters: [
+            { name: 'durationMs', type: 'number', description: 'How long to wait before returning, in milliseconds (capped at 300000).', required: true },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            const raw = Number(params === null || params === void 0 ? void 0 : params.durationMs);
+            if (isNaN(raw) || raw < 0) {
+                throw new Error('DELAY requires a non-negative "durationMs" parameter');
+            }
+            const ms = Math.min(raw, MAX_DELAY_MS);
+            yield new Promise((resolve) => setTimeout(resolve, ms));
+            return input;
+        }),
+    }),
     (0, core_1.createAlgorithm)({
         name: 'IF',
         description: 'Conditional branching block. Takes a boolean predicate as inputs[0] and an optional ' +

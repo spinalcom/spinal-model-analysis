@@ -58,6 +58,18 @@ export default class AnalysisFactoryService {
      */
     private buildWorkflow;
     /**
+     * Resolves the order-only dependencies (`after`) of each block to block IDs and
+     * stores them. Order-only deps gate execution but pass no data, so — unlike inputs —
+     * they add no graph edge and no input slot; they only widen the topological sort.
+     */
+    private wireAfter;
+    /**
+     * Resolves a single `after` ref to a block ID (or virtual ID for $node / itemRefs).
+     * Virtual / parent IDs are always available before the block runs, so when they
+     * fall outside the current DAG the topological sort simply skips them (a no-op).
+     */
+    private resolveOrderRef;
+    /**
      * Builds the sub-workflow for a FOREACH block.
      *
      * The FOREACH's `itemRef` is the name by which the iteration element is referenced.

@@ -26,6 +26,13 @@ export interface IWorkflowBlock {
      */
     inputBlockIds: string[];
     /**
+     * Order-only dependencies: block IDs that must execute before this block but
+     * whose outputs are NOT passed to it. Used to sequence side-effecting blocks
+     * (declared via `after` in the JSON config). These widen the topological sort
+     * but are ignored by input resolution. Always present (defaults to []).
+     */
+    orderBlockIds: string[];
+    /**
      * Optional: register the output of this block as a named variable.
      * Used in the input workflow to define variables like 'I0', 'I1'
      * that can be read later in the execution workflow via FETCH_INPUT_REGISTER.

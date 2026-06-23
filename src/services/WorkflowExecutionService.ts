@@ -429,14 +429,16 @@ export default class WorkflowExecutionService {
 
             inProgress.add(block.id);
 
-            // Visit all dependencies first
-            for (const depId of block.inputBlockIds) {
+            // Visit all predecessors first: data inputs AND order-only deps (`after`).
+            // Both constrain ordering; only inputBlockIds carry data (see resolveInputs).
+            const predecessors = [...block.inputBlockIds, ...block.orderBlockIds];
+            for (const depId of predecessors) {
                 const dep = blockMap.get(depId);
                 if (dep) {
                     visit(dep);
                 }
                 // If dep is not in blockMap, it may be from an outer scope (e.g., parent workflow)
-                // which is valid for sub-workflows
+                // or a virtual id ($node, FOREACH item) — both are already available, so skip.
             }
 
             inProgress.delete(block.id);
