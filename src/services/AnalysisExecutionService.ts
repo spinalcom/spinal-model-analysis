@@ -5,6 +5,7 @@ import {
     ExecutionMetadata,
 } from '../algorithms/definitions/core';
 import { IWorkflowBlock } from '../interfaces/IWorkflowBlock';
+import { IConcurrencyConfig } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
@@ -70,12 +71,19 @@ export default class AnalysisExecutionService {
             `[AnalysisExecution] Resolved ${workNodes.length} work node(s)`
         );
 
-        // ── Step 3: Execute on each work node ──
-        const results: WorkNodeExecutionResult[] = [];
+        // ── Step 3: Execute on each work node (per the analysis concurrency config) ──
+        const concurrency = await this.nodeManager.getConcurrencyConfig(analysisNode);
+        logMessage(
+            `[AnalysisExecution] Dispatching ${workNodes.length} work node(s) — ` +
+            `concurrency: ${concurrency.mode}` +
+            `${concurrency.mode === 'BOUNDED' ? ` (limit ${concurrency.limit})` : ''}`
+        );
 
-        for (const workNode of workNodes) {
-            results.push(await this.executeOnWorkNode(analysisNode, workNode, execution));
-        }
+        const results = await this.runWithConcurrency(
+            workNodes,
+            concurrency,
+            (workNode) => this.executeOnWorkNode(analysisNode, workNode, execution)
+        );
 
         logMessage(
             `[AnalysisExecution] Analysis complete: ${analysisName} — ` +
@@ -89,6 +97,53 @@ export default class AnalysisExecutionService {
             totalWorkNodes: workNodes.length,
             results,
         };
+    }
+
+    /**
+     * Dispatches a task over a list of items according to the resolved concurrency
+     * strategy, preserving input order in the returned results array.
+     *
+     * - `SEQUENTIAL` — one at a time (awaits each before starting the next).
+     * - `FULL`       — all at once (`limit` effectively = item count).
+     * - `BOUNDED`    — a worker pool of at most `limit` in flight at any time.
+     *
+     * The task is expected to never reject (work-node execution catches its own
+     * errors and reports them as results), so one bad item won't abort the batch.
+     */
+    private async runWithConcurrency<T, R>(
+        items: T[],
+        concurrency: Required<IConcurrencyConfig>,
+        task: (item: T, index: number) => Promise<R>
+    ): Promise<R[]> {
+        if (items.length === 0) return [];
+
+        if (concurrency.mode === 'SEQUENTIAL') {
+            const out: R[] = [];
+            for (let i = 0; i < items.length; i++) {
+                out.push(await task(items[i], i));
+            }
+            return out;
+        }
+
+        // FULL = no cap (limit = item count); BOUNDED = clamp to [1, item count].
+        const effectiveLimit =
+            concurrency.mode === 'FULL'
+                ? items.length
+                : Math.max(1, Math.min(concurrency.limit, items.length));
+
+        const results: R[] = new Array(items.length);
+        let cursor = 0;
+
+        const worker = async (): Promise<void> => {
+            for (;;) {
+                const index = cursor++;
+                if (index >= items.length) return;
+                results[index] = await task(items[index], index);
+            }
+        };
+
+        await Promise.all(Array.from({ length: effectiveLimit }, () => worker()));
+        return results;
     }
 
     /**

@@ -1,5 +1,5 @@
 import { SpinalNode, SpinalGraph, SpinalContext } from 'spinal-env-viewer-graph-service';
-import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IConcurrencyConfig } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalyticNodeManagerService {
     constructor();
     /**
@@ -34,7 +34,26 @@ export default class AnalyticNodeManagerService {
      * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>): Promise<SpinalNode<any>>;
+    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>, concurrency?: IConcurrencyConfig): Promise<SpinalNode<any>>;
+    /**
+     * Normalizes a (possibly partial / undefined) concurrency config into a complete,
+     * validated one, applying defaults. Used both when storing on a node and when
+     * reading back, so callers always get a concrete `{ mode, limit }`.
+     */
+    normalizeConcurrency(concurrency?: IConcurrencyConfig): Required<IConcurrencyConfig>;
+    /**
+     * Reads the work-node concurrency config from the analysis node's documentation
+     * attributes (category {@link CONCURRENCY_CATEGORY}). Falls back to
+     * {@link DEFAULT_CONCURRENCY} for any missing/malformed field (e.g. analyses
+     * created before this feature existed, or a hand-edited invalid value).
+     */
+    getConcurrencyConfig(analysisNode: SpinalNode<any>): Promise<Required<IConcurrencyConfig>>;
+    /**
+     * Writes the work-node concurrency config as documentation attributes on the
+     * analysis node (creating the category/attributes on first write). Normalizes the
+     * input first so stored values are always valid.
+     */
+    setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency: IConcurrencyConfig): Promise<void>;
     getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]>;
     getAnalysisNodesByContextNode(contextNode: SpinalContext<any>): Promise<SpinalNode<any>[]>;
     getAnalysisNodeByContextNode(contextNode: SpinalContext<any>, analysisNodeName: string): Promise<SpinalNode<any> | undefined>;

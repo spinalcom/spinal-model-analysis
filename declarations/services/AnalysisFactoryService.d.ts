@@ -29,6 +29,11 @@ export default class AnalysisFactoryService {
      */
     validateConfig(config: IAnalysisConfigJSON): string[];
     /**
+     * Validates the optional concurrency config. Mode must be one of the known
+     * strategies; for BOUNDED, an explicit limit (if given) must be a positive integer.
+     */
+    private validateConcurrency;
+    /**
      * Creates a complete analysis from a JSON configuration.
      * Validates the config first — throws if invalid to prevent partial writes.
      *

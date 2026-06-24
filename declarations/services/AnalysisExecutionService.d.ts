@@ -24,6 +24,18 @@ export default class AnalysisExecutionService {
      */
     executeAnalysis(analysisNode: SpinalNode<any>, metadata?: Partial<ExecutionMetadata>): Promise<AnalysisExecutionResult>;
     /**
+     * Dispatches a task over a list of items according to the resolved concurrency
+     * strategy, preserving input order in the returned results array.
+     *
+     * - `SEQUENTIAL` — one at a time (awaits each before starting the next).
+     * - `FULL`       — all at once (`limit` effectively = item count).
+     * - `BOUNDED`    — a worker pool of at most `limit` in flight at any time.
+     *
+     * The task is expected to never reject (work-node execution catches its own
+     * errors and reports them as results), so one bad item won't abort the batch.
+     */
+    private runWithConcurrency;
+    /**
      * Executes the analysis pipeline for a single, already-resolved work node.
      *
      * Unlike {@link executeAnalysis}, this skips anchor resolution and the

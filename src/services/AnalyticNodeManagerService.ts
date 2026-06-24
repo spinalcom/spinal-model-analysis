@@ -10,7 +10,12 @@ import {
 
 import {
   ANALYSIS_NODE_TYPE,
-  ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION
+  ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION,
+  CONCURRENCY_CATEGORY,
+  CONCURRENCY_ATTR_MODE,
+  CONCURRENCY_ATTR_LIMIT,
+  DEFAULT_CONCURRENCY,
+  DEFAULT_CONCURRENCY_LIMIT
 } from '../constants/analysisNode';
 
 import {
@@ -33,7 +38,7 @@ import { parseValue } from './utils';
 import { VERSION } from '../version';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX } from './WorkflowExecutionService';
-import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, IConcurrencyConfig, ConcurrencyMode } from '../interfaces/IAnalysisConfigJSON';
 import { IWorkflowBlock, ISubWorkflow } from '../interfaces/IWorkflowBlock';
 
 export default class AnalyticNodeManagerService {
@@ -121,6 +126,7 @@ export default class AnalyticNodeManagerService {
     analysisNodeName: string,
     analysisNodeDescription: string,
     contextNode: SpinalNode<any>,
+    concurrency?: IConcurrencyConfig,
   ): Promise<SpinalNode<any>> {
 
     const analysisNodeInfo = {
@@ -137,6 +143,8 @@ export default class AnalyticNodeManagerService {
 
     await contextNode.addChildInContext(analysisNode, ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION, SPINAL_RELATION_PTR_LST_TYPE, contextNode);
 
+    // Store the concurrency config as visible/editable documentation attributes.
+    await this.setConcurrencyConfig(analysisNode, concurrency ?? DEFAULT_CONCURRENCY);
 
     // Add mandatory nodes
     await this.addWorkflowNodeToAnalysisNode(analysisNode, contextNode);
@@ -146,6 +154,64 @@ export default class AnalyticNodeManagerService {
     await this.addWorknodeResolverNodeToAnalysisNode(analysisNode, contextNode);
     await this.addAnchorNodeToAnalysisNode(analysisNode, contextNode);
     return analysisNode;
+  }
+
+  /**
+   * Normalizes a (possibly partial / undefined) concurrency config into a complete,
+   * validated one, applying defaults. Used both when storing on a node and when
+   * reading back, so callers always get a concrete `{ mode, limit }`.
+   */
+  public normalizeConcurrency(concurrency?: IConcurrencyConfig): Required<IConcurrencyConfig> {
+    const mode: ConcurrencyMode =
+      concurrency?.mode === 'FULL' || concurrency?.mode === 'SEQUENTIAL' || concurrency?.mode === 'BOUNDED'
+        ? concurrency.mode
+        : DEFAULT_CONCURRENCY.mode;
+
+    let limit = DEFAULT_CONCURRENCY_LIMIT;
+    if (mode === 'BOUNDED' && typeof concurrency?.limit === 'number' && Number.isFinite(concurrency.limit)) {
+      limit = Math.max(1, Math.floor(concurrency.limit));
+    }
+
+    return { mode, limit };
+  }
+
+  /**
+   * Reads the work-node concurrency config from the analysis node's documentation
+   * attributes (category {@link CONCURRENCY_CATEGORY}). Falls back to
+   * {@link DEFAULT_CONCURRENCY} for any missing/malformed field (e.g. analyses
+   * created before this feature existed, or a hand-edited invalid value).
+   */
+  public async getConcurrencyConfig(analysisNode: SpinalNode<any>): Promise<Required<IConcurrencyConfig>> {
+    const attrs = await attributeService.getAttributesByCategory(analysisNode, CONCURRENCY_CATEGORY);
+    if (!attrs || attrs.length === 0) return { ...DEFAULT_CONCURRENCY };
+
+    const modeAttr = attrs.find((a: any) => a.label?.get() === CONCURRENCY_ATTR_MODE);
+    const limitAttr = attrs.find((a: any) => a.label?.get() === CONCURRENCY_ATTR_LIMIT);
+
+    const rawMode = modeAttr?.value?.get();
+    const rawLimit = limitAttr?.value?.get();
+
+    return this.normalizeConcurrency({
+      mode: rawMode as ConcurrencyMode,
+      limit: typeof rawLimit === 'number' ? rawLimit : Number(rawLimit),
+    });
+  }
+
+  /**
+   * Writes the work-node concurrency config as documentation attributes on the
+   * analysis node (creating the category/attributes on first write). Normalizes the
+   * input first so stored values are always valid.
+   */
+  public async setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency: IConcurrencyConfig): Promise<void> {
+    const normalized = this.normalizeConcurrency(concurrency);
+    await attributeService.createOrUpdateAttrsAndCategories(
+      analysisNode,
+      CONCURRENCY_CATEGORY,
+      {
+        [CONCURRENCY_ATTR_MODE]: normalized.mode,
+        [CONCURRENCY_ATTR_LIMIT]: String(normalized.limit),
+      }
+    );
   }
 
   public async getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]> {
@@ -238,6 +304,9 @@ export default class AnalyticNodeManagerService {
     // ── Triggers ──
     const triggers = await this.getTriggerConfigs(analysisNode);
     if (triggers.length > 0) result.triggers = triggers;
+
+    // ── Concurrency ── (always emitted so the active strategy is explicit)
+    result.concurrency = await this.getConcurrencyConfig(analysisNode);
 
     return result;
   }

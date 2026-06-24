@@ -62,6 +62,37 @@ export interface IAnalysisConfigJSON {
 
     /** Trigger configurations (optional — defines how the analysis is started) */
     triggers?: ITriggerConfigJSON[];
+
+    /**
+     * How the resolved work nodes are dispatched per execution (optional).
+     * Defaults to BOUNDED parallel with a limit of 10 when omitted.
+     */
+    concurrency?: IConcurrencyConfig;
+}
+
+/**
+ * Strategy for executing an analysis across its resolved work nodes.
+ *
+ * - `BOUNDED`    — run work nodes in parallel, but never more than `limit` at once.
+ * - `FULL`       — run every work node in parallel at once (no cap). Fastest for
+ *                  small sets; can spike external APIs / DB / memory on large sets.
+ * - `SEQUENTIAL` — run one work node at a time (previous behavior). Predictable and
+ *                  gentle on resources, but slow when blocks wait (DELAY, CURL, timeseries).
+ */
+export type ConcurrencyMode = 'BOUNDED' | 'FULL' | 'SEQUENTIAL';
+
+/**
+ * JSON descriptor for the work-node concurrency strategy of an analysis.
+ */
+export interface IConcurrencyConfig {
+    /** Dispatch strategy. Defaults to `BOUNDED`. */
+    mode: ConcurrencyMode;
+
+    /**
+     * For `BOUNDED` mode only: maximum number of work nodes executing in parallel.
+     * Ignored for `FULL` and `SEQUENTIAL`. Must be a positive integer. Defaults to 10.
+     */
+    limit?: number;
 }
 
 /**

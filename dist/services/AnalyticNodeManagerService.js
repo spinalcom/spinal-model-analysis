@@ -100,7 +100,7 @@ class AnalyticNodeManagerService {
      * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode) {
+    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode, concurrency) {
         return __awaiter(this, void 0, void 0, function* () {
             const analysisNodeInfo = {
                 name: analysisNodeName,
@@ -112,6 +112,8 @@ class AnalyticNodeManagerService {
             if (!analysisNode)
                 throw new Error('Failed to create analytic node');
             yield contextNode.addChildInContext(analysisNode, analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
+            // Store the concurrency config as visible/editable documentation attributes.
+            yield this.setConcurrencyConfig(analysisNode, concurrency !== null && concurrency !== void 0 ? concurrency : analysisNode_1.DEFAULT_CONCURRENCY);
             // Add mandatory nodes
             yield this.addWorkflowNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addInputNodeToAnalysisNode(analysisNode, contextNode);
@@ -120,6 +122,57 @@ class AnalyticNodeManagerService {
             yield this.addWorknodeResolverNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addAnchorNodeToAnalysisNode(analysisNode, contextNode);
             return analysisNode;
+        });
+    }
+    /**
+     * Normalizes a (possibly partial / undefined) concurrency config into a complete,
+     * validated one, applying defaults. Used both when storing on a node and when
+     * reading back, so callers always get a concrete `{ mode, limit }`.
+     */
+    normalizeConcurrency(concurrency) {
+        const mode = (concurrency === null || concurrency === void 0 ? void 0 : concurrency.mode) === 'FULL' || (concurrency === null || concurrency === void 0 ? void 0 : concurrency.mode) === 'SEQUENTIAL' || (concurrency === null || concurrency === void 0 ? void 0 : concurrency.mode) === 'BOUNDED'
+            ? concurrency.mode
+            : analysisNode_1.DEFAULT_CONCURRENCY.mode;
+        let limit = analysisNode_1.DEFAULT_CONCURRENCY_LIMIT;
+        if (mode === 'BOUNDED' && typeof (concurrency === null || concurrency === void 0 ? void 0 : concurrency.limit) === 'number' && Number.isFinite(concurrency.limit)) {
+            limit = Math.max(1, Math.floor(concurrency.limit));
+        }
+        return { mode, limit };
+    }
+    /**
+     * Reads the work-node concurrency config from the analysis node's documentation
+     * attributes (category {@link CONCURRENCY_CATEGORY}). Falls back to
+     * {@link DEFAULT_CONCURRENCY} for any missing/malformed field (e.g. analyses
+     * created before this feature existed, or a hand-edited invalid value).
+     */
+    getConcurrencyConfig(analysisNode) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(analysisNode, analysisNode_1.CONCURRENCY_CATEGORY);
+            if (!attrs || attrs.length === 0)
+                return Object.assign({}, analysisNode_1.DEFAULT_CONCURRENCY);
+            const modeAttr = attrs.find((a) => { var _a; return ((_a = a.label) === null || _a === void 0 ? void 0 : _a.get()) === analysisNode_1.CONCURRENCY_ATTR_MODE; });
+            const limitAttr = attrs.find((a) => { var _a; return ((_a = a.label) === null || _a === void 0 ? void 0 : _a.get()) === analysisNode_1.CONCURRENCY_ATTR_LIMIT; });
+            const rawMode = (_a = modeAttr === null || modeAttr === void 0 ? void 0 : modeAttr.value) === null || _a === void 0 ? void 0 : _a.get();
+            const rawLimit = (_b = limitAttr === null || limitAttr === void 0 ? void 0 : limitAttr.value) === null || _b === void 0 ? void 0 : _b.get();
+            return this.normalizeConcurrency({
+                mode: rawMode,
+                limit: typeof rawLimit === 'number' ? rawLimit : Number(rawLimit),
+            });
+        });
+    }
+    /**
+     * Writes the work-node concurrency config as documentation attributes on the
+     * analysis node (creating the category/attributes on first write). Normalizes the
+     * input first so stored values are always valid.
+     */
+    setConcurrencyConfig(analysisNode, concurrency) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const normalized = this.normalizeConcurrency(concurrency);
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(analysisNode, analysisNode_1.CONCURRENCY_CATEGORY, {
+                [analysisNode_1.CONCURRENCY_ATTR_MODE]: normalized.mode,
+                [analysisNode_1.CONCURRENCY_ATTR_LIMIT]: String(normalized.limit),
+            });
         });
     }
     getAnalysisNodesByContextName(contextName, graph) {
@@ -202,6 +255,8 @@ class AnalyticNodeManagerService {
             const triggers = yield this.getTriggerConfigs(analysisNode);
             if (triggers.length > 0)
                 result.triggers = triggers;
+            // ── Concurrency ── (always emitted so the active strategy is explicit)
+            result.concurrency = yield this.getConcurrencyConfig(analysisNode);
             return result;
         });
     }

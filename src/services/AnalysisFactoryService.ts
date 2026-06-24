@@ -13,6 +13,8 @@ import {
     IWorkflowConfigJSON,
     IBlockConfigJSON,
     ITriggerConfigJSON,
+    IConcurrencyConfig,
+    ConcurrencyMode,
 } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
 import { WORK_NODE_RESERVED_ID, foreachItemVirtualId } from './WorkflowExecutionService';
@@ -80,7 +82,38 @@ export default class AnalysisFactoryService {
         if (config.triggers) {
             errors.push(...this.validateTriggers(config.triggers));
         }
+        if (config.concurrency !== undefined) {
+            errors.push(...this.validateConcurrency(config.concurrency));
+        }
 
+        return errors;
+    }
+
+    /**
+     * Validates the optional concurrency config. Mode must be one of the known
+     * strategies; for BOUNDED, an explicit limit (if given) must be a positive integer.
+     */
+    private validateConcurrency(concurrency: IConcurrencyConfig): string[] {
+        const errors: string[] = [];
+        const validModes: ConcurrencyMode[] = ['BOUNDED', 'FULL', 'SEQUENTIAL'];
+
+        if (!concurrency || typeof concurrency !== 'object') {
+            errors.push('concurrency: must be an object with a "mode" field');
+            return errors;
+        }
+        if (!validModes.includes(concurrency.mode)) {
+            errors.push(`concurrency.mode: must be one of ${validModes.join(', ')}`);
+        }
+        if (concurrency.limit !== undefined) {
+            if (
+                typeof concurrency.limit !== 'number' ||
+                !Number.isFinite(concurrency.limit) ||
+                concurrency.limit < 1 ||
+                !Number.isInteger(concurrency.limit)
+            ) {
+                errors.push('concurrency.limit: must be a positive integer');
+            }
+        }
         return errors;
     }
 
@@ -117,7 +150,8 @@ export default class AnalysisFactoryService {
         const analysisNode = await this.nodeManager.addAnalysisNode(
             config.analysisName,
             config.description ?? '',
-            contextNode
+            contextNode,
+            config.concurrency
         );
         logMessage(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
 

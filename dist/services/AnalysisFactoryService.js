@@ -64,6 +64,33 @@ class AnalysisFactoryService {
         if (config.triggers) {
             errors.push(...this.validateTriggers(config.triggers));
         }
+        if (config.concurrency !== undefined) {
+            errors.push(...this.validateConcurrency(config.concurrency));
+        }
+        return errors;
+    }
+    /**
+     * Validates the optional concurrency config. Mode must be one of the known
+     * strategies; for BOUNDED, an explicit limit (if given) must be a positive integer.
+     */
+    validateConcurrency(concurrency) {
+        const errors = [];
+        const validModes = ['BOUNDED', 'FULL', 'SEQUENTIAL'];
+        if (!concurrency || typeof concurrency !== 'object') {
+            errors.push('concurrency: must be an object with a "mode" field');
+            return errors;
+        }
+        if (!validModes.includes(concurrency.mode)) {
+            errors.push(`concurrency.mode: must be one of ${validModes.join(', ')}`);
+        }
+        if (concurrency.limit !== undefined) {
+            if (typeof concurrency.limit !== 'number' ||
+                !Number.isFinite(concurrency.limit) ||
+                concurrency.limit < 1 ||
+                !Number.isInteger(concurrency.limit)) {
+                errors.push('concurrency.limit: must be a positive integer');
+            }
+        }
         return errors;
     }
     /**
@@ -87,7 +114,7 @@ class AnalysisFactoryService {
             const contextNode = yield this.nodeManager.createContext(config.contextName, graph);
             (0, utils_1.logMessage)(`[AnalysisFactory] Context: ${config.contextName}`);
             // ── 2. Create analysis node (creates all mandatory sub-nodes) ──
-            const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode);
+            const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode, config.concurrency);
             (0, utils_1.logMessage)(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
             // ── 3. Link anchor to target node ──
             if (config.anchorNodeId) {
