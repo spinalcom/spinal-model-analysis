@@ -346,15 +346,16 @@ export default class AnalysisFactoryService {
                     dependentNode.info.inputBlockIds?.get() ?? '[]'
                 ) as string[];
 
-                // Build final ordered list: for each slot, use the '$node' ID or the already-wired ID
+                // Build final ordered list: for each slot, use the '$node' ID or the
+                // already-wired ID. addDependency() inserts each real input at its real
+                // slot index (padding earlier slots with ''), so currentIds is already
+                // slot-aligned — read it by the actual slot, not a compacted counter.
                 const finalIds: string[] = [];
-                let wireIdx = 0;
                 for (let slot = 0; slot < blockDef.inputs!.length; slot++) {
                     if (blockDef.inputs![slot] === '$node') {
                         finalIds.push(WORK_NODE_RESERVED_ID);
                     } else {
-                        finalIds.push(currentIds[wireIdx] ?? '');
-                        wireIdx++;
+                        finalIds.push(currentIds[slot] ?? '');
                     }
                 }
 

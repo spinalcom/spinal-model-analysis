@@ -235,16 +235,17 @@ class AnalysisFactoryService {
                 // If there were '$node' refs, merge them into the inputBlockIds
                 if (resolvedInputBlockIds.some((id) => id === WorkflowExecutionService_1.WORK_NODE_RESERVED_ID)) {
                     const currentIds = JSON.parse((_f = (_e = dependentNode.info.inputBlockIds) === null || _e === void 0 ? void 0 : _e.get()) !== null && _f !== void 0 ? _f : '[]');
-                    // Build final ordered list: for each slot, use the '$node' ID or the already-wired ID
+                    // Build final ordered list: for each slot, use the '$node' ID or the
+                    // already-wired ID. addDependency() inserts each real input at its real
+                    // slot index (padding earlier slots with ''), so currentIds is already
+                    // slot-aligned — read it by the actual slot, not a compacted counter.
                     const finalIds = [];
-                    let wireIdx = 0;
                     for (let slot = 0; slot < blockDef.inputs.length; slot++) {
                         if (blockDef.inputs[slot] === '$node') {
                             finalIds.push(WorkflowExecutionService_1.WORK_NODE_RESERVED_ID);
                         }
                         else {
-                            finalIds.push((_g = currentIds[wireIdx]) !== null && _g !== void 0 ? _g : '');
-                            wireIdx++;
+                            finalIds.push((_g = currentIds[slot]) !== null && _g !== void 0 ? _g : '');
                         }
                     }
                     dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
