@@ -1,5 +1,5 @@
 import { SpinalNode, SpinalGraph, SpinalContext } from 'spinal-env-viewer-graph-service';
-import { IAnalysisConfigJSON, IConcurrencyConfig } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IConcurrencyConfig, AnalysisStatus } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalyticNodeManagerService {
     constructor();
     /**
@@ -34,7 +34,7 @@ export default class AnalyticNodeManagerService {
      * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>, concurrency?: IConcurrencyConfig): Promise<SpinalNode<any>>;
+    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>, concurrency?: IConcurrencyConfig, status?: AnalysisStatus): Promise<SpinalNode<any>>;
     /**
      * Normalizes a (possibly partial / undefined) concurrency config into a complete,
      * validated one, applying defaults. Used both when storing on a node and when
@@ -54,6 +54,29 @@ export default class AnalyticNodeManagerService {
      * input first so stored values are always valid.
      */
     setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency: IConcurrencyConfig): Promise<void>;
+    /**
+     * Coerces an arbitrary value into a valid {@link AnalysisStatus}. Anything that
+     * isn't exactly "Active" falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive),
+     * so a missing/typo'd/hand-edited value never accidentally activates an analysis.
+     */
+    normalizeStatus(status?: unknown): AnalysisStatus;
+    /**
+     * Reads the lifecycle status from the analysis node's documentation attributes.
+     * Falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive) when missing or invalid
+     * — including analyses created before this feature existed, which are therefore
+     * treated as parked until explicitly activated.
+     */
+    getStatus(analysisNode: SpinalNode<any>): Promise<AnalysisStatus>;
+    /**
+     * Convenience predicate: true when the analysis is Active (the organ should run it).
+     */
+    isAnalysisActive(analysisNode: SpinalNode<any>): Promise<boolean>;
+    /**
+     * Writes the lifecycle status as a documentation attribute on the analysis node
+     * (creating the category/attribute on first write). Normalizes first so the stored
+     * value is always a valid status.
+     */
+    setStatus(analysisNode: SpinalNode<any>, status: AnalysisStatus): Promise<void>;
     getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]>;
     getAnalysisNodesByContextNode(contextNode: SpinalContext<any>): Promise<SpinalNode<any>[]>;
     getAnalysisNodeByContextNode(contextNode: SpinalContext<any>, analysisNodeName: string): Promise<SpinalNode<any> | undefined>;

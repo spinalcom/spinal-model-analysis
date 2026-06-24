@@ -20,7 +20,7 @@ export type { IWorkflowBlock, ISubWorkflow, IWorkflowDAG, } from './interfaces/I
 export type { IAlgorithm } from './interfaces/IAlgorithm';
 export type { IAlgorithmParameter } from './interfaces/IAlgorithmParameter';
 export type { IAlgorithmInput } from './interfaces/IAlgorithmInput';
-export type { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, } from './interfaces/IAnalysisConfigJSON';
+export type { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, IConcurrencyConfig, ConcurrencyMode, AnalysisStatus, } from './interfaces/IAnalysisConfigJSON';
 export type { IResolvedTrigger, ICOVBindingResult, } from './services/AnalysisTriggerService';
 export { TRIGGER_TYPE } from './constants/analysisTrigger';
 export * from './constants/analysisContext';

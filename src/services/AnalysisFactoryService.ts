@@ -85,6 +85,9 @@ export default class AnalysisFactoryService {
         if (config.concurrency !== undefined) {
             errors.push(...this.validateConcurrency(config.concurrency));
         }
+        if (config.status !== undefined && config.status !== 'Active' && config.status !== 'Inactive') {
+            errors.push('status: must be either "Active" or "Inactive"');
+        }
 
         return errors;
     }
@@ -151,7 +154,8 @@ export default class AnalysisFactoryService {
             config.analysisName,
             config.description ?? '',
             contextNode,
-            config.concurrency
+            config.concurrency,
+            config.status
         );
         logMessage(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
 

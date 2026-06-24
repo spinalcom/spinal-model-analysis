@@ -15,7 +15,10 @@ import {
   CONCURRENCY_ATTR_MODE,
   CONCURRENCY_ATTR_LIMIT,
   DEFAULT_CONCURRENCY,
-  DEFAULT_CONCURRENCY_LIMIT
+  DEFAULT_CONCURRENCY_LIMIT,
+  STATUS_CATEGORY,
+  STATUS_ATTR,
+  DEFAULT_ANALYSIS_STATUS
 } from '../constants/analysisNode';
 
 import {
@@ -38,7 +41,7 @@ import { parseValue } from './utils';
 import { VERSION } from '../version';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX } from './WorkflowExecutionService';
-import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, IConcurrencyConfig, ConcurrencyMode } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, IConcurrencyConfig, ConcurrencyMode, AnalysisStatus } from '../interfaces/IAnalysisConfigJSON';
 import { IWorkflowBlock, ISubWorkflow } from '../interfaces/IWorkflowBlock';
 
 export default class AnalyticNodeManagerService {
@@ -127,6 +130,7 @@ export default class AnalyticNodeManagerService {
     analysisNodeDescription: string,
     contextNode: SpinalNode<any>,
     concurrency?: IConcurrencyConfig,
+    status?: AnalysisStatus,
   ): Promise<SpinalNode<any>> {
 
     const analysisNodeInfo = {
@@ -143,8 +147,10 @@ export default class AnalyticNodeManagerService {
 
     await contextNode.addChildInContext(analysisNode, ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION, SPINAL_RELATION_PTR_LST_TYPE, contextNode);
 
-    // Store the concurrency config as visible/editable documentation attributes.
+    // Store the concurrency config and lifecycle status as visible/editable
+    // documentation attributes.
     await this.setConcurrencyConfig(analysisNode, concurrency ?? DEFAULT_CONCURRENCY);
+    await this.setStatus(analysisNode, status ?? DEFAULT_ANALYSIS_STATUS);
 
     // Add mandatory nodes
     await this.addWorkflowNodeToAnalysisNode(analysisNode, contextNode);
@@ -211,6 +217,49 @@ export default class AnalyticNodeManagerService {
         [CONCURRENCY_ATTR_MODE]: normalized.mode,
         [CONCURRENCY_ATTR_LIMIT]: String(normalized.limit),
       }
+    );
+  }
+
+  /**
+   * Coerces an arbitrary value into a valid {@link AnalysisStatus}. Anything that
+   * isn't exactly "Active" falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive),
+   * so a missing/typo'd/hand-edited value never accidentally activates an analysis.
+   */
+  public normalizeStatus(status?: unknown): AnalysisStatus {
+    return typeof status === 'string' && status.trim().toLowerCase() === 'active'
+      ? 'Active'
+      : DEFAULT_ANALYSIS_STATUS;
+  }
+
+  /**
+   * Reads the lifecycle status from the analysis node's documentation attributes.
+   * Falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive) when missing or invalid
+   * — including analyses created before this feature existed, which are therefore
+   * treated as parked until explicitly activated.
+   */
+  public async getStatus(analysisNode: SpinalNode<any>): Promise<AnalysisStatus> {
+    const attrs = await attributeService.getAttributesByCategory(analysisNode, STATUS_CATEGORY);
+    const statusAttr = attrs?.find((a: any) => a.label?.get() === STATUS_ATTR);
+    return this.normalizeStatus(statusAttr?.value?.get());
+  }
+
+  /**
+   * Convenience predicate: true when the analysis is Active (the organ should run it).
+   */
+  public async isAnalysisActive(analysisNode: SpinalNode<any>): Promise<boolean> {
+    return (await this.getStatus(analysisNode)) === 'Active';
+  }
+
+  /**
+   * Writes the lifecycle status as a documentation attribute on the analysis node
+   * (creating the category/attribute on first write). Normalizes first so the stored
+   * value is always a valid status.
+   */
+  public async setStatus(analysisNode: SpinalNode<any>, status: AnalysisStatus): Promise<void> {
+    await attributeService.createOrUpdateAttrsAndCategories(
+      analysisNode,
+      STATUS_CATEGORY,
+      { [STATUS_ATTR]: this.normalizeStatus(status) }
     );
   }
 
@@ -307,6 +356,9 @@ export default class AnalyticNodeManagerService {
 
     // ── Concurrency ── (always emitted so the active strategy is explicit)
     result.concurrency = await this.getConcurrencyConfig(analysisNode);
+
+    // ── Status ── (always emitted so the lifecycle state is explicit)
+    result.status = await this.getStatus(analysisNode);
 
     return result;
   }

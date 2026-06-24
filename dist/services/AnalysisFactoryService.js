@@ -67,6 +67,9 @@ class AnalysisFactoryService {
         if (config.concurrency !== undefined) {
             errors.push(...this.validateConcurrency(config.concurrency));
         }
+        if (config.status !== undefined && config.status !== 'Active' && config.status !== 'Inactive') {
+            errors.push('status: must be either "Active" or "Inactive"');
+        }
         return errors;
     }
     /**
@@ -114,7 +117,7 @@ class AnalysisFactoryService {
             const contextNode = yield this.nodeManager.createContext(config.contextName, graph);
             (0, utils_1.logMessage)(`[AnalysisFactory] Context: ${config.contextName}`);
             // ── 2. Create analysis node (creates all mandatory sub-nodes) ──
-            const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode, config.concurrency);
+            const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode, config.concurrency, config.status);
             (0, utils_1.logMessage)(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
             // ── 3. Link anchor to target node ──
             if (config.anchorNodeId) {

@@ -100,7 +100,7 @@ class AnalyticNodeManagerService {
      * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode, concurrency) {
+    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode, concurrency, status) {
         return __awaiter(this, void 0, void 0, function* () {
             const analysisNodeInfo = {
                 name: analysisNodeName,
@@ -112,8 +112,10 @@ class AnalyticNodeManagerService {
             if (!analysisNode)
                 throw new Error('Failed to create analytic node');
             yield contextNode.addChildInContext(analysisNode, analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
-            // Store the concurrency config as visible/editable documentation attributes.
+            // Store the concurrency config and lifecycle status as visible/editable
+            // documentation attributes.
             yield this.setConcurrencyConfig(analysisNode, concurrency !== null && concurrency !== void 0 ? concurrency : analysisNode_1.DEFAULT_CONCURRENCY);
+            yield this.setStatus(analysisNode, status !== null && status !== void 0 ? status : analysisNode_1.DEFAULT_ANALYSIS_STATUS);
             // Add mandatory nodes
             yield this.addWorkflowNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addInputNodeToAnalysisNode(analysisNode, contextNode);
@@ -173,6 +175,48 @@ class AnalyticNodeManagerService {
                 [analysisNode_1.CONCURRENCY_ATTR_MODE]: normalized.mode,
                 [analysisNode_1.CONCURRENCY_ATTR_LIMIT]: String(normalized.limit),
             });
+        });
+    }
+    /**
+     * Coerces an arbitrary value into a valid {@link AnalysisStatus}. Anything that
+     * isn't exactly "Active" falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive),
+     * so a missing/typo'd/hand-edited value never accidentally activates an analysis.
+     */
+    normalizeStatus(status) {
+        return typeof status === 'string' && status.trim().toLowerCase() === 'active'
+            ? 'Active'
+            : analysisNode_1.DEFAULT_ANALYSIS_STATUS;
+    }
+    /**
+     * Reads the lifecycle status from the analysis node's documentation attributes.
+     * Falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive) when missing or invalid
+     * — including analyses created before this feature existed, which are therefore
+     * treated as parked until explicitly activated.
+     */
+    getStatus(analysisNode) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(analysisNode, analysisNode_1.STATUS_CATEGORY);
+            const statusAttr = attrs === null || attrs === void 0 ? void 0 : attrs.find((a) => { var _a; return ((_a = a.label) === null || _a === void 0 ? void 0 : _a.get()) === analysisNode_1.STATUS_ATTR; });
+            return this.normalizeStatus((_a = statusAttr === null || statusAttr === void 0 ? void 0 : statusAttr.value) === null || _a === void 0 ? void 0 : _a.get());
+        });
+    }
+    /**
+     * Convenience predicate: true when the analysis is Active (the organ should run it).
+     */
+    isAnalysisActive(analysisNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            return (yield this.getStatus(analysisNode)) === 'Active';
+        });
+    }
+    /**
+     * Writes the lifecycle status as a documentation attribute on the analysis node
+     * (creating the category/attribute on first write). Normalizes first so the stored
+     * value is always a valid status.
+     */
+    setStatus(analysisNode, status) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(analysisNode, analysisNode_1.STATUS_CATEGORY, { [analysisNode_1.STATUS_ATTR]: this.normalizeStatus(status) });
         });
     }
     getAnalysisNodesByContextName(contextName, graph) {
@@ -257,6 +301,8 @@ class AnalyticNodeManagerService {
                 result.triggers = triggers;
             // ── Concurrency ── (always emitted so the active strategy is explicit)
             result.concurrency = yield this.getConcurrencyConfig(analysisNode);
+            // ── Status ── (always emitted so the lifecycle state is explicit)
+            result.status = yield this.getStatus(analysisNode);
             return result;
         });
     }

@@ -73,6 +73,9 @@ export type {
   IWorkflowConfigJSON,
   IBlockConfigJSON,
   ITriggerConfigJSON,
+  IConcurrencyConfig,
+  ConcurrencyMode,
+  AnalysisStatus,
 } from './interfaces/IAnalysisConfigJSON';
 
 // Trigger types

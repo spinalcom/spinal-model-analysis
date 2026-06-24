@@ -57,7 +57,23 @@ export interface IAnalysisConfigJSON {
      * Defaults to BOUNDED parallel with a limit of 10 when omitted.
      */
     concurrency?: IConcurrencyConfig;
+    /**
+     * Lifecycle status of the analysis (optional). Controls whether the analysis
+     * organ starts its triggers / does COV binding for this analysis.
+     * - `Active`   — the organ runs it (starts triggers, binds COVs).
+     * - `Inactive` — the organ leaves it parked (stored but not running).
+     * Defaults to `Inactive` when omitted, so analytics can be seeded into the
+     * database without running until explicitly activated.
+     */
+    status?: AnalysisStatus;
 }
+/**
+ * Lifecycle status of an analysis, gating whether the analysis organ runs it.
+ *
+ * - `Active`   — the organ starts its triggers and performs COV binding.
+ * - `Inactive` — the organ ignores it; it sits in the database without running.
+ */
+export type AnalysisStatus = 'Active' | 'Inactive';
 /**
  * Strategy for executing an analysis across its resolved work nodes.
  *
