@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.DEFAULT_ANALYSIS_STATUS = exports.ANALYSIS_STATUS_VALUES = exports.STATUS_ATTR = exports.STATUS_CATEGORY = exports.DEFAULT_CONCURRENCY = exports.DEFAULT_CONCURRENCY_LIMIT = exports.CONCURRENCY_ATTR_LIMIT = exports.CONCURRENCY_ATTR_MODE = exports.CONCURRENCY_CATEGORY = exports.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = exports.ANALYSIS_NODE_TYPE = void 0;
+exports.ANALYSIS_STATUS_DEFINITIONS = exports.CONCURRENCY_MODE_DEFINITIONS = exports.DEFAULT_ANALYSIS_STATUS = exports.ANALYSIS_STATUS_VALUES = exports.STATUS_ATTR = exports.STATUS_CATEGORY = exports.DEFAULT_CONCURRENCY = exports.DEFAULT_CONCURRENCY_LIMIT = exports.CONCURRENCY_ATTR_LIMIT = exports.CONCURRENCY_ATTR_MODE = exports.CONCURRENCY_CATEGORY = exports.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = exports.ANALYSIS_NODE_TYPE = void 0;
 const analysisContext_1 = require("./analysisContext");
 exports.ANALYSIS_NODE_TYPE = 'analysisNode';
 exports.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE + 'Has' + exports.ANALYSIS_NODE_TYPE;
@@ -42,4 +42,51 @@ exports.ANALYSIS_STATUS_VALUES = ['Active', 'Inactive'];
  * parked until explicitly activated.
  */
 exports.DEFAULT_ANALYSIS_STATUS = 'Inactive';
+/**
+ * The available work-node concurrency modes and their configuration fields.
+ * Keep in sync with ConcurrencyMode and AnalyticNodeManagerService.normalizeConcurrency.
+ */
+exports.CONCURRENCY_MODE_DEFINITIONS = [
+    {
+        mode: 'BOUNDED',
+        description: 'Run work nodes in parallel, but never more than `limit` at once. The default strategy.',
+        default: exports.DEFAULT_CONCURRENCY.mode === 'BOUNDED',
+        fields: [
+            {
+                name: 'limit',
+                type: 'number',
+                description: 'Maximum number of work nodes executing in parallel.',
+                required: false,
+                default: exports.DEFAULT_CONCURRENCY_LIMIT,
+            },
+        ],
+    },
+    {
+        mode: 'FULL',
+        description: 'Run every work node in parallel at once (no cap). Fastest for small sets; can spike external APIs / DB / memory on large sets.',
+        default: exports.DEFAULT_CONCURRENCY.mode === 'FULL',
+        fields: [],
+    },
+    {
+        mode: 'SEQUENTIAL',
+        description: 'Run one work node at a time. Predictable and gentle on resources, but slow when blocks wait (DELAY, CURL, timeseries).',
+        default: exports.DEFAULT_CONCURRENCY.mode === 'SEQUENTIAL',
+        fields: [],
+    },
+];
+/**
+ * The available lifecycle statuses. Keep in sync with AnalysisStatus.
+ */
+exports.ANALYSIS_STATUS_DEFINITIONS = [
+    {
+        value: 'Active',
+        description: 'The analysis organ runs it: starts its triggers and performs COV binding.',
+        default: exports.DEFAULT_ANALYSIS_STATUS === 'Active',
+    },
+    {
+        value: 'Inactive',
+        description: 'Parked — stored in the database but not running. The default.',
+        default: exports.DEFAULT_ANALYSIS_STATUS === 'Inactive',
+    },
+];
 //# sourceMappingURL=analysisNode.js.map

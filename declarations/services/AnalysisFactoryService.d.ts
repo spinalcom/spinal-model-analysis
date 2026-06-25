@@ -42,6 +42,32 @@ export default class AnalysisFactoryService {
      */
     createFromJSON(config: IAnalysisConfigJSON, graph: SpinalGraph<any>): Promise<SpinalNode<any>>;
     /**
+     * Updates an existing analysis in place from a full JSON config (a PUT-style
+     * full replace). The analysis node keeps its id/server_id; everything below it
+     * is rebuilt from the config:
+     *
+     * - **name / description / concurrency / status** — set directly on the node.
+     * - **anchor / workflows / triggers** — the entire sub-node structure is wiped
+     *   and recreated from the config (the workflow DAGs are far simpler to rebuild
+     *   than to diff-and-patch).
+     *
+     * Because this is a full replace, optional fields that are omitted revert to
+     * their defaults (concurrency → BOUNDED/10, status → Inactive, no triggers).
+     * Callers that want to preserve those should read the current config (via
+     * getAnalyticDetails) and send it back with their changes applied.
+     *
+     * @param analysisNode - The existing analysis node to update
+     * @param config - The new full configuration
+     * @returns The same analysis node, updated
+     */
+    updateFromJSON(analysisNode: SpinalNode<any>, config: IAnalysisConfigJSON): Promise<SpinalNode<any>>;
+    /**
+     * Links the anchor target, builds the three workflow DAGs, and stores the
+     * trigger configs from a config object onto an analysis node whose mandatory
+     * sub-nodes already exist. Shared by createFromJSON and updateFromJSON.
+     */
+    private populateAnalysis;
+    /**
      * Links the analysis anchor node to the target node in the database.
      */
     private linkAnchorTarget;

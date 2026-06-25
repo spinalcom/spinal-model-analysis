@@ -36,6 +36,22 @@ export default class AnalyticNodeManagerService {
      */
     addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>, concurrency?: IConcurrencyConfig, status?: AnalysisStatus): Promise<SpinalNode<any>>;
     /**
+     * Creates the mandatory sub-node structure under an analysis node (execution /
+     * input / output workflows, trigger, worknode resolver, anchor). Used both when
+     * first creating an analysis and when rebuilding it during an update.
+     */
+    addMandatorySubNodes(analysisNode: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;
+    /**
+     * Wipes everything under an analysis node — all mandatory sub-nodes (workflows,
+     * trigger, anchor) and their contents — while keeping the analysis node itself.
+     * This is `deleteAnalysisNode` minus the deletion of the analysis node, and is
+     * used by the update flow to rebuild the structure from a fresh config.
+     *
+     * Externally-anchored target nodes are detached (not removed): like delete, only
+     * the anchor *relation* is dropped so the building/digital-twin nodes survive.
+     */
+    resetAnalysisSubNodes(analysisNode: SpinalNode<any>): Promise<void>;
+    /**
      * Normalizes a (possibly partial / undefined) concurrency config into a complete,
      * validated one, applying defaults. Used both when storing on a node and when
      * reading back, so callers always get a concrete `{ mode, limit }`.
@@ -53,7 +69,7 @@ export default class AnalyticNodeManagerService {
      * analysis node (creating the category/attributes on first write). Normalizes the
      * input first so stored values are always valid.
      */
-    setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency: IConcurrencyConfig): Promise<void>;
+    setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency?: IConcurrencyConfig): Promise<void>;
     /**
      * Coerces an arbitrary value into a valid {@link AnalysisStatus}. Anything that
      * isn't exactly "Active" falls back to {@link DEFAULT_ANALYSIS_STATUS} (Inactive),
@@ -76,7 +92,19 @@ export default class AnalyticNodeManagerService {
      * (creating the category/attribute on first write). Normalizes first so the stored
      * value is always a valid status.
      */
-    setStatus(analysisNode: SpinalNode<any>, status: AnalysisStatus): Promise<void>;
+    setStatus(analysisNode: SpinalNode<any>, status?: AnalysisStatus): Promise<void>;
+    /**
+     * Reads the last-update revision (ms timestamp) from the analysis node's info.
+     * Returns 0 when never stamped (e.g. analyses created before this feature). The
+     * organ uses this to detect when an analysis was updated and must be re-assessed.
+     */
+    getLastUpdate(analysisNode: SpinalNode<any>): number;
+    /**
+     * Stamps the analysis node with a new last-update revision (defaults to now).
+     * Stored in node.info (internal bookkeeping, not a panel attribute). Bumped on
+     * every successful update so the organ can tell the structure changed.
+     */
+    setLastUpdate(analysisNode: SpinalNode<any>, ts?: number): void;
     getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]>;
     getAnalysisNodesByContextNode(contextNode: SpinalContext<any>): Promise<SpinalNode<any>[]>;
     getAnalysisNodeByContextNode(contextNode: SpinalContext<any>, analysisNodeName: string): Promise<SpinalNode<any> | undefined>;

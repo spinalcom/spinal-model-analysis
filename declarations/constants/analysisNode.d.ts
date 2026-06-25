@@ -1,4 +1,4 @@
-import { IConcurrencyConfig, AnalysisStatus } from '../interfaces/IAnalysisConfigJSON';
+import { IConcurrencyConfig, AnalysisStatus, ConcurrencyMode } from '../interfaces/IAnalysisConfigJSON';
 export declare const ANALYSIS_NODE_TYPE = "analysisNode";
 export declare const ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION: string;
 /**
@@ -36,3 +36,52 @@ export declare const ANALYSIS_STATUS_VALUES: readonly AnalysisStatus[];
  * parked until explicitly activated.
  */
 export declare const DEFAULT_ANALYSIS_STATUS: AnalysisStatus;
+/**
+ * Describes a single configurable sub-field of a concurrency mode. Mirrors the
+ * shape of ITriggerTypeField so the web app can reuse the same field renderer.
+ */
+export interface IConcurrencyModeField {
+    /** Field key as it appears in the concurrency config JSON (e.g. "limit"). */
+    name: string;
+    /** Primitive type expected for the field. */
+    type: 'string' | 'number' | 'boolean';
+    /** Human-readable explanation of the field. */
+    description: string;
+    /** Whether the field is mandatory for this mode. */
+    required: boolean;
+    /** Value to pre-fill in the form when none is provided. */
+    default?: string | number | boolean;
+}
+/**
+ * Describes a concurrency mode and the fields needed to configure it.
+ */
+export interface IConcurrencyModeDefinition {
+    /** The concurrency mode. */
+    mode: ConcurrencyMode;
+    /** Human-readable explanation of what the mode does. */
+    description: string;
+    /** Whether this is the mode applied when none is specified. */
+    default: boolean;
+    /** The fields a config of this mode accepts. */
+    fields: IConcurrencyModeField[];
+}
+/**
+ * The available work-node concurrency modes and their configuration fields.
+ * Keep in sync with ConcurrencyMode and AnalyticNodeManagerService.normalizeConcurrency.
+ */
+export declare const CONCURRENCY_MODE_DEFINITIONS: IConcurrencyModeDefinition[];
+/**
+ * Describes a selectable lifecycle status.
+ */
+export interface IAnalysisStatusDefinition {
+    /** The status value. */
+    value: AnalysisStatus;
+    /** Human-readable explanation of what the status means. */
+    description: string;
+    /** Whether this is the value applied when none is specified. */
+    default: boolean;
+}
+/**
+ * The available lifecycle statuses. Keep in sync with AnalysisStatus.
+ */
+export declare const ANALYSIS_STATUS_DEFINITIONS: IAnalysisStatusDefinition[];

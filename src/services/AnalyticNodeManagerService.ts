@@ -148,18 +148,65 @@ export default class AnalyticNodeManagerService {
     await contextNode.addChildInContext(analysisNode, ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION, SPINAL_RELATION_PTR_LST_TYPE, contextNode);
 
     // Store the concurrency config and lifecycle status as visible/editable
-    // documentation attributes.
-    await this.setConcurrencyConfig(analysisNode, concurrency ?? DEFAULT_CONCURRENCY);
-    await this.setStatus(analysisNode, status ?? DEFAULT_ANALYSIS_STATUS);
+    // documentation attributes, and stamp the initial revision.
+    await this.setConcurrencyConfig(analysisNode, concurrency);
+    await this.setStatus(analysisNode, status);
+    this.setLastUpdate(analysisNode);
 
-    // Add mandatory nodes
+    // Add mandatory sub-nodes (workflows, anchor, trigger, ...).
+    await this.addMandatorySubNodes(analysisNode, contextNode);
+    return analysisNode;
+  }
+
+  /**
+   * Creates the mandatory sub-node structure under an analysis node (execution /
+   * input / output workflows, trigger, worknode resolver, anchor). Used both when
+   * first creating an analysis and when rebuilding it during an update.
+   */
+  public async addMandatorySubNodes(analysisNode: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void> {
     await this.addWorkflowNodeToAnalysisNode(analysisNode, contextNode);
     await this.addInputNodeToAnalysisNode(analysisNode, contextNode);
     await this.addOutputNodeToAnalysisNode(analysisNode, contextNode);
     await this.addTriggerNodeToAnalysisNode(analysisNode, contextNode);
     await this.addWorknodeResolverNodeToAnalysisNode(analysisNode, contextNode);
     await this.addAnchorNodeToAnalysisNode(analysisNode, contextNode);
-    return analysisNode;
+  }
+
+  /**
+   * Wipes everything under an analysis node — all mandatory sub-nodes (workflows,
+   * trigger, anchor) and their contents — while keeping the analysis node itself.
+   * This is `deleteAnalysisNode` minus the deletion of the analysis node, and is
+   * used by the update flow to rebuild the structure from a fresh config.
+   *
+   * Externally-anchored target nodes are detached (not removed): like delete, only
+   * the anchor *relation* is dropped so the building/digital-twin nodes survive.
+   */
+  public async resetAnalysisSubNodes(analysisNode: SpinalNode<any>): Promise<void> {
+    // Detach the externally-anchored target node(s) first so they aren't removed.
+    const anchorNode = await this.getAnalysisAnchorNodeNode(analysisNode);
+    if (anchorNode && anchorNode.getRelationNames().includes(ANCHOR_NODE_TO_LINKED_NODE_RELATION)) {
+      await anchorNode.removeRelation(ANCHOR_NODE_TO_LINKED_NODE_RELATION, SPINAL_RELATION_PTR_LST_TYPE);
+    }
+
+    // Remove only the mandatory sub-node relations (containers carry their blocks
+    // with them). We target these explicitly — NOT every relation — so the node's
+    // own documentation attributes (concurrency, status) are left untouched.
+    const mandatoryRelations = [
+      ANALYSIS_NODE_TO_EXECUTION_WORKFLOW_RELATION,
+      ANALYSIS_NODE_TO_INPUT_NODE_RELATION,
+      ANALYSIS_NODE_TO_OUTPUT_NODE_RELATION,
+      ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION,
+      ANALYSIS_NODE_TO_WORKNODE_RESOLVER_RELATION,
+      ANALYSIS_NODE_TO_ANCHOR_RELATION,
+    ];
+    const existing = analysisNode.getRelationNames();
+    for (const relation of mandatoryRelations) {
+      if (!existing.includes(relation)) continue;
+      const children = await analysisNode.getChildren(relation);
+      for (const child of children) {
+        await child.removeFromGraph();
+      }
+    }
   }
 
   /**
@@ -208,7 +255,7 @@ export default class AnalyticNodeManagerService {
    * analysis node (creating the category/attributes on first write). Normalizes the
    * input first so stored values are always valid.
    */
-  public async setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency: IConcurrencyConfig): Promise<void> {
+  public async setConcurrencyConfig(analysisNode: SpinalNode<any>, concurrency?: IConcurrencyConfig): Promise<void> {
     const normalized = this.normalizeConcurrency(concurrency);
     await attributeService.createOrUpdateAttrsAndCategories(
       analysisNode,
@@ -255,12 +302,35 @@ export default class AnalyticNodeManagerService {
    * (creating the category/attribute on first write). Normalizes first so the stored
    * value is always a valid status.
    */
-  public async setStatus(analysisNode: SpinalNode<any>, status: AnalysisStatus): Promise<void> {
+  public async setStatus(analysisNode: SpinalNode<any>, status?: AnalysisStatus): Promise<void> {
     await attributeService.createOrUpdateAttrsAndCategories(
       analysisNode,
       STATUS_CATEGORY,
       { [STATUS_ATTR]: this.normalizeStatus(status) }
     );
+  }
+
+  /**
+   * Reads the last-update revision (ms timestamp) from the analysis node's info.
+   * Returns 0 when never stamped (e.g. analyses created before this feature). The
+   * organ uses this to detect when an analysis was updated and must be re-assessed.
+   */
+  public getLastUpdate(analysisNode: SpinalNode<any>): number {
+    const v = analysisNode.info?.lastUpdate?.get();
+    return typeof v === 'number' ? v : 0;
+  }
+
+  /**
+   * Stamps the analysis node with a new last-update revision (defaults to now).
+   * Stored in node.info (internal bookkeeping, not a panel attribute). Bumped on
+   * every successful update so the organ can tell the structure changed.
+   */
+  public setLastUpdate(analysisNode: SpinalNode<any>, ts: number = Date.now()): void {
+    if (!analysisNode.info.lastUpdate) {
+      analysisNode.info.add_attr('lastUpdate', ts);
+    } else {
+      analysisNode.info.lastUpdate.set(ts);
+    }
   }
 
   public async getAnalysisNodesByContextName(contextName: string, graph: SpinalGraph<any>): Promise<SpinalNode<any>[]> {

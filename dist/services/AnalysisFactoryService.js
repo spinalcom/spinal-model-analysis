@@ -119,12 +119,75 @@ class AnalysisFactoryService {
             // ── 2. Create analysis node (creates all mandatory sub-nodes) ──
             const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode, config.concurrency, config.status);
             (0, utils_1.logMessage)(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
-            // ── 3. Link anchor to target node ──
+            // ── 3. Link anchor, build workflows, store triggers ──
+            yield this.populateAnalysis(analysisNode, contextNode, config);
+            (0, utils_1.logMessage)(`[AnalysisFactory] Analysis "${config.analysisName}" fully created`);
+            return analysisNode;
+        });
+    }
+    /**
+     * Updates an existing analysis in place from a full JSON config (a PUT-style
+     * full replace). The analysis node keeps its id/server_id; everything below it
+     * is rebuilt from the config:
+     *
+     * - **name / description / concurrency / status** — set directly on the node.
+     * - **anchor / workflows / triggers** — the entire sub-node structure is wiped
+     *   and recreated from the config (the workflow DAGs are far simpler to rebuild
+     *   than to diff-and-patch).
+     *
+     * Because this is a full replace, optional fields that are omitted revert to
+     * their defaults (concurrency → BOUNDED/10, status → Inactive, no triggers).
+     * Callers that want to preserve those should read the current config (via
+     * getAnalyticDetails) and send it back with their changes applied.
+     *
+     * @param analysisNode - The existing analysis node to update
+     * @param config - The new full configuration
+     * @returns The same analysis node, updated
+     */
+    updateFromJSON(analysisNode, config) {
+        var _a, _b, _c;
+        return __awaiter(this, void 0, void 0, function* () {
+            const errors = this.validateConfig(config);
+            if (errors.length > 0) {
+                throw new Error(`[AnalysisFactory] Invalid config for "${(_a = config.analysisName) !== null && _a !== void 0 ? _a : '(unnamed)'}": \n` +
+                    errors.map((e) => `  - ${e}`).join('\n'));
+            }
+            const contextNode = yield this.nodeManager.getContextOfAnalytic(analysisNode);
+            (0, utils_1.logMessage)(`[AnalysisFactory] Updating analysis: ${analysisNode.getName().get()}`);
+            // ── 1. Update scalar properties on the analysis node itself ──
+            analysisNode.info.name.set(config.analysisName);
+            if (analysisNode.info.description) {
+                analysisNode.info.description.set((_b = config.description) !== null && _b !== void 0 ? _b : '');
+            }
+            else {
+                analysisNode.info.add_attr('description', (_c = config.description) !== null && _c !== void 0 ? _c : '');
+            }
+            yield this.nodeManager.setConcurrencyConfig(analysisNode, config.concurrency);
+            yield this.nodeManager.setStatus(analysisNode, config.status);
+            // ── 2. Wipe the whole sub-structure (keeping the analysis node) ──
+            yield this.nodeManager.resetAnalysisSubNodes(analysisNode);
+            // ── 3. Recreate mandatory sub-nodes, then anchor / workflows / triggers ──
+            yield this.nodeManager.addMandatorySubNodes(analysisNode, contextNode);
+            yield this.populateAnalysis(analysisNode, contextNode, config);
+            // ── 4. Bump the revision so the organ re-assesses this analysis ──
+            this.nodeManager.setLastUpdate(analysisNode);
+            (0, utils_1.logMessage)(`[AnalysisFactory] Analysis "${config.analysisName}" fully updated`);
+            return analysisNode;
+        });
+    }
+    /**
+     * Links the anchor target, builds the three workflow DAGs, and stores the
+     * trigger configs from a config object onto an analysis node whose mandatory
+     * sub-nodes already exist. Shared by createFromJSON and updateFromJSON.
+     */
+    populateAnalysis(analysisNode, contextNode, config) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // ── Link anchor to target node ──
             if (config.anchorNodeId) {
                 yield this.linkAnchorTarget(analysisNode, config.anchorNodeId, contextNode);
                 (0, utils_1.logMessage)(`[AnalysisFactory] Anchor linked to node: ${config.anchorNodeId}`);
             }
-            // ── 4. Build workflow DAGs ──
+            // ── Build workflow DAGs ──
             if (config.worknodeResolver && config.worknodeResolver.blocks.length > 0) {
                 const resolverNode = yield this.nodeManager.getAnalysisWorknodeResolverNode(analysisNode);
                 yield this.buildWorkflow(resolverNode, contextNode, config.worknodeResolver);
@@ -140,13 +203,11 @@ class AnalysisFactoryService {
                 yield this.buildWorkflow(executionNode, contextNode, config.executionWorkflow);
                 (0, utils_1.logMessage)(`[AnalysisFactory] Execution workflow created (${config.executionWorkflow.blocks.length} blocks)`);
             }
-            // ── 5. Store trigger configurations ──
+            // ── Store trigger configurations ──
             if (config.triggers && config.triggers.length > 0) {
                 yield this.storeTriggerConfig(analysisNode, config.triggers);
                 (0, utils_1.logMessage)(`[AnalysisFactory] Trigger config stored (${config.triggers.length} trigger(s))`);
             }
-            (0, utils_1.logMessage)(`[AnalysisFactory] Analysis "${config.analysisName}" fully created`);
-            return analysisNode;
         });
     }
     // ─────────────────────────────────────────────────────

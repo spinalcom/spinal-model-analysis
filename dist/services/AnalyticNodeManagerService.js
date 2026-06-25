@@ -113,17 +113,66 @@ class AnalyticNodeManagerService {
                 throw new Error('Failed to create analytic node');
             yield contextNode.addChildInContext(analysisNode, analysisNode_1.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
             // Store the concurrency config and lifecycle status as visible/editable
-            // documentation attributes.
-            yield this.setConcurrencyConfig(analysisNode, concurrency !== null && concurrency !== void 0 ? concurrency : analysisNode_1.DEFAULT_CONCURRENCY);
-            yield this.setStatus(analysisNode, status !== null && status !== void 0 ? status : analysisNode_1.DEFAULT_ANALYSIS_STATUS);
-            // Add mandatory nodes
+            // documentation attributes, and stamp the initial revision.
+            yield this.setConcurrencyConfig(analysisNode, concurrency);
+            yield this.setStatus(analysisNode, status);
+            this.setLastUpdate(analysisNode);
+            // Add mandatory sub-nodes (workflows, anchor, trigger, ...).
+            yield this.addMandatorySubNodes(analysisNode, contextNode);
+            return analysisNode;
+        });
+    }
+    /**
+     * Creates the mandatory sub-node structure under an analysis node (execution /
+     * input / output workflows, trigger, worknode resolver, anchor). Used both when
+     * first creating an analysis and when rebuilding it during an update.
+     */
+    addMandatorySubNodes(analysisNode, contextNode) {
+        return __awaiter(this, void 0, void 0, function* () {
             yield this.addWorkflowNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addInputNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addOutputNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addTriggerNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addWorknodeResolverNodeToAnalysisNode(analysisNode, contextNode);
             yield this.addAnchorNodeToAnalysisNode(analysisNode, contextNode);
-            return analysisNode;
+        });
+    }
+    /**
+     * Wipes everything under an analysis node — all mandatory sub-nodes (workflows,
+     * trigger, anchor) and their contents — while keeping the analysis node itself.
+     * This is `deleteAnalysisNode` minus the deletion of the analysis node, and is
+     * used by the update flow to rebuild the structure from a fresh config.
+     *
+     * Externally-anchored target nodes are detached (not removed): like delete, only
+     * the anchor *relation* is dropped so the building/digital-twin nodes survive.
+     */
+    resetAnalysisSubNodes(analysisNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            // Detach the externally-anchored target node(s) first so they aren't removed.
+            const anchorNode = yield this.getAnalysisAnchorNodeNode(analysisNode);
+            if (anchorNode && anchorNode.getRelationNames().includes(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION)) {
+                yield anchorNode.removeRelation(analysisAnchor_1.ANCHOR_NODE_TO_LINKED_NODE_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE);
+            }
+            // Remove only the mandatory sub-node relations (containers carry their blocks
+            // with them). We target these explicitly — NOT every relation — so the node's
+            // own documentation attributes (concurrency, status) are left untouched.
+            const mandatoryRelations = [
+                analysisExecutionWorkflow_1.ANALYSIS_NODE_TO_EXECUTION_WORKFLOW_RELATION,
+                analysisInput_1.ANALYSIS_NODE_TO_INPUT_NODE_RELATION,
+                analysisOutput_1.ANALYSIS_NODE_TO_OUTPUT_NODE_RELATION,
+                analysisTrigger_1.ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION,
+                analysisWorknodeResolver_1.ANALYSIS_NODE_TO_WORKNODE_RESOLVER_RELATION,
+                analysisAnchor_1.ANALYSIS_NODE_TO_ANCHOR_RELATION,
+            ];
+            const existing = analysisNode.getRelationNames();
+            for (const relation of mandatoryRelations) {
+                if (!existing.includes(relation))
+                    continue;
+                const children = yield analysisNode.getChildren(relation);
+                for (const child of children) {
+                    yield child.removeFromGraph();
+                }
+            }
         });
     }
     /**
@@ -218,6 +267,29 @@ class AnalyticNodeManagerService {
         return __awaiter(this, void 0, void 0, function* () {
             yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(analysisNode, analysisNode_1.STATUS_CATEGORY, { [analysisNode_1.STATUS_ATTR]: this.normalizeStatus(status) });
         });
+    }
+    /**
+     * Reads the last-update revision (ms timestamp) from the analysis node's info.
+     * Returns 0 when never stamped (e.g. analyses created before this feature). The
+     * organ uses this to detect when an analysis was updated and must be re-assessed.
+     */
+    getLastUpdate(analysisNode) {
+        var _a, _b;
+        const v = (_b = (_a = analysisNode.info) === null || _a === void 0 ? void 0 : _a.lastUpdate) === null || _b === void 0 ? void 0 : _b.get();
+        return typeof v === 'number' ? v : 0;
+    }
+    /**
+     * Stamps the analysis node with a new last-update revision (defaults to now).
+     * Stored in node.info (internal bookkeeping, not a panel attribute). Bumped on
+     * every successful update so the organ can tell the structure changed.
+     */
+    setLastUpdate(analysisNode, ts = Date.now()) {
+        if (!analysisNode.info.lastUpdate) {
+            analysisNode.info.add_attr('lastUpdate', ts);
+        }
+        else {
+            analysisNode.info.lastUpdate.set(ts);
+        }
     }
     getAnalysisNodesByContextName(contextName, graph) {
         return __awaiter(this, void 0, void 0, function* () {
