@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.HTTP_ALGORITHMS = exports.TIMESERIES_ALGORITHMS = exports.LIST_ALGORITHMS = exports.OBJECT_ALGORITHMS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.AlgorithmRegistry = exports.createAlgorithm = void 0;
+exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.STRING_ALGORITHMS = exports.HTTP_ALGORITHMS = exports.TIMESERIES_ALGORITHMS = exports.LIST_ALGORITHMS = exports.OBJECT_ALGORITHMS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.AlgorithmRegistry = exports.createAlgorithm = void 0;
 var core_1 = require("./definitions/core");
 Object.defineProperty(exports, "createAlgorithm", { enumerable: true, get: function () { return core_1.createAlgorithm; } });
 Object.defineProperty(exports, "AlgorithmRegistry", { enumerable: true, get: function () { return core_1.AlgorithmRegistry; } });
@@ -27,6 +27,8 @@ const timeseries_algorithms_1 = require("./definitions/timeseries.algorithms");
 Object.defineProperty(exports, "TIMESERIES_ALGORITHMS", { enumerable: true, get: function () { return timeseries_algorithms_1.TIMESERIES_ALGORITHMS; } });
 const http_algorithms_1 = require("./definitions/http.algorithms");
 Object.defineProperty(exports, "HTTP_ALGORITHMS", { enumerable: true, get: function () { return http_algorithms_1.HTTP_ALGORITHMS; } });
+const string_algorithms_1 = require("./definitions/string.algorithms");
+Object.defineProperty(exports, "STRING_ALGORITHMS", { enumerable: true, get: function () { return string_algorithms_1.STRING_ALGORITHMS; } });
 exports.ALGORITHM_DEFINITIONS = [
     ...number_algorithms_1.NUMBER_ALGORITHMS,
     ...node_algorithms_1.NODE_ALGORITHMS,
@@ -39,6 +41,7 @@ exports.ALGORITHM_DEFINITIONS = [
     ...list_algorithms_1.LIST_ALGORITHMS,
     ...timeseries_algorithms_1.TIMESERIES_ALGORITHMS,
     ...http_algorithms_1.HTTP_ALGORITHMS,
+    ...string_algorithms_1.STRING_ALGORITHMS,
 ];
 exports.ALGORITHM_REGISTRY = new core_2.AlgorithmRegistry(exports.ALGORITHM_DEFINITIONS);
 exports.ALGORITHMS = exports.ALGORITHM_REGISTRY.toObject();

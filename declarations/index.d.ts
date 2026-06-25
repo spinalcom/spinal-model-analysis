@@ -33,6 +33,6 @@ export * from './constants/analysisTrigger';
 export * from './constants/analysisWorknodeResolver';
 export * from './constants/analysisAlgorithm';
 export * from './constants/analysisWorkflowBlock';
-export { ALGORITHM_DEFINITIONS, ALGORITHM_REGISTRY, ALGORITHMS, NUMBER_ALGORITHMS, NODE_ALGORITHMS, NODE_ATTRIBUTES_ALGORITHMS, FLOW_CONTROL_ALGORITHMS, REGISTER_ALGORITHMS, LIST_ALGORITHMS, BOOLEAN_ALGORITHMS, CONVERSION_ALGORITHMS, OBJECT_ALGORITHMS, TIMESERIES_ALGORITHMS, HTTP_ALGORITHMS, } from './algorithms/algorithms';
+export { ALGORITHM_DEFINITIONS, ALGORITHM_REGISTRY, ALGORITHMS, NUMBER_ALGORITHMS, NODE_ALGORITHMS, NODE_ATTRIBUTES_ALGORITHMS, FLOW_CONTROL_ALGORITHMS, REGISTER_ALGORITHMS, LIST_ALGORITHMS, BOOLEAN_ALGORITHMS, CONVERSION_ALGORITHMS, OBJECT_ALGORITHMS, STRING_ALGORITHMS, TIMESERIES_ALGORITHMS, HTTP_ALGORITHMS, } from './algorithms/algorithms';
 export { AlgorithmDefinition, AlgorithmInputValue, AlgorithmParamValue, AlgorithmParams, AlgorithmParameters, AlgorithmResult, AlgorithmRunResult, AlgorithmRunContext, ExecutionMetadata, ExecutionTriggerContext, PrimitiveValue, createAlgorithm, AlgorithmRegistry, } from './algorithms/definitions/core';
 export default spinalAnalysisExecutionService;
