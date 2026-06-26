@@ -114,6 +114,7 @@ export {
   STRING_ALGORITHMS,
   TIMESERIES_ALGORITHMS,
   HTTP_ALGORITHMS,
+  TICKET_ALGORITHMS,
 } from './algorithms/algorithms';
 
 export {

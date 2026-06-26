@@ -27,6 +27,7 @@ import { LIST_ALGORITHMS } from './definitions/list.algorithms';
 import { TIMESERIES_ALGORITHMS } from './definitions/timeseries.algorithms';
 import { HTTP_ALGORITHMS } from './definitions/http.algorithms';
 import { STRING_ALGORITHMS } from './definitions/string.algorithms';
+import { TICKET_ALGORITHMS } from './definitions/ticket.algorithms';
 
 export {
   NUMBER_ALGORITHMS,
@@ -41,6 +42,7 @@ export {
   TIMESERIES_ALGORITHMS,
   HTTP_ALGORITHMS,
   STRING_ALGORITHMS,
+  TICKET_ALGORITHMS,
 };
 
 export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
@@ -56,6 +58,7 @@ export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
   ...TIMESERIES_ALGORITHMS,
   ...HTTP_ALGORITHMS,
   ...STRING_ALGORITHMS,
+  ...TICKET_ALGORITHMS,
 ];
 
 export const ALGORITHM_REGISTRY = new AlgorithmRegistry(
