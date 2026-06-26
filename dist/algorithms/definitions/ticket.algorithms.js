@@ -26,6 +26,8 @@ function getTicketService() {
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     return require('spinal-service-ticket').spinalServiceTicket;
 }
+/** Context type used by spinal-service-ticket for ticket contexts (a.k.a. workflows). */
+const TICKET_CONTEXT_TYPE = 'SpinalSystemServiceTicket';
 exports.TICKET_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'CREATE_TICKET',
@@ -61,20 +63,27 @@ exports.TICKET_ALGORITHMS = [
                 throw new Error('CREATE_TICKET requires a non-empty "name" parameter');
             }
             const ticketService = getTicketService();
-            // Resolve the ticket context (workflow) by name → first match.
-            const context = yield ticketService.getContexts(contextName);
+            // Resolve the ticket context (workflow) by name AND ticket type, via the graph
+            // service's registry (which the organ has set). We avoid ticketService.getContexts()
+            // because it calls getGraph().getChildren(), and getGraph() can be undefined here →
+            // "Cannot read ... 'getChildren'". Matching the type too means a same-named context
+            // of another service can't be picked up by mistake.
+            const ticketContexts = spinal_env_viewer_graph_service_1.SpinalGraphService.getContextWithType(TICKET_CONTEXT_TYPE);
+            const context = ticketContexts.find((c) => { var _a, _b, _c; return ((_c = (_a = c === null || c === void 0 ? void 0 : c.getName) === null || _a === void 0 ? void 0 : (_b = _a.call(c)).get) === null || _c === void 0 ? void 0 : _c.call(_b)) === contextName; });
             if (!context || typeof context.getId !== 'function') {
                 throw new Error(`CREATE_TICKET: ticket context (workflow) "${contextName}" not found`);
             }
             spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(context);
             const contextId = context.getId().get();
-            // Resolve the process (domain) by name within the context → first match.
-            const processes = yield ticketService.getAllProcess(contextId);
-            const process = processes.find((p) => { var _a, _b; return ((_b = (_a = p === null || p === void 0 ? void 0 : p.name) === null || _a === void 0 ? void 0 : _a.get) === null || _b === void 0 ? void 0 : _b.call(_a)) === processName; });
+            // Resolve the process (domain) by name → first match. Processes are the context's
+            // children; traverse them directly so we don't depend on getGraph() either.
+            const processes = (yield context.getChildrenInContext(context));
+            const process = processes.find((p) => { var _a, _b, _c; return ((_c = (_a = p === null || p === void 0 ? void 0 : p.getName) === null || _a === void 0 ? void 0 : (_b = _a.call(p)).get) === null || _c === void 0 ? void 0 : _c.call(_b)) === processName; });
             if (!process) {
                 throw new Error(`CREATE_TICKET: process (domain) "${processName}" not found in workflow "${contextName}"`);
             }
-            const processId = process.id.get();
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(process);
+            const processId = process.getId().get();
             // Build the ticket info and create it (the service drops it into the first step).
             const ticketInfo = { name: ticketName };
             if (typeof (params === null || params === void 0 ? void 0 : params.priority) === 'number')

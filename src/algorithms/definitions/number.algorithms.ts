@@ -57,12 +57,15 @@ export const NUMBER_ALGORITHMS: AlgorithmDefinition[] = [
   }),
   createAlgorithm({
     name: 'RANDOM_NUMBER',
-    description: 'Generates a random number between min and max (inclusive). No input required.',
+    description:
+      'Generates a random number between min and max. No input required. By default a float in ' +
+      '[min, max). Set "integer" to true for a random integer in [min, max] inclusive.',
     inputs: [],
     outputType: 'number',
     parameters: [
       { name: 'min', type: 'number', description: 'Lower bound (inclusive)', required: true },
-      { name: 'max', type: 'number', description: 'Upper bound (inclusive)', required: true },
+      { name: 'max', type: 'number', description: 'Upper bound (float: exclusive; integer: inclusive)', required: true },
+      { name: 'integer', type: 'boolean', description: 'When true, return an integer in [min, max] inclusive instead of a float. Defaults to false.', required: false },
     ],
     run: async (_input, params): AlgorithmRunResult => {
       const min = params?.min as number;
@@ -70,6 +73,17 @@ export const NUMBER_ALGORITHMS: AlgorithmDefinition[] = [
       if (typeof min !== 'number' || typeof max !== 'number') {
         throw new Error('RANDOM_NUMBER requires numeric min and max parameters');
       }
+
+      const asInteger = params?.integer === true || params?.integer === 'true';
+      if (asInteger) {
+        const lo = Math.ceil(min);
+        const hi = Math.floor(max);
+        if (lo > hi) {
+          throw new Error(`RANDOM_NUMBER: no integer exists between min=${min} and max=${max}`);
+        }
+        return Math.floor(Math.random() * (hi - lo + 1)) + lo;
+      }
+
       return min + Math.random() * (max - min);
     },
   }),

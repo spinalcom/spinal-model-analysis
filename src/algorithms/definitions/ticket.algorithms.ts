@@ -22,6 +22,9 @@ function getTicketService() {
     return (require('spinal-service-ticket') as typeof import('spinal-service-ticket')).spinalServiceTicket;
 }
 
+/** Context type used by spinal-service-ticket for ticket contexts (a.k.a. workflows). */
+const TICKET_CONTEXT_TYPE = 'SpinalSystemServiceTicket';
+
 export const TICKET_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'CREATE_TICKET',
@@ -61,24 +64,32 @@ export const TICKET_ALGORITHMS: AlgorithmDefinition[] = [
 
             const ticketService = getTicketService();
 
-
-            // Resolve the ticket context (workflow) by name → first match.
-            const context = await ticketService.getContexts(contextName);
-            if (!context || typeof (context as any).getId !== 'function') {
+            // Resolve the ticket context (workflow) by name AND ticket type, via the graph
+            // service's registry (which the organ has set). We avoid ticketService.getContexts()
+            // because it calls getGraph().getChildren(), and getGraph() can be undefined here →
+            // "Cannot read ... 'getChildren'". Matching the type too means a same-named context
+            // of another service can't be picked up by mistake.
+            const ticketContexts = SpinalGraphService.getContextWithType(
+                TICKET_CONTEXT_TYPE
+            ) as unknown as SpinalNode<any>[];
+            const context = ticketContexts.find((c) => c?.getName?.().get?.() === contextName);
+            if (!context || typeof context.getId !== 'function') {
                 throw new Error(`CREATE_TICKET: ticket context (workflow) "${contextName}" not found`);
             }
-            SpinalGraphService._addNode(context as any);
-            const contextId: string = (context as any).getId().get();
+            SpinalGraphService._addNode(context);
+            const contextId: string = context.getId().get();
 
-            // Resolve the process (domain) by name within the context → first match.
-            const processes = await ticketService.getAllProcess(contextId);
-            const process = processes.find((p: any) => p?.name?.get?.() === processName);
+            // Resolve the process (domain) by name → first match. Processes are the context's
+            // children; traverse them directly so we don't depend on getGraph() either.
+            const processes = (await context.getChildrenInContext(context as any)) as SpinalNode<any>[];
+            const process = processes.find((p) => p?.getName?.().get?.() === processName);
             if (!process) {
                 throw new Error(
                     `CREATE_TICKET: process (domain) "${processName}" not found in workflow "${contextName}"`
                 );
             }
-            const processId: string = (process as any).id.get();
+            SpinalGraphService._addNode(process);
+            const processId: string = process.getId().get();
 
             // Build the ticket info and create it (the service drops it into the first step).
             const ticketInfo: Record<string, any> = { name: ticketName };
