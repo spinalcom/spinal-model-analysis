@@ -62,6 +62,20 @@ export default class AnalysisFactoryService {
      */
     updateFromJSON(analysisNode: SpinalNode<any>, config: IAnalysisConfigJSON): Promise<SpinalNode<any>>;
     /**
+     * Partially updates an analysis's scalar metadata — name, description, concurrency
+     * and/or status — without touching its workflows, anchor or triggers. Only the
+     * fields present in `patch` are applied (a PATCH, unlike updateFromJSON's full replace).
+     *
+     * Deliberately does NOT bump the revision (setLastUpdate): none of these fields require
+     * the organ to rebuild triggers/bindings — status is handled by the organ's active-gate,
+     * and concurrency is read fresh on each execution. Bumping would force a needless re-setup.
+     *
+     * @param analysisNode - The existing analysis node to patch
+     * @param patch - The subset of metadata fields to change
+     * @returns The same analysis node, updated
+     */
+    patchAnalysis(analysisNode: SpinalNode<any>, patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status'>>): Promise<SpinalNode<any>>;
+    /**
      * Links the anchor target, builds the three workflow DAGs, and stores the
      * trigger configs from a config object onto an analysis node whose mandatory
      * sub-nodes already exist. Shared by createFromJSON and updateFromJSON.

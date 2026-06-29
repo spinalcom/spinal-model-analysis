@@ -225,6 +225,66 @@ export default class AnalysisFactoryService {
     }
 
     /**
+     * Partially updates an analysis's scalar metadata — name, description, concurrency
+     * and/or status — without touching its workflows, anchor or triggers. Only the
+     * fields present in `patch` are applied (a PATCH, unlike updateFromJSON's full replace).
+     *
+     * Deliberately does NOT bump the revision (setLastUpdate): none of these fields require
+     * the organ to rebuild triggers/bindings — status is handled by the organ's active-gate,
+     * and concurrency is read fresh on each execution. Bumping would force a needless re-setup.
+     *
+     * @param analysisNode - The existing analysis node to patch
+     * @param patch - The subset of metadata fields to change
+     * @returns The same analysis node, updated
+     */
+    public async patchAnalysis(
+        analysisNode: SpinalNode<any>,
+        patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status'>>
+    ): Promise<SpinalNode<any>> {
+        // ── Validate only the provided fields ──
+        const errors: string[] = [];
+        if (patch.analysisName !== undefined && (typeof patch.analysisName !== 'string' || patch.analysisName.trim() === '')) {
+            errors.push('analysisName: must be a non-empty string');
+        }
+        if (patch.description !== undefined && typeof patch.description !== 'string') {
+            errors.push('description: must be a string');
+        }
+        if (patch.concurrency !== undefined) {
+            errors.push(...this.validateConcurrency(patch.concurrency));
+        }
+        if (patch.status !== undefined && patch.status !== 'Active' && patch.status !== 'Inactive') {
+            errors.push('status: must be either "Active" or "Inactive"');
+        }
+        if (errors.length > 0) {
+            throw new Error(
+                `[AnalysisFactory] Invalid patch for "${analysisNode.getName().get()}": \n` +
+                errors.map((e) => `  - ${e}`).join('\n')
+            );
+        }
+
+        // ── Apply only the provided fields ──
+        if (patch.analysisName !== undefined) {
+            analysisNode.info.name.set(patch.analysisName);
+        }
+        if (patch.description !== undefined) {
+            if (analysisNode.info.description) {
+                analysisNode.info.description.set(patch.description);
+            } else {
+                analysisNode.info.add_attr('description', patch.description);
+            }
+        }
+        if (patch.concurrency !== undefined) {
+            await this.nodeManager.setConcurrencyConfig(analysisNode, patch.concurrency);
+        }
+        if (patch.status !== undefined) {
+            await this.nodeManager.setStatus(analysisNode, patch.status);
+        }
+
+        logMessage(`[AnalysisFactory] Analysis "${analysisNode.getName().get()}" patched`);
+        return analysisNode;
+    }
+
+    /**
      * Links the anchor target, builds the three workflow DAGs, and stores the
      * trigger configs from a config object onto an analysis node whose mandatory
      * sub-nodes already exist. Shared by createFromJSON and updateFromJSON.
