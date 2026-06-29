@@ -25,6 +25,24 @@ function getTicketService() {
 /** Context type used by spinal-service-ticket for ticket contexts (a.k.a. workflows). */
 const TICKET_CONTEXT_TYPE = 'SpinalSystemServiceTicket';
 
+/**
+ * Resolves a ticket context (workflow) by name and registers it in the graph
+ * service. Uses getContextWithType, which is registry-based (unlike getGraph(),
+ * which can be undefined here); matching the ticket type also prevents picking up
+ * a same-named context of another service. Throws (prefixed with `who`) if missing.
+ */
+function resolveTicketContext(contextName: string, who: string): SpinalNode<any> {
+    const ticketContexts = SpinalGraphService.getContextWithType(
+        TICKET_CONTEXT_TYPE
+    ) as unknown as SpinalNode<any>[];
+    const context = ticketContexts.find((c) => c?.getName?.().get?.() === contextName);
+    if (!context || typeof context.getId !== 'function') {
+        throw new Error(`${who}: ticket context (workflow) "${contextName}" not found`);
+    }
+    SpinalGraphService._addNode(context);
+    return context;
+}
+
 export const TICKET_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'CREATE_TICKET',
@@ -64,19 +82,8 @@ export const TICKET_ALGORITHMS: AlgorithmDefinition[] = [
 
             const ticketService = getTicketService();
 
-            // Resolve the ticket context (workflow) by name AND ticket type, via the graph
-            // service's registry (which the organ has set). We avoid ticketService.getContexts()
-            // because it calls getGraph().getChildren(), and getGraph() can be undefined here →
-            // "Cannot read ... 'getChildren'". Matching the type too means a same-named context
-            // of another service can't be picked up by mistake.
-            const ticketContexts = SpinalGraphService.getContextWithType(
-                TICKET_CONTEXT_TYPE
-            ) as unknown as SpinalNode<any>[];
-            const context = ticketContexts.find((c) => c?.getName?.().get?.() === contextName);
-            if (!context || typeof context.getId !== 'function') {
-                throw new Error(`CREATE_TICKET: ticket context (workflow) "${contextName}" not found`);
-            }
-            SpinalGraphService._addNode(context);
+            // Resolve + register the ticket context (workflow) by name.
+            const context = resolveTicketContext(contextName, 'CREATE_TICKET');
             const contextId: string = context.getId().get();
 
             // Resolve the process (domain) by name → first match. Processes are the context's
@@ -111,6 +118,82 @@ export const TICKET_ALGORITHMS: AlgorithmDefinition[] = [
                 input.getId().get(),
                 ticketType
             );
+            return ticketId;
+        },
+    }),
+
+    createAlgorithm({
+        name: 'GET_TICKETS_FROM_NODE',
+        description:
+            'Returns the tickets attached to the input node as a JSON array string of ticket info ' +
+            'objects (id, name, stepId, …). Returns "[]" when the node has no tickets. Use it to avoid ' +
+            'duplicates — e.g. CREATE_TICKET only when this list is empty (feed it to LIST_LENGTH and ' +
+            'gate on 0). Extract a ticket id with LIST_GET then GET_PROPERTY(…, "id").',
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose attached tickets to list.', required: true },
+        ],
+        outputType: 'string',
+        parameters: [],
+        run: async (input): AlgorithmRunResult => {
+            if (!isSpinalNode(input)) {
+                throw new Error('GET_TICKETS_FROM_NODE expects a SpinalNode input (the node whose tickets to list)');
+            }
+            const ticketService = getTicketService();
+            // The work node is already registered, but _addNode guards the getRealNode lookup.
+            SpinalGraphService._addNode(input);
+            const tickets = await ticketService.getTicketsFromNode(input.getId().get());
+            return JSON.stringify(tickets ?? []);
+        },
+    }),
+
+    createAlgorithm({
+        name: 'MOVE_TICKET_TO_NEXT_STEP',
+        description:
+            'Advances a ticket to the next step of its process. Takes the ticket id as input (e.g. ' +
+            "CREATE_TICKET's output, or extracted from GET_TICKETS_FROM_NODE). The context (workflow) is " +
+            'resolved by name from the parameter so it is reliably registered; the process is derived ' +
+            'from the ticket. Returns the (unchanged) ticket id for chaining. Moving past the last step ' +
+            'is a no-op. The ticket must already be loaded — i.e. created this run or obtained via ' +
+            'GET_TICKETS_FROM_NODE in the same execution.',
+        inputs: [
+            { name: 'ticketId', types: ['string'], description: 'The id of the ticket to advance.', required: true },
+        ],
+        outputType: 'string',
+        parameters: [
+            { name: 'contextName', type: 'string', description: 'Name of the ticket context (a.k.a. workflow) the ticket belongs to.', required: true },
+        ],
+        run: async (input, params): AlgorithmRunResult => {
+            const ticketId = typeof input === 'string' ? input.trim() : '';
+            if (ticketId === '') {
+                throw new Error('MOVE_TICKET_TO_NEXT_STEP expects a non-empty ticket id string input');
+            }
+            const contextName = params?.contextName;
+            if (typeof contextName !== 'string' || contextName.trim() === '') {
+                throw new Error('MOVE_TICKET_TO_NEXT_STEP requires a non-empty "contextName" parameter');
+            }
+
+            const ticketService = getTicketService();
+
+            // The ticket must already be loaded/registered (created this run, or listed via
+            // GET_TICKETS_FROM_NODE which registers each ticket). Without it, getRealNode →
+            // undefined and the service would throw an opaque error.
+            const ticketNode = SpinalGraphService.getRealNode(ticketId);
+            if (!ticketNode) {
+                throw new Error(
+                    `MOVE_TICKET_TO_NEXT_STEP: ticket "${ticketId}" is not loaded — obtain it via ` +
+                    'CREATE_TICKET or GET_TICKETS_FROM_NODE in the same execution first'
+                );
+            }
+
+            // Resolve + register the context (by name) and the process (derived from the ticket),
+            // so the service's getRealNode lookups for all three nodes succeed.
+            const context = resolveTicketContext(contextName, 'MOVE_TICKET_TO_NEXT_STEP');
+            const contextId: string = context.getId().get();
+
+            const processNode = (await ticketService.getTicketProcess(ticketId)) as unknown as SpinalNode<any>;
+            const processId: string = processNode.getId().get();
+
+            await ticketService.moveTicketToNextStep(contextId, processId, ticketId);
             return ticketId;
         },
     }),
