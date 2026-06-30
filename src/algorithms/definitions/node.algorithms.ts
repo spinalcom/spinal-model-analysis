@@ -18,6 +18,19 @@ const isNodeArray = (value: unknown): value is SpinalNode<any>[] => {
   return Array.isArray(value) && value.every((item) => isSpinalNode(item));
 };
 
+/** Returns the first node whose info[propName] is a string matching the regex (like FIND_NODE). */
+const findNodeByProperty = (
+  nodes: SpinalNode<any>[],
+  propName: string,
+  regex: RegExp
+): SpinalNode<any> | undefined =>
+  nodes.find((node) => {
+    const infoProp = node.info[propName];
+    if (!infoProp || typeof infoProp.get !== 'function') return false;
+    const value: unknown = infoProp.get();
+    return typeof value === 'string' && regex.test(value);
+  });
+
 export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
   createAlgorithm({
     name: 'FIRST_NODE',
@@ -103,6 +116,76 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
       if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
       const regex = params?.regex ? new RegExp(String(params.regex)) : undefined;
       return await input.getParents(regex);
+    },
+  }),
+  createAlgorithm({
+    name: 'GET_NODE_CHILD',
+    description:
+      'Shortcut for GET_NODE_CHILDREN + FIND_NODE: returns the first child of the input node whose ' +
+      'property matches a regex. The optional "regex" limits which relations are traversed; ' +
+      '"filterProperty" (default "name") and "regexFilter" select the child. Throws if none matches.',
+    inputs: [
+      { name: 'node', types: ['SpinalNode'], description: 'The node whose children to search.', required: true },
+    ],
+    outputType: 'SpinalNode',
+    parameters: [
+      { name: 'regex', type: 'string', description: 'Optional regex on the relation name to limit which children are traversed.', required: false },
+      { name: 'filterProperty', type: 'string', description: 'Info property to match on (default "name").', required: false },
+      { name: 'regexFilter', type: 'string', description: 'Regex the property value must match to select the child.', required: true },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      if (!isSpinalNode(input)) throw new Error('GET_NODE_CHILD expects a SpinalNode input');
+      const rawRegexFilter = params?.regexFilter;
+      if (typeof rawRegexFilter !== 'string' || rawRegexFilter.length === 0) {
+        throw new Error('GET_NODE_CHILD requires a non-empty "regexFilter" parameter');
+      }
+      const relationRegex = params?.regex ? new RegExp(String(params.regex)) : undefined;
+      const propName = typeof params?.filterProperty === 'string' && params.filterProperty.length > 0
+        ? params.filterProperty
+        : 'name';
+      const regexFilter = new RegExp(rawRegexFilter);
+
+      const children = await input.getChildren(relationRegex);
+      const found = findNodeByProperty(children, propName, regexFilter);
+      if (!found) {
+        throw new Error(`GET_NODE_CHILD: no child found with ${propName} =~ /${rawRegexFilter}/`);
+      }
+      return found;
+    },
+  }),
+  createAlgorithm({
+    name: 'GET_NODE_PARENT',
+    description:
+      'Shortcut for GET_NODE_PARENTS + FIND_NODE: returns the first parent of the input node whose ' +
+      'property matches a regex. The optional "regex" limits which relations are traversed; ' +
+      '"filterProperty" (default "name") and "regexFilter" select the parent. Throws if none matches.',
+    inputs: [
+      { name: 'node', types: ['SpinalNode'], description: 'The node whose parents to search.', required: true },
+    ],
+    outputType: 'SpinalNode',
+    parameters: [
+      { name: 'regex', type: 'string', description: 'Optional regex on the relation name to limit which parents are traversed.', required: false },
+      { name: 'filterProperty', type: 'string', description: 'Info property to match on (default "name").', required: false },
+      { name: 'regexFilter', type: 'string', description: 'Regex the property value must match to select the parent.', required: true },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      if (!isSpinalNode(input)) throw new Error('GET_NODE_PARENT expects a SpinalNode input');
+      const rawRegexFilter = params?.regexFilter;
+      if (typeof rawRegexFilter !== 'string' || rawRegexFilter.length === 0) {
+        throw new Error('GET_NODE_PARENT requires a non-empty "regexFilter" parameter');
+      }
+      const relationRegex = params?.regex ? new RegExp(String(params.regex)) : undefined;
+      const propName = typeof params?.filterProperty === 'string' && params.filterProperty.length > 0
+        ? params.filterProperty
+        : 'name';
+      const regexFilter = new RegExp(rawRegexFilter);
+
+      const parents = await input.getParents(relationRegex);
+      const found = findNodeByProperty(parents, propName, regexFilter);
+      if (!found) {
+        throw new Error(`GET_NODE_PARENT: no parent found with ${propName} =~ /${rawRegexFilter}/`);
+      }
+      return found;
     },
   }),
 
