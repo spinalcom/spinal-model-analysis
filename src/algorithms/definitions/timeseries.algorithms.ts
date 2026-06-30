@@ -121,6 +121,8 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
       '(date in epoch ms, value numeric), ordered by date. ' +
       'The time window can be given as an absolute range (start/end) or relative to the ' +
       'execution reference time (windowMs/lastHours/lastDays back from end). ' +
+      'Use includeValueAtBegin / extendToEnd to seed the value at the window edges so a ' +
+      'downstream span calc (e.g. TIMESERIES_TIME_WEIGHTED_AVERAGE) covers the whole window. ' +
       'If the endpoint has no timeseries, an empty array is returned.',
     inputs: [
       { name: 'endpoint', types: ['SpinalNode'], description: 'The BmsEndpoint node whose timeseries to fetch.', required: true },
@@ -167,6 +169,16 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
         description: 'If true, include the last recorded value before "start" so the series has a value at the window opening. Default false.',
         required: false,
       },
+      {
+        name: 'extendToEnd',
+        type: 'boolean',
+        description:
+          'If true, append a point at "end" holding the last recorded value, so the last reading is ' +
+          'carried to the window close. Symmetric to includeValueAtBegin (which seeds the window ' +
+          'opening); together they make the series span the full window, so a downstream ' +
+          'TIMESERIES_TIME_WEIGHTED_AVERAGE is window-correct. Default false.',
+        required: false,
+      },
     ],
     run: async (input, params, context): AlgorithmRunResult => {
       if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
@@ -194,9 +206,22 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
 
       const includeValueAtBegin =
         params?.includeValueAtBegin === true || params?.includeValueAtBegin === 'true';
+      const extendToEnd =
+        params?.extendToEnd === true || params?.extendToEnd === 'true';
 
       const service = SingletonServiceTimeseries.getInstance();
-      return await service.getFromIntervalTime(timeseries, start, end, includeValueAtBegin);
+      const result = await service.getFromIntervalTime(timeseries, start, end, includeValueAtBegin);
+
+      // Optionally carry the last recorded value to the window end, so a downstream
+      // time-weighted average (or any span calc) covers the full [start, end] window.
+      // Mirrors includeValueAtBegin, which seeds the value at the window opening.
+      if (extendToEnd && result.length > 0) {
+        const last = result[result.length - 1];
+        if (last.date < end) {
+          return [...result, { date: end, value: last.value }];
+        }
+      }
+      return result;
     },
   }),
 
@@ -252,6 +277,48 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
       const series = asSeries(input, 'TIMESERIES_DELTA');
       if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_DELTA');
       return series[series.length - 1].value - series[0].value;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'TIMESERIES_TIME_WEIGHTED_AVERAGE',
+    description:
+      'Computes the time-weighted average of a timeseries ({ date, value }[]) with a zero-order ' +
+      'hold: each value is weighted by the time until the next point (a flat-line/step model, the ' +
+      'right model for sensor readings), averaged over the span [first point, last point]. ' +
+      'To make it window-correct, shape the series at fetch time with GET_ENDPOINT_TIMESERIES ' +
+      'includeValueAtBegin=true (a value at the window open) and extendToEnd=true (the last value ' +
+      'carried to the window close) — then the span IS the window. A single point — or a series ' +
+      'spanning no time — yields the plain mean of the values. Throws if the series is empty, unless ' +
+      'defaultOnEmpty is provided.',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to average.', required: true }
+    ],
+    outputType: 'number',
+    parameters: [DEFAULT_ON_EMPTY_PARAM],
+    run: async (input, params): AlgorithmRunResult => {
+      const raw = asSeries(input, 'TIMESERIES_TIME_WEIGHTED_AVERAGE');
+      if (raw.length === 0) return resolveEmpty(params, 'TIMESERIES_TIME_WEIGHTED_AVERAGE');
+
+      // Integrate over a copy sorted by date — the fetch returns sorted points, but a
+      // hand-built series might not be, and the weighting depends on chronological order.
+      const series = [...raw].sort((a, b) => a.date - b.date);
+      const n = series.length;
+      const window = series[n - 1].date - series[0].date;
+
+      // No time span (single point or all-equal dates) → no durations to weight by, so
+      // fall back to the arithmetic mean (which equals the value for one point).
+      if (window <= 0) {
+        return series.reduce((acc, p) => acc + p.value, 0) / n;
+      }
+
+      // Each value is held from its own date until the next point's date; the last point
+      // closes the span and contributes no duration.
+      let integral = 0;
+      for (let i = 0; i < n - 1; i++) {
+        integral += series[i].value * (series[i + 1].date - series[i].date);
+      }
+      return integral / window;
     },
   }),
 
