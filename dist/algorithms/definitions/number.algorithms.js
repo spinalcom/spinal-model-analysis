@@ -199,5 +199,101 @@ exports.NUMBER_ALGORITHMS = [
             return result;
         }),
     }),
+    (0, core_1.createAlgorithm)({
+        name: 'AVERAGE_NUMBERS',
+        description: 'Returns the arithmetic mean of a number array input. Numeric strings are accepted.',
+        inputs: [
+            { name: 'numbers', types: NUMERIC_TYPES, description: 'One or more numbers (or numeric strings) to average.', required: true, variadic: true },
+        ],
+        outputType: 'number',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            const arr = Array.isArray(input) ? input : [input];
+            if (arr.length === 0)
+                throw new Error('AVERAGE_NUMBERS: no numeric input provided');
+            const sum = arr.reduce((acc, current) => acc + (0, core_1.toNumber)(current, 'AVERAGE_NUMBERS input'), 0);
+            return sum / arr.length;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'MIN_NUMBERS',
+        description: 'Returns the smallest of a number array input. Numeric strings are accepted.',
+        inputs: [
+            { name: 'numbers', types: NUMERIC_TYPES, description: 'One or more numbers (or numeric strings).', required: true, variadic: true },
+        ],
+        outputType: 'number',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            const arr = Array.isArray(input) ? input : [input];
+            if (arr.length === 0)
+                throw new Error('MIN_NUMBERS: no numeric input provided');
+            return Math.min(...arr.map((v) => (0, core_1.toNumber)(v, 'MIN_NUMBERS input')));
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'MAX_NUMBERS',
+        description: 'Returns the largest of a number array input. Numeric strings are accepted.',
+        inputs: [
+            { name: 'numbers', types: NUMERIC_TYPES, description: 'One or more numbers (or numeric strings).', required: true, variadic: true },
+        ],
+        outputType: 'number',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            const arr = Array.isArray(input) ? input : [input];
+            if (arr.length === 0)
+                throw new Error('MAX_NUMBERS: no numeric input provided');
+            return Math.max(...arr.map((v) => (0, core_1.toNumber)(v, 'MAX_NUMBERS input')));
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'ROUND',
+        description: 'Rounds the input number to "decimals" decimal places (default 0). Numeric strings are accepted.',
+        inputs: [
+            { name: 'number', types: NUMERIC_TYPES, description: 'The input number (or numeric string).', required: true },
+        ],
+        outputType: 'number',
+        parameters: [
+            { name: 'decimals', type: 'number', description: 'Number of decimal places to round to (default 0).', required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            const n = (0, core_1.toNumber)(input, 'ROUND input');
+            const decimals = (params === null || params === void 0 ? void 0 : params.decimals) !== undefined ? (0, core_1.toNumber)(params.decimals, 'ROUND decimals') : 0;
+            const d = Math.max(0, Math.floor(decimals));
+            const factor = Math.pow(10, d);
+            return Math.round(n * factor) / factor;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'ABS',
+        description: 'Returns the absolute value of the input number. Numeric strings are accepted.',
+        inputs: [
+            { name: 'number', types: NUMERIC_TYPES, description: 'The input number (or numeric string).', required: true },
+        ],
+        outputType: 'number',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            return Math.abs((0, core_1.toNumber)(input, 'ABS input'));
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'CLAMP',
+        description: 'Constrains the input number to the [min, max] range. Numeric strings are accepted.',
+        inputs: [
+            { name: 'number', types: NUMERIC_TYPES, description: 'The input number (or numeric string).', required: true },
+        ],
+        outputType: 'number',
+        parameters: [
+            { name: 'min', type: 'number', description: 'Lower bound (inclusive).', required: true },
+            { name: 'max', type: 'number', description: 'Upper bound (inclusive).', required: true },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            const n = (0, core_1.toNumber)(input, 'CLAMP input');
+            const min = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.min, 'CLAMP min');
+            const max = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.max, 'CLAMP max');
+            if (min > max)
+                throw new Error(`CLAMP: min (${min}) must not exceed max (${max})`);
+            return Math.min(Math.max(n, min), max);
+        }),
+    }),
 ];
 //# sourceMappingURL=number.algorithms.js.map

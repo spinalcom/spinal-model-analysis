@@ -323,6 +323,91 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
   }),
 
   createAlgorithm({
+    name: 'TIMESERIES_MIN',
+    description:
+      'Returns the minimum value of a timeseries ({ date, value }[]). ' +
+      'Throws if the series is empty, unless defaultOnEmpty is provided.',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to reduce.', required: true },
+    ],
+    outputType: 'number',
+    parameters: [DEFAULT_ON_EMPTY_PARAM],
+    run: async (input, params): AlgorithmRunResult => {
+      const series = asSeries(input, 'TIMESERIES_MIN');
+      if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_MIN');
+      return Math.min(...series.map((p) => p.value));
+    },
+  }),
+
+  createAlgorithm({
+    name: 'TIMESERIES_MAX',
+    description:
+      'Returns the maximum value of a timeseries ({ date, value }[]). ' +
+      'Throws if the series is empty, unless defaultOnEmpty is provided.',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to reduce.', required: true },
+    ],
+    outputType: 'number',
+    parameters: [DEFAULT_ON_EMPTY_PARAM],
+    run: async (input, params): AlgorithmRunResult => {
+      const series = asSeries(input, 'TIMESERIES_MAX');
+      if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_MAX');
+      return Math.max(...series.map((p) => p.value));
+    },
+  }),
+
+  createAlgorithm({
+    name: 'TIMESERIES_AVERAGE',
+    description:
+      'Returns the plain arithmetic mean of a timeseries\' values ({ date, value }[]) — every point ' +
+      'counts equally, regardless of spacing. For an average that accounts for the time between ' +
+      'samples (the right choice for irregular sensor data), use TIMESERIES_TIME_WEIGHTED_AVERAGE. ' +
+      'Throws if the series is empty, unless defaultOnEmpty is provided.',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to average.', required: true },
+    ],
+    outputType: 'number',
+    parameters: [DEFAULT_ON_EMPTY_PARAM],
+    run: async (input, params): AlgorithmRunResult => {
+      const series = asSeries(input, 'TIMESERIES_AVERAGE');
+      if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_AVERAGE');
+      return series.reduce((acc, p) => acc + p.value, 0) / series.length;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'TIMESERIES_SUM',
+    description:
+      'Returns the sum of a timeseries\' values ({ date, value }[]). ' +
+      'Throws if the series is empty, unless defaultOnEmpty is provided (e.g. 0).',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to sum.', required: true },
+    ],
+    outputType: 'number',
+    parameters: [DEFAULT_ON_EMPTY_PARAM],
+    run: async (input, params): AlgorithmRunResult => {
+      const series = asSeries(input, 'TIMESERIES_SUM');
+      if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_SUM');
+      return series.reduce((acc, p) => acc + p.value, 0);
+    },
+  }),
+
+  createAlgorithm({
+    name: 'TIMESERIES_COUNT',
+    description:
+      'Returns the number of points in a timeseries ({ date, value }[]). ' +
+      'Returns 0 for an empty series — a count is always well-defined, so this never throws.',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to count.', required: true },
+    ],
+    outputType: 'number',
+    parameters: [],
+    run: async (input): AlgorithmRunResult => {
+      return asSeries(input, 'TIMESERIES_COUNT').length;
+    },
+  }),
+
+  createAlgorithm({
     name: 'PUSH_ENDPOINT_VALUE',
     description:
       'Records a value on an endpoint: updates the node element\'s currentValue (like ' +
