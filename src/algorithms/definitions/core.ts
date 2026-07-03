@@ -4,6 +4,7 @@ import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import { SpinalAttribute } from 'spinal-models-documentation';
 import { IAlgorithmParameter } from '../../interfaces/IAlgorithmParameter';
 import { IAlgorithmInput } from '../../interfaces/IAlgorithmInput';
+import { ALGORITHM_TAGS } from './tags';
 
 export type PrimitiveValue = string | number | boolean;
 export type AlgorithmInputValue =
@@ -58,6 +59,12 @@ export interface AlgorithmDefinition {
   readonly inputs: readonly IAlgorithmInput[];
   readonly outputType: string;
   readonly parameters: AlgorithmParameters;
+  /**
+   * Cross-cutting search tags. Optional in a definition — createAlgorithm merges
+   * these with the central ALGORITHM_TAGS map (by name), so every created algorithm
+   * ends up with a de-duplicated tags array.
+   */
+  readonly tags?: readonly string[];
   run: (
     input: AlgorithmInputValue | AlgorithmInputValue[],
     params?: AlgorithmParams,
@@ -89,6 +96,10 @@ export const createAlgorithm = (
     ...definition,
     inputs: definition.inputs.map((i) => ({ ...i })),
     parameters: [...definition.parameters],
+    // Merge inline tags with the central map (by name), de-duplicated.
+    tags: Object.freeze([
+      ...new Set([...(definition.tags ?? []), ...(ALGORITHM_TAGS[definition.name] ?? [])]),
+    ]),
   });
 };
 

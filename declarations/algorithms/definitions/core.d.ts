@@ -37,6 +37,12 @@ export interface AlgorithmDefinition {
     readonly inputs: readonly IAlgorithmInput[];
     readonly outputType: string;
     readonly parameters: AlgorithmParameters;
+    /**
+     * Cross-cutting search tags. Optional in a definition — createAlgorithm merges
+     * these with the central ALGORITHM_TAGS map (by name), so every created algorithm
+     * ends up with a de-duplicated tags array.
+     */
+    readonly tags?: readonly string[];
     run: (input: AlgorithmInputValue | AlgorithmInputValue[], params?: AlgorithmParams, context?: AlgorithmRunContext) => AlgorithmRunResult;
 }
 /**

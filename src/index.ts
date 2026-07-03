@@ -133,4 +133,19 @@ export {
   AlgorithmRegistry,
 } from './algorithms/definitions/core';
 
+export { ALGORITHM_TAGS } from './algorithms/definitions/tags';
+
+// Algorithm metadata localization (i18n)
+export {
+  localizeAlgorithm,
+  getLocaleTranslations,
+  SUPPORTED_LOCALES,
+} from './i18n/localize';
+export type {
+  Locale,
+  IAlgorithmTranslation,
+  LocaleTranslations,
+  LocalizedAlgorithm,
+} from './i18n/localize';
+
 export default spinalAnalysisExecutionService;
