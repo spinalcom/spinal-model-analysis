@@ -7,6 +7,20 @@ import {
 /** Upper bound on DELAY so a stray duration can't block a work node indefinitely. */
 const MAX_DELAY_MS = 5 * 60 * 1000;
 
+/** Renders a value for logging: strings as-is, objects as JSON (safe on cycles), else String(). */
+function describeForLog(value: unknown): string {
+  if (typeof value === 'string') return value;
+  if (value === null || value === undefined) return String(value);
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return String(value);
+    }
+  }
+  return String(value);
+}
+
 export const FLOW_CONTROL_ALGORITHMS: AlgorithmDefinition[] = [
   createAlgorithm({
     name: 'DELAY',
@@ -49,6 +63,27 @@ export const FLOW_CONTROL_ALGORITHMS: AlgorithmDefinition[] = [
       throw new Error(
         'IF is handled by the DAG executor, not called directly'
       );
+    },
+  }),
+  createAlgorithm({
+    name: 'LOG',
+    description:
+      'Logs its input to the console (always, regardless of ADVANCED_LOGGING) and returns it ' +
+      'unchanged — a transparent tap you can insert anywhere in a workflow to inspect a value. ' +
+      'Strings are logged as-is; other values are stringified (objects as JSON). An optional ' +
+      '"prefix" parameter labels the line so you can tell which LOG block produced it.',
+    inputs: [
+      { name: 'value', types: ['any'], description: 'The value to log (typically a string); returned unchanged.', required: true },
+    ],
+    outputType: 'any',
+    parameters: [
+      { name: 'prefix', type: 'string', description: 'Optional label prepended to the log line (default "[LOG]").', required: false },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const prefix =
+        typeof params?.prefix === 'string' && params.prefix.length > 0 ? params.prefix : '[LOG]';
+      console.log(`${prefix} ${describeForLog(input)}`);
+      return input as any;
     },
   }),
 ];

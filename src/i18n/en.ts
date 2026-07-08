@@ -54,6 +54,7 @@ export const EN: LocaleTranslations = {
   // ── flow control ──
   DELAY: { label: 'Delay' },
   IF: { label: 'If / Else' },
+  LOG: { label: 'Log' },
 
   // ── register / execution context ──
   CURRENT_NODE: { label: 'Current Work Node' },

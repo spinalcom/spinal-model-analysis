@@ -256,6 +256,12 @@ export const FR: LocaleTranslations = {
       payload: 'Valeur optionnelle injectée comme $item dans la branche choisie.',
     },
   },
+  LOG: {
+    label: 'Journaliser',
+    description: 'Écrit son entrée dans la console (toujours, indépendamment de ADVANCED_LOGGING) et la renvoie inchangée — une sonde transparente à insérer n\'importe où dans un workflow pour inspecter une valeur. Les chaînes sont écrites telles quelles ; les autres valeurs sont converties en texte (les objets en JSON). Un paramètre « prefix » optionnel étiquette la ligne pour savoir quel bloc LOG l\'a produite.',
+    inputs: { value: 'La valeur à journaliser (typiquement une chaîne) ; renvoyée inchangée.' },
+    parameters: { prefix: 'Étiquette optionnelle ajoutée en tête de la ligne (« [LOG] » par défaut).' },
+  },
 
   // ── register / execution context ──
   CURRENT_NODE: {

@@ -52,6 +52,7 @@ exports.EN = {
     // ── flow control ──
     DELAY: { label: 'Delay' },
     IF: { label: 'If / Else' },
+    LOG: { label: 'Log' },
     // ── register / execution context ──
     CURRENT_NODE: { label: 'Current Work Node' },
     GET_EXECUTION_REFERENCE_TIME: { label: 'Execution Reference Time' },

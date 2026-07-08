@@ -30,6 +30,7 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   // ── flow-control ──
   DELAY: ['flow-control', 'timing'],
   IF: ['flow-control', 'logic', 'conditional', 'branch'],
+  LOG: ['flow-control', 'debug', 'logging', 'utility'],
 
   // ── http ──
   CURL_REQUEST: ['http', 'io', 'request', 'integration'],
