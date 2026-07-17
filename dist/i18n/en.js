@@ -30,6 +30,7 @@ exports.EN = {
     CLAMP: { label: 'Clamp' },
     // ── node ──
     FIRST_NODE: { label: 'First Node' },
+    MERGE_NODES: { label: 'Merge Nodes' },
     GET_CONTEXT: { label: 'Get Context' },
     GET_NODE_SERVER_ID: { label: 'Node Server ID' },
     GET_NODE_CHILDREN: { label: 'Node Children' },

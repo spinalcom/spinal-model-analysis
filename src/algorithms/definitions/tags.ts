@@ -54,6 +54,7 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
 
   // ── node ──
   FIRST_NODE: ['node', 'graph', 'list'],
+  MERGE_NODES: ['node', 'graph', 'list', 'merge', 'aggregation'],
   GET_CONTEXT: ['node', 'graph', 'context'],
   GET_NODE_SERVER_ID: ['node', 'graph', 'read'],
   GET_NODE_CHILDREN: ['node', 'graph', 'traversal', 'children'],

@@ -112,6 +112,12 @@ export const FR: LocaleTranslations = {
     description: 'Renvoie le nœud en entrée, ou le premier nœud d\'un tableau de nœuds.',
     inputs: { nodes: 'Un nœud, ou une liste de nœuds (le premier est renvoyé).' },
   },
+  MERGE_NODES: {
+    label: 'Fusionner des nœuds',
+    description: 'Fusionne plusieurs entrées de nœuds en un seul tableau de SpinalNode. Chaque entrée peut être un nœud ou un tableau de nœuds — elles sont aplaties (d\'un niveau) en une seule liste, dans l\'ordre des entrées. Utile pour combiner par exemple les enfants de deux relations différentes. Mettez « deduplicate » à vrai pour retirer les nœuds présents plusieurs fois (par id). Renvoie [] si rien n\'est câblé.',
+    inputs: { nodes: 'Deux nœuds et/ou tableaux de nœuds ou plus à fusionner.' },
+    parameters: { deduplicate: 'Si vrai, ne garde chaque nœud qu\'une fois (par id), en conservant la première occurrence. Faux par défaut (simple concaténation).' },
+  },
   GET_CONTEXT: {
     label: 'Récupérer un contexte',
     description: 'Renvoie le contexte (SpinalContext) portant le nom donné dans le graphe. Ne prend aucune entrée — le contexte est recherché par le paramètre « name ». Lève une erreur si aucun contexte ne porte ce nom.',

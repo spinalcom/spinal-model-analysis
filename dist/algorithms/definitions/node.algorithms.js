@@ -50,6 +50,44 @@ exports.NODE_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'MERGE_NODES',
+        description: 'Merges several node inputs into a single SpinalNode array. Each input may be a node or a ' +
+            'node array — they are flattened (one level) into one list, in input order. Use it to combine ' +
+            'e.g. children from two different relations. Set "deduplicate" to remove nodes that appear ' +
+            'more than once (by id). Returns [] when nothing is wired.',
+        inputs: [
+            { name: 'nodes', types: ['SpinalNode', 'SpinalNode[]'], description: 'Two or more nodes and/or node arrays to merge.', required: true, variadic: true },
+        ],
+        outputType: 'SpinalNode[]',
+        parameters: [
+            { name: 'deduplicate', type: 'boolean', description: 'If true, keep each node only once (by id), preserving first occurrence. Default false (plain concatenation).', required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            // Variadic collapse: 0 -> [], 1 -> the value as-is, 2+ -> array of the inputs.
+            const items = Array.isArray(input) ? input : [input];
+            const merged = [];
+            for (const item of items) {
+                if (isNodeArray(item))
+                    merged.push(...item); // node array (empty spreads nothing)
+                else if (isSpinalNode(item))
+                    merged.push(item); // single node
+                else
+                    throw new Error('MERGE_NODES: each input must be a SpinalNode or a SpinalNode[]');
+            }
+            const deduplicate = (params === null || params === void 0 ? void 0 : params.deduplicate) === true || (params === null || params === void 0 ? void 0 : params.deduplicate) === 'true';
+            if (!deduplicate)
+                return merged;
+            const seen = new Set();
+            return merged.filter((node) => {
+                const id = node.getId().get();
+                if (seen.has(id))
+                    return false;
+                seen.add(id);
+                return true;
+            });
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'GET_CONTEXT',
         description: 'Returns the context (SpinalContext) with the given name from the graph. ' +
             'Takes no input — the context is looked up by the "name" parameter. ' +
