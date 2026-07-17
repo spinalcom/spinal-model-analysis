@@ -143,7 +143,7 @@ exports.FR = {
         inputs: { node: 'Le nœud dont on met à jour l\'info.' },
         parameters: {
             property: 'La clé de la propriété d\'info à définir (ex. « name »).',
-            value: 'La valeur à affecter (chaîne, nombre ou booléen).',
+            value: 'La valeur à affecter. Les chaînes numériques (« 42 ») et « true »/« false »/« null » sont converties dans leur type réel, si bien qu\'une nouvelle propriété numérique devient un Val (nombre). Utilisez SET_NODE_INFO (dynamique) si vous voulez que « 42 » reste du texte.',
         },
     },
     GET_NODE_CHILDREN: {

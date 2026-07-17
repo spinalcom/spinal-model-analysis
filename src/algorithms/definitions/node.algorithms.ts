@@ -5,6 +5,7 @@ import {
   AlgorithmRunResult,
   createAlgorithm,
 } from './core';
+import { parseValue } from '../../services/utils';
 
 const isSpinalNode = (value: unknown): value is SpinalNode<any> => {
   return (
@@ -189,7 +190,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'SpinalNode',
     parameters: [
       { name: 'property', type: 'string', description: 'The info property key to set (e.g. "name").', required: true },
-      { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean).', required: true },
+      { name: 'value', type: 'string', description: 'The value to set. Numeric strings ("42") and "true"/"false"/"null" are coerced to their real type, so a new numeric property becomes a Val (number). Pass a genuine string via SET_NODE_INFO (dynamic) if you need "42" to stay text.', required: true },
     ],
     run: async (input, params): AlgorithmRunResult => {
       if (!isSpinalNode(input)) {
@@ -198,7 +199,10 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
       if (params?.value === undefined) {
         throw new Error('SET_NODE_INFO_PARAM requires a "value" parameter');
       }
-      setNodeInfoProperty(input, params?.property as string, params.value, 'SET_NODE_INFO_PARAM');
+      // Coerce numeric/boolean/null strings to their real JS type so a NEW property
+      // gets the right model type (number -> Val, boolean -> Bool). For an existing
+      // property, the model re-coerces to its own type anyway.
+      setNodeInfoProperty(input, params?.property as string, parseValue(params.value), 'SET_NODE_INFO_PARAM');
       return input;
     },
   }),
