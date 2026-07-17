@@ -57,6 +57,8 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   MERGE_NODES: ['node', 'graph', 'list', 'merge', 'aggregation'],
   GET_CONTEXT: ['node', 'graph', 'context'],
   GET_NODE_SERVER_ID: ['node', 'graph', 'read'],
+  SET_NODE_INFO: ['node', 'graph', 'write', 'info', 'mutation'],
+  SET_NODE_INFO_PARAM: ['node', 'graph', 'write', 'info', 'mutation'],
   GET_NODE_CHILDREN: ['node', 'graph', 'traversal', 'children'],
   GET_NODE_PARENTS: ['node', 'graph', 'traversal', 'parents'],
   GET_NODE_CHILD: ['node', 'graph', 'traversal', 'children', 'search'],

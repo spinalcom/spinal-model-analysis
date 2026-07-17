@@ -33,6 +33,8 @@ exports.EN = {
     MERGE_NODES: { label: 'Merge Nodes' },
     GET_CONTEXT: { label: 'Get Context' },
     GET_NODE_SERVER_ID: { label: 'Node Server ID' },
+    SET_NODE_INFO: { label: 'Set Node Info' },
+    SET_NODE_INFO_PARAM: { label: 'Set Node Info (constant)' },
     GET_NODE_CHILDREN: { label: 'Node Children' },
     GET_NODE_PARENTS: { label: 'Node Parents' },
     GET_NODE_CHILD: { label: 'Find Child Node' },

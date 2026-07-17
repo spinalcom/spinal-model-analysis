@@ -128,6 +128,24 @@ export const FR: LocaleTranslations = {
     description: 'Renvoie l\'identifiant d\'un nœud.',
     inputs: { node: 'Le nœud dont on veut l\'identifiant serveur.' },
   },
+  SET_NODE_INFO: {
+    label: 'Définir une info du nœud',
+    description: 'Définit une propriété de l\'info d\'un nœud à une valeur d\'entrée dynamique. Prend 2 entrées : [nœud, valeur]. La clé de la propriété vient du paramètre « property ». Crée la propriété si elle n\'existe pas, sinon la met à jour en place (ex. renommer un nœud en définissant « name »). Ces propriétés d\'info sont celles sur lesquelles FILTER_NODE / FIND_NODE filtrent. Renvoie le nœud pour le chaînage. La propriété « id » est protégée et ne peut pas être modifiée.',
+    inputs: {
+      node: 'Le nœud dont on met à jour l\'info.',
+      value: 'La valeur à affecter à la propriété d\'info.',
+    },
+    parameters: { property: 'La clé de la propriété d\'info à définir (ex. « name »).' },
+  },
+  SET_NODE_INFO_PARAM: {
+    label: 'Définir une info du nœud (constante)',
+    description: 'Définit une propriété de l\'info d\'un nœud à une valeur de paramètre statique. Prend 1 entrée : le nœud, et les paramètres « property » + « value ». Crée la propriété si elle n\'existe pas, sinon la met à jour en place (ex. renommer un nœud en définissant « name »). Ces propriétés d\'info sont celles sur lesquelles FILTER_NODE / FIND_NODE filtrent. Renvoie le nœud pour le chaînage. La propriété « id » est protégée et ne peut pas être modifiée.',
+    inputs: { node: 'Le nœud dont on met à jour l\'info.' },
+    parameters: {
+      property: 'La clé de la propriété d\'info à définir (ex. « name »).',
+      value: 'La valeur à affecter (chaîne, nombre ou booléen).',
+    },
+  },
   GET_NODE_CHILDREN: {
     label: 'Enfants du nœud',
     description: 'Renvoie les enfants d\'un nœud.',

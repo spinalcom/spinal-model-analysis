@@ -29,6 +29,30 @@ const findNodeByProperty = (nodes, propName, regex) => nodes.find((node) => {
     const value = infoProp.get();
     return typeof value === 'string' && regex.test(value);
 });
+/**
+ * Info keys that must not be overwritten: `id` is the node's identity and the key
+ * SpinalGraphService indexes nodes by — changing it would desync the registry and
+ * break every relation referencing the node.
+ */
+const PROTECTED_INFO_KEYS = new Set(['id']);
+/**
+ * Sets a property on a node's info model: updates it in place if it already exists,
+ * otherwise creates it (add_attr). Refuses to touch a protected key.
+ */
+const setNodeInfoProperty = (node, property, value, blockName) => {
+    if (typeof property !== 'string' || property.trim() === '') {
+        throw new Error(`${blockName} requires a non-empty "property" parameter`);
+    }
+    if (PROTECTED_INFO_KEYS.has(property)) {
+        throw new Error(`${blockName}: "${property}" is a protected info property and cannot be modified`);
+    }
+    if (!node.info[property]) {
+        node.info.add_attr(property, value);
+    }
+    else {
+        node.info[property].set(value);
+    }
+};
 exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'FIRST_NODE',
@@ -121,6 +145,60 @@ exports.NODE_ALGORITHMS = [
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
             return input._server_id;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'SET_NODE_INFO',
+        description: 'Sets a property on a node\'s info to a dynamic value input. Takes 2 inputs: [node, value]. ' +
+            'The property key comes from the "property" parameter. Creates the property if it does not ' +
+            'exist, otherwise updates it in place (e.g. rename a node by setting "name"). These info ' +
+            'properties are what FILTER_NODE / FIND_NODE match on. Returns the node for chaining. ' +
+            'The "id" property is protected and cannot be changed.',
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose info to update.', required: true },
+            { name: 'value', types: ['any'], description: 'The value to set on the info property.', required: true },
+        ],
+        outputType: 'SpinalNode',
+        parameters: [
+            { name: 'property', type: 'string', description: 'The info property key to set (e.g. "name").', required: true },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            if (!Array.isArray(input) || input.length < 2) {
+                throw new Error('SET_NODE_INFO expects 2 inputs: [node, value]');
+            }
+            const node = input[0];
+            const value = input[1];
+            if (!isSpinalNode(node)) {
+                throw new Error('SET_NODE_INFO: first input must be a SpinalNode');
+            }
+            setNodeInfoProperty(node, params === null || params === void 0 ? void 0 : params.property, value, 'SET_NODE_INFO');
+            return node;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'SET_NODE_INFO_PARAM',
+        description: 'Sets a property on a node\'s info to a static parameter value. Takes 1 input: the node, and ' +
+            '"property" + "value" parameters. Creates the property if it does not exist, otherwise updates ' +
+            'it in place (e.g. rename a node by setting "name"). These info properties are what FILTER_NODE ' +
+            '/ FIND_NODE match on. Returns the node for chaining. The "id" property is protected and cannot ' +
+            'be changed.',
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node whose info to update.', required: true },
+        ],
+        outputType: 'SpinalNode',
+        parameters: [
+            { name: 'property', type: 'string', description: 'The info property key to set (e.g. "name").', required: true },
+            { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean).', required: true },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            if (!isSpinalNode(input)) {
+                throw new Error('SET_NODE_INFO_PARAM expects a SpinalNode input');
+            }
+            if ((params === null || params === void 0 ? void 0 : params.value) === undefined) {
+                throw new Error('SET_NODE_INFO_PARAM requires a "value" parameter');
+            }
+            setNodeInfoProperty(input, params === null || params === void 0 ? void 0 : params.property, params.value, 'SET_NODE_INFO_PARAM');
+            return input;
         }),
     }),
     (0, core_1.createAlgorithm)({
