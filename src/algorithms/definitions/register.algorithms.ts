@@ -47,6 +47,18 @@ export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
     }),
 
     createAlgorithm({
+        name: 'GET_CURRENT_DATE',
+        description:
+            'Returns the current date and time (epoch ms).',
+        inputs: [],
+        outputType: 'number',
+        parameters: [],
+        run: async (_input, _params, context): AlgorithmRunResult => {
+            return Date.now();
+        },
+    }),
+
+    createAlgorithm({
         name: 'GET_EXECUTION_TRIGGER_TYPE',
         description:
             'Returns the trigger type that initiated this execution (e.g., INTERVAL_TIME, CRON, COV).',

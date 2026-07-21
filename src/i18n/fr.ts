@@ -296,6 +296,10 @@ export const FR: LocaleTranslations = {
     label: 'Temps de référence de l\'exécution',
     description: 'Renvoie le temps de référence de l\'exécution (ms epoch) depuis le contexte d\'exécution. Utile pour des opérations de série temporelle (push/fetch) déterministes.',
   },
+  GET_CURRENT_DATE: {
+    label: 'Date actuelle',
+    description: 'Renvoie la date et l\'heure actuelles (ms epoch).',
+  },
   GET_EXECUTION_TRIGGER_TYPE: {
     label: 'Type de déclencheur',
     description: 'Renvoie le type de déclencheur ayant initié cette exécution (ex. INTERVAL_TIME, CRON, COV).',

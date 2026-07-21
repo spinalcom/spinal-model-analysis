@@ -51,6 +51,16 @@ exports.REGISTER_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'GET_CURRENT_DATE',
+        description: 'Returns the current date and time (epoch ms).',
+        inputs: [],
+        outputType: 'number',
+        parameters: [],
+        run: (_input, _params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            return Date.now();
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'GET_EXECUTION_TRIGGER_TYPE',
         description: 'Returns the trigger type that initiated this execution (e.g., INTERVAL_TIME, CRON, COV).',
         inputs: [],

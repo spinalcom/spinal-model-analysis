@@ -109,6 +109,7 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   // ── register / execution context ──
   CURRENT_NODE: ['register', 'context', 'node', 'worknode'],
   GET_EXECUTION_REFERENCE_TIME: ['register', 'context', 'time', 'execution'],
+  GET_CURRENT_DATE: ['register', 'context', 'time'],
   GET_EXECUTION_TRIGGER_TYPE: ['register', 'context', 'trigger', 'execution'],
   GET_EXECUTION_TRIGGER_ID: ['register', 'context', 'trigger', 'execution'],
   GET_EXECUTION_TRIGGER_INPUT_REGISTER: ['register', 'context', 'trigger', 'execution'],

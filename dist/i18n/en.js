@@ -59,6 +59,7 @@ exports.EN = {
     // ── register / execution context ──
     CURRENT_NODE: { label: 'Current Work Node' },
     GET_EXECUTION_REFERENCE_TIME: { label: 'Execution Reference Time' },
+    GET_CURRENT_DATE: { label: 'Current Date' },
     GET_EXECUTION_TRIGGER_TYPE: { label: 'Trigger Type' },
     GET_EXECUTION_TRIGGER_ID: { label: 'Trigger ID' },
     GET_EXECUTION_TRIGGER_INPUT_REGISTER: { label: 'Trigger Input Register' },
