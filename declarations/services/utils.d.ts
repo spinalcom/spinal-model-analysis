@@ -8,8 +8,7 @@ export declare function parseValue(value: any): any;
 export declare function resolveBooleanFlag(value: any, defaultValue?: boolean): boolean;
 /**
  * Stamps `node.info.directModificationDate` with the current time so downstream
- * consumers (e.g. the BOS) can detect a direct, out-of-band modification of the
- * node. Creates the attribute if the node doesn't have it yet, mirroring the
- * documentation service's behaviour but without assuming it already exists.
+ * consumers (e.g. the BOS) can detect a direct modification of the
+ * node. Creates the attribute if the node doesn't have it yet
  */
 export declare function touchDirectModificationDate(node: any): void;
