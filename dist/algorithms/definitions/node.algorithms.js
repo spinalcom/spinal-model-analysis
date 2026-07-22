@@ -14,6 +14,9 @@ exports.NODE_ALGORITHMS = void 0;
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const core_1 = require("./core");
 const utils_1 = require("../../services/utils");
+/** Shared description for the updateDirectModificationDate parameter of the endpoint setters. */
+const UPDATE_DIRECT_MODIFICATION_DATE_DESC = 'If true, also stamps node.info.directModificationDate with the current time after setting ' +
+    'the value, so the BOS can detect the direct modification (default: false).';
 const isSpinalNode = (value) => {
     return (Boolean(value) &&
         typeof value === 'object' &&
@@ -440,8 +443,10 @@ exports.NODE_ALGORITHMS = [
             { name: 'value', types: ['any'], description: 'The value to set on the endpoint.', required: true },
         ],
         outputType: 'any',
-        parameters: [],
-        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+        parameters: [
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             var _c;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
@@ -459,6 +464,9 @@ exports.NODE_ALGORITHMS = [
                 throw new Error('SET_ENDPOINT_VALUE: node element has no currentValue');
             }
             currentValue.set(value);
+            if ((0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.updateDirectModificationDate, false)) {
+                (0, utils_1.touchDirectModificationDate)(node);
+            }
             return value;
         }),
     }),
@@ -472,6 +480,7 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [
             { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             var _d;
@@ -490,6 +499,9 @@ exports.NODE_ALGORITHMS = [
                 throw new Error('SET_ENDPOINT_VALUE_PARAM: node element has no currentValue');
             }
             currentValue.set(value);
+            if ((0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.updateDirectModificationDate, false)) {
+                (0, utils_1.touchDirectModificationDate)(input);
+            }
             return value;
         }),
     }),

@@ -12,6 +12,10 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NODE_ATTRIBUTES_ALGORITHMS = void 0;
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const core_1 = require("./core");
+const utils_1 = require("../../services/utils");
+/** Shared description for the updateDirectModificationDate parameter of the attribute setters. */
+const UPDATE_DIRECT_MODIFICATION_DATE_DESC = 'If true, also stamps node.info.directModificationDate with the current time when the ' +
+    'attribute actually changes, so the BOS can detect the direct modification (default: false).';
 const isSpinalNode = (value) => {
     return (Boolean(value) &&
         typeof value === 'object' &&
@@ -60,6 +64,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
             { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!Array.isArray(input) || input.length < 2) {
@@ -72,6 +77,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             const categoryName = params === null || params === void 0 ? void 0 : params.categoryName;
             const label = params === null || params === void 0 ? void 0 : params.label;
             const createIfNotExist = (params === null || params === void 0 ? void 0 : params.createIfNotExist) !== false && (params === null || params === void 0 ? void 0 : params.createIfNotExist) !== 'false';
+            const updateDirectModificationDate = (0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.updateDirectModificationDate, false);
             if (typeof categoryName !== 'string' || categoryName.length === 0) {
                 throw new Error('Invalid or missing categoryName parameter');
             }
@@ -85,7 +91,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
                     throw new Error(`Attribute "${label}" not found in category "${categoryName}" and createIfNotExist is false`);
                 }
             }
-            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) });
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value;
         }),
     }),
@@ -101,6 +107,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
             { name: 'value', type: 'string', description: 'The value to set', required: true },
             { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!isSpinalNode(input))
@@ -109,6 +116,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             const label = params === null || params === void 0 ? void 0 : params.label;
             const value = params === null || params === void 0 ? void 0 : params.value;
             const createIfNotExist = (params === null || params === void 0 ? void 0 : params.createIfNotExist) !== false && (params === null || params === void 0 ? void 0 : params.createIfNotExist) !== 'false';
+            const updateDirectModificationDate = (0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.updateDirectModificationDate, false);
             if (typeof categoryName !== 'string' || categoryName.length === 0) {
                 throw new Error('Invalid or missing categoryName parameter');
             }
@@ -125,7 +133,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
                     throw new Error(`Attribute "${label}" not found in category "${categoryName}" and createIfNotExist is false`);
                 }
             }
-            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) });
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value;
         }),
     }),

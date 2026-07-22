@@ -45,4 +45,35 @@ export function parseValue(value: any): any {
   return value;
 }
 
+/**
+ * Resolves a block parameter that is meant to be a boolean but may arrive as a
+ * real boolean or as the string "true"/"false" (params are often stringified).
+ * Anything else falls back to `defaultValue`.
+ */
+export function resolveBooleanFlag(value: any, defaultValue = false): boolean {
+  if (value === true || value === false) return value;
+  if (typeof value === 'string') {
+    const lower = value.trim().toLowerCase();
+    if (lower === 'true') return true;
+    if (lower === 'false') return false;
+  }
+  return defaultValue;
+}
+
+/**
+ * Stamps `node.info.directModificationDate` with the current time so downstream
+ * consumers (e.g. the BOS) can detect a direct, out-of-band modification of the
+ * node. Creates the attribute if the node doesn't have it yet, mirroring the
+ * documentation service's behaviour but without assuming it already exists.
+ */
+export function touchDirectModificationDate(node: any): void {
+  const now = Date.now();
+  if (!node?.info) return;
+  if (node.info.directModificationDate) {
+    node.info.directModificationDate.set(now);
+  } else {
+    node.info.add_attr('directModificationDate', now);
+  }
+}
+
 

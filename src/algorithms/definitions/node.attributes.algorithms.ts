@@ -10,6 +10,12 @@ import {
     AlgorithmRunResult,
     createAlgorithm,
 } from './core';
+import { resolveBooleanFlag } from '../../services/utils';
+
+/** Shared description for the updateDirectModificationDate parameter of the attribute setters. */
+const UPDATE_DIRECT_MODIFICATION_DATE_DESC =
+    'If true, also stamps node.info.directModificationDate with the current time when the ' +
+    'attribute actually changes, so the BOS can detect the direct modification (default: false).';
 
 const isSpinalNode = (value: unknown): value is SpinalNode<any> => {
     return (
@@ -63,6 +69,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
             { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (!Array.isArray(input) || input.length < 2) {
@@ -75,6 +82,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
             const categoryName = params?.categoryName;
             const label = params?.label;
             const createIfNotExist = params?.createIfNotExist !== false && params?.createIfNotExist !== 'false';
+            const updateDirectModificationDate = resolveBooleanFlag(params?.updateDirectModificationDate, false);
             if (typeof categoryName !== 'string' || categoryName.length === 0) {
                 throw new Error('Invalid or missing categoryName parameter');
             }
@@ -90,7 +98,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
                 }
             }
 
-            await attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) });
+            await attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value as any;
         },
     }),
@@ -107,6 +115,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
             { name: 'value', type: 'string', description: 'The value to set', required: true },
             { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
@@ -115,6 +124,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
             const label = params?.label;
             const value = params?.value;
             const createIfNotExist = params?.createIfNotExist !== false && params?.createIfNotExist !== 'false';
+            const updateDirectModificationDate = resolveBooleanFlag(params?.updateDirectModificationDate, false);
             if (typeof categoryName !== 'string' || categoryName.length === 0) {
                 throw new Error('Invalid or missing categoryName parameter');
             }
@@ -133,7 +143,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
                 }
             }
 
-            await attributeService.createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) });
+            await attributeService.createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value as any;
         },
     }),

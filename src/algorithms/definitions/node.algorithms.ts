@@ -5,7 +5,12 @@ import {
   AlgorithmRunResult,
   createAlgorithm,
 } from './core';
-import { parseValue } from '../../services/utils';
+import { parseValue, resolveBooleanFlag, touchDirectModificationDate } from '../../services/utils';
+
+/** Shared description for the updateDirectModificationDate parameter of the endpoint setters. */
+const UPDATE_DIRECT_MODIFICATION_DATE_DESC =
+  'If true, also stamps node.info.directModificationDate with the current time after setting ' +
+  'the value, so the BOS can detect the direct modification (default: false).';
 
 const isSpinalNode = (value: unknown): value is SpinalNode<any> => {
   return (
@@ -449,8 +454,10 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
       { name: 'value', types: ['any'], description: 'The value to set on the endpoint.', required: true },
     ],
     outputType: 'any',
-    parameters: [],
-    run: async (input): AlgorithmRunResult => {
+    parameters: [
+      { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
       if (!Array.isArray(input) || input.length < 2) {
         throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
       }
@@ -466,6 +473,9 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
         throw new Error('SET_ENDPOINT_VALUE: node element has no currentValue');
       }
       currentValue.set(value);
+      if (resolveBooleanFlag(params?.updateDirectModificationDate, false)) {
+        touchDirectModificationDate(node);
+      }
       return value as any;
     },
   }),
@@ -481,6 +491,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'any',
     parameters: [
       { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },
+      { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       if (!isSpinalNode(input)) {
@@ -497,6 +508,9 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
         throw new Error('SET_ENDPOINT_VALUE_PARAM: node element has no currentValue');
       }
       currentValue.set(value);
+      if (resolveBooleanFlag(params?.updateDirectModificationDate, false)) {
+        touchDirectModificationDate(input);
+      }
       return value as any;
     },
   }),

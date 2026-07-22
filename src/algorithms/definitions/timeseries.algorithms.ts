@@ -9,6 +9,7 @@ import {
   createAlgorithm,
 } from './core';
 import { SingletonServiceTimeseries } from '../../services/SingletonTimeSeries';
+import { resolveBooleanFlag, touchDirectModificationDate } from '../../services/utils';
 
 const isSpinalNode = (value: unknown): value is SpinalNode<any> => {
   return (
@@ -429,6 +430,14 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
           'Defaults to the execution reference time (or now if unavailable).',
         required: false,
       },
+      {
+        name: 'updateDirectModificationDate',
+        type: 'boolean',
+        description:
+          'If true, also stamps node.info.directModificationDate with the current time after ' +
+          'recording the value, so the BOS can detect the direct modification (default: false).',
+        required: false,
+      },
     ],
     run: async (input, params, context): AlgorithmRunResult => {
       if (!Array.isArray(input) || input.length < 2) {
@@ -462,6 +471,9 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
         throw new Error('PUSH_ENDPOINT_VALUE: node element has no currentValue');
       }
       currentValue.set(value);
+      if (resolveBooleanFlag(params?.updateDirectModificationDate, false)) {
+        touchDirectModificationDate(node);
+      }
 
       // ── 2. Append to the timeseries (creating it if missing) ──
       // The timeseries service resolves the endpoint by id through SpinalGraphService,

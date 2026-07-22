@@ -15,6 +15,7 @@ const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-servi
 const spinal_model_timeseries_1 = require("spinal-model-timeseries");
 const core_1 = require("./core");
 const SingletonTimeSeries_1 = require("../../services/SingletonTimeSeries");
+const utils_1 = require("../../services/utils");
 const isSpinalNode = (value) => {
     return (Boolean(value) &&
         typeof value === 'object' &&
@@ -395,6 +396,13 @@ exports.TIMESERIES_ALGORITHMS = [
                     'Defaults to the execution reference time (or now if unavailable).',
                 required: false,
             },
+            {
+                name: 'updateDirectModificationDate',
+                type: 'boolean',
+                description: 'If true, also stamps node.info.directModificationDate with the current time after ' +
+                    'recording the value, so the BOS can detect the direct modification (default: false).',
+                required: false,
+            },
         ],
         run: (input, params, context) => __awaiter(void 0, void 0, void 0, function* () {
             var _d, _e, _f;
@@ -427,6 +435,9 @@ exports.TIMESERIES_ALGORITHMS = [
                 throw new Error('PUSH_ENDPOINT_VALUE: node element has no currentValue');
             }
             currentValue.set(value);
+            if ((0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.updateDirectModificationDate, false)) {
+                (0, utils_1.touchDirectModificationDate)(node);
+            }
             // ── 2. Append to the timeseries (creating it if missing) ──
             // The timeseries service resolves the endpoint by id through SpinalGraphService,
             // so register the node first (idempotent) — our work nodes come from raw traversal

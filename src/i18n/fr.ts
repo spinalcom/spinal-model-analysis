@@ -1,5 +1,10 @@
 import { LocaleTranslations } from './localize';
 
+/** Description française partagée du paramètre updateDirectModificationDate. */
+const UPDATE_DIRECT_MODIFICATION_DATE_FR =
+  'Si vrai, met aussi à jour node.info.directModificationDate avec l\'heure courante lors ' +
+  'de la modification, afin que le BOS puisse détecter la modification directe (par défaut : faux).';
+
 /**
  * French translations for algorithm metadata, keyed by the stable algorithm name.
  *
@@ -210,12 +215,16 @@ export const FR: LocaleTranslations = {
     label: 'Définir la valeur d\'un endpoint',
     description: 'Définit la valeur courante d\'un nœud endpoint. Prend 2 entrées : [nœud endpoint, valeur]. Renvoie la valeur affectée.',
     inputs: { endpoint: 'Le nœud endpoint à mettre à jour.', value: 'La valeur à affecter à l\'endpoint.' },
+    parameters: { updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR },
   },
   SET_ENDPOINT_VALUE_PARAM: {
     label: 'Définir la valeur d\'un endpoint (constante)',
     description: 'Définit la valeur courante d\'un nœud endpoint à une valeur de paramètre statique. Prend 1 entrée : le nœud endpoint, et un paramètre « value ». Renvoie la valeur affectée.',
     inputs: { endpoint: 'Le nœud endpoint à mettre à jour.' },
-    parameters: { value: 'La valeur à affecter (chaîne, nombre ou booléen).' },
+    parameters: {
+      value: 'La valeur à affecter (chaîne, nombre ou booléen).',
+      updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
+    },
   },
 
   // ── node attributes ──
@@ -233,6 +242,7 @@ export const FR: LocaleTranslations = {
       categoryName: 'Nom de la catégorie de l\'attribut.',
       label: 'Libellé de l\'attribut.',
       createIfNotExist: 'Si vrai, crée l\'attribut s\'il n\'existe pas. Si faux, met seulement à jour les attributs existants (par défaut : vrai).',
+      updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
     },
   },
   SET_ATTRIBUTE_PARAM: {
@@ -244,6 +254,7 @@ export const FR: LocaleTranslations = {
       label: 'Libellé de l\'attribut.',
       value: 'La valeur à affecter.',
       createIfNotExist: 'Si vrai, crée l\'attribut s\'il n\'existe pas. Si faux, met seulement à jour les attributs existants (par défaut : vrai).',
+      updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
     },
   },
   GET_ALL_ATTRIBUTES: {
@@ -613,7 +624,10 @@ export const FR: LocaleTranslations = {
       endpoint: 'Le nœud endpoint sur lequel enregistrer la valeur.',
       value: 'La valeur à définir comme currentValue et à ajouter à la série temporelle.',
     },
-    parameters: { date: 'Horodatage du point de série, ms epoch ou date lisible. Par défaut : le temps de référence de l\'exécution (ou maintenant si indisponible).' },
+    parameters: {
+      date: 'Horodatage du point de série, ms epoch ou date lisible. Par défaut : le temps de référence de l\'exécution (ou maintenant si indisponible).',
+      updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
+    },
   },
 
   // ── http ──
