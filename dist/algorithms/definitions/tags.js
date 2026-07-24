@@ -118,6 +118,18 @@ exports.ALGORITHM_TAGS = {
     CREATE_TICKET: ['ticket', 'create', 'write', 'workflow'],
     GET_TICKETS_FROM_NODE: ['ticket', 'read', 'node'],
     MOVE_TICKET_TO_NEXT_STEP: ['ticket', 'write', 'workflow', 'step'],
+    // ── excel ──
+    LOAD_EXCEL_TEMPLATE: ['excel', 'xlsx', 'document', 'file', 'report', 'template', 'read', 'io'],
+    GET_EXCEL_VARIABLES: ['excel', 'xlsx', 'report', 'template', 'read'],
+    SET_EXCEL_VARIABLES: ['excel', 'xlsx', 'report', 'template', 'fill', 'write'],
+    SET_EXCEL_CELLS: ['excel', 'xlsx', 'report', 'fill', 'write', 'cell'],
+    SET_EXCEL_RANGE: ['excel', 'xlsx', 'report', 'fill', 'write', 'range', 'table'],
+    SET_EXCEL_COMMENTS: ['excel', 'xlsx', 'report', 'comment', 'note', 'write'],
+    ADD_EXCEL_SHEET: ['excel', 'xlsx', 'report', 'sheet', 'worksheet'],
+    RENAME_EXCEL_SHEET: ['excel', 'xlsx', 'report', 'sheet', 'worksheet'],
+    DELETE_EXCEL_SHEET: ['excel', 'xlsx', 'report', 'sheet', 'worksheet'],
+    SAVE_EXCEL_TO_NODE: ['excel', 'xlsx', 'report', 'document', 'file', 'save', 'write', 'io'],
+    EXCEL_TO_BASE64: ['excel', 'xlsx', 'report', 'base64', 'export', 'io'],
     // ── timeseries ──
     GET_ENDPOINT_TIMESERIES: ['timeseries', 'endpoint', 'read', 'io', 'history'],
     TIMESERIES_FIRST: ['timeseries', 'reducer', 'aggregation'],

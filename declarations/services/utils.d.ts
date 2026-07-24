@@ -8,7 +8,7 @@ export declare function parseValue(value: any): any;
 export declare function resolveBooleanFlag(value: any, defaultValue?: boolean): boolean;
 /**
  * Stamps `node.info.directModificationDate` with the current time so downstream
- * consumers (e.g. the BOS) can detect a direct modification of the
- * node. Creates the attribute if the node doesn't have it yet
+ * consumers (e.g. the other organs) can detect a direct modification of the
+ * node. Creates the node info attribute if the node doesn't have it yet
  */
 export declare function touchDirectModificationDate(node: any): void;

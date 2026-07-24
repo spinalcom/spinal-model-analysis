@@ -1,0 +1,15 @@
+{
+  "spinal-env-viewer-plugin-documentation-service": {
+    "forceCommit": "documentary",
+    "found": {
+      "documentary": [
+        "spinal-model-analysis"
+      ],
+      "": [
+        "spinal-model-bmsnetwork",
+        "spinal-model-timeseries",
+        "spinal-service-ticket"
+      ]
+    }
+  }
+}

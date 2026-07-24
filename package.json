@@ -39,10 +39,11 @@
   "spinalDependencies": {
     "spinal-core-connectorjs_type": "spinal-core-connectorjs_type",
     "spinal-env-viewer-graph-service": "Spinal-Graph-Service",
-    "spinal-env-viewer-plugin-documentation-service": "spinal-env-viewer-plugin-documentation-service",
+    "spinal-env-viewer-plugin-documentation-service": "spinal-env-viewer-plugin-documentation-service@documentary",
     "spinal-model-bmsnetwork": "spinal-model-bmsnetwork",
     "spinal-model-graph": "spinal-model-graph",
     "spinal-model-timeseries": "spinal-model-timeseries",
-    "spinal-service-ticket": "spinal-service-ticket"
+    "spinal-service-ticket": "spinal-service-ticket",
+    "spinal-service-excel-filler": "spinal-service-excel-filler"
   }
 }

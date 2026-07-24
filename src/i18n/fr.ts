@@ -673,4 +673,98 @@ export const FR: LocaleTranslations = {
     inputs: { ticket: 'Le nœud ticket à faire avancer (le type doit être « SpinalSystemServiceTicketTypeTicket »).' },
     parameters: { contextName: 'Nom du contexte de tickets (alias workflow) auquel appartient le ticket.' },
   },
+
+  // ── excel ──
+  LOAD_EXCEL_TEMPLATE: {
+    label: 'Charger un modèle Excel',
+    description: 'Charge un modèle .xlsx stocké comme document sur un nœud et renvoie un classeur Excel que l\'on remplit avec les blocs SET_EXCEL_* puis que l\'on enregistre avec SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. Par défaut, le premier document .xlsx du nœud est chargé ; utilisez le paramètre « filename » pour en choisir un précis. Une « defaultColor » optionnelle (hex, sans #) est appliquée en fond de chaque cellule remplie.',
+    inputs: { node: 'Le nœud portant le modèle .xlsx en document attaché.' },
+    parameters: {
+      filename: 'Nom du document à charger (ex. « template.xlsx »). Si omis, le premier .xlsx attaché au nœud est utilisé.',
+      defaultColor: 'Couleur de fond par défaut des cellules, en hexadécimal sans « # » (ex. « E3F2FD »), appliquée à chaque cellule remplie.',
+    },
+  },
+  GET_EXCEL_VARIABLES: {
+    label: 'Lire les variables Excel',
+    description: 'Renvoie la liste des noms de variables {{token}} présentes dans le modèle chargé. Utile pour découvrir ce qu\'attend un modèle avant de le remplir (à envoyer vers LOG ou FOREACH).',
+    inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+  },
+  SET_EXCEL_VARIABLES: {
+    label: 'Remplir les variables Excel',
+    description: 'Remplit les emplacements {{token}} du modèle à partir d\'un objet associant nom de variable → valeur. Les scalaires remplacent le token (les cellules ne contenant que le token conservent le type de la valeur ; les tokens intégrés dans du texte sont substitués en texte). Une valeur tableau remplit vers le bas depuis sa cellule. Renvoie le même classeur pour l\'enchaînement.',
+    inputs: {
+      workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+      variables: 'Objet (ou chaîne JSON) associant nom de variable → valeur (scalaire ou tableau).',
+    },
+  },
+  SET_EXCEL_CELLS: {
+    label: 'Définir des cellules Excel',
+    description: 'Écrit des valeurs dans des cellules précises à partir d\'un objet dont les clés sont « NomFeuille!Cellule » (ex. « Sheet1!B3 ») et les valeurs, les valeurs de cellule. Une valeur peut aussi être un objet { « value » : <v>, « color » : « 4CAF50 », « comment » : « note » } pour colorer la cellule / y attacher une note. Renvoie le même classeur.',
+    inputs: {
+      workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+      cells: 'Objet (ou chaîne JSON) associant « Feuille!Cellule » → valeur ou { value, color, comment }.',
+    },
+  },
+  SET_EXCEL_RANGE: {
+    label: 'Remplir une plage Excel',
+    description: 'Remplit une plage à partir d\'un tableau, en démarrant à une cellule d\'ancrage. Un tableau 1D remplit une colonne (par défaut) ou une ligne (« direction » = « row ») ; un tableau 2D remplit un bloc ligne par ligne — idéal pour les tableaux. Chaque valeur peut aussi être un objet { value, color, comment }. Renvoie le même classeur.',
+    inputs: {
+      workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+      values: 'Un tableau 1D ou 2D (ou chaîne JSON) de valeurs à écrire depuis l\'ancrage.',
+    },
+    parameters: {
+      anchor: 'Cellule d\'ancrage de départ, « NomFeuille!Cellule » (ex. « Sheet1!B3 »).',
+      direction: 'Pour les tableaux 1D : « column » (par défaut, vers le bas) ou « row » (vers la droite). Ignoré pour les tableaux 2D.',
+    },
+  },
+  SET_EXCEL_COMMENTS: {
+    label: 'Définir des commentaires Excel',
+    description: 'Attache des commentaires (« notes » Excel) à des cellules sans modifier leurs valeurs, à partir d\'un objet associant « NomFeuille!Cellule » → texte du commentaire. Renvoie le même classeur.',
+    inputs: {
+      workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+      comments: 'Objet (ou chaîne JSON) associant « Feuille!Cellule » → texte du commentaire.',
+    },
+  },
+  ADD_EXCEL_SHEET: {
+    label: 'Ajouter une feuille Excel',
+    description: 'Ajoute une feuille au classeur. Avec « copyFrom », duplique une feuille existante (valeurs, styles, largeurs de colonnes, hauteurs de lignes, cellules fusionnées — motif courant « une feuille par client » ; les images ne sont pas copiées). Les {{tokens}} de la feuille copiée deviennent aussi remplissables. Renvoie le même classeur.',
+    inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+    parameters: {
+      name: 'Nom de la nouvelle feuille.',
+      copyFrom: 'Nom optionnel d\'une feuille existante à dupliquer.',
+    },
+  },
+  RENAME_EXCEL_SHEET: {
+    label: 'Renommer une feuille Excel',
+    description: 'Renomme une feuille. Lève une erreur si la feuille source est absente ou si le nouveau nom est déjà pris. Renvoie le même classeur.',
+    inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+    parameters: {
+      oldName: 'Nom actuel de la feuille.',
+      newName: 'Nouveau nom de la feuille.',
+    },
+  },
+  DELETE_EXCEL_SHEET: {
+    label: 'Supprimer une feuille Excel',
+    description: 'Supprime une feuille du classeur par son nom. Lève une erreur si elle n\'existe pas. Renvoie le même classeur.',
+    inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+    parameters: { name: 'Nom de la feuille à supprimer.' },
+  },
+  SAVE_EXCEL_TO_NODE: {
+    label: 'Enregistrer l\'Excel sur un nœud',
+    description: 'Génère le classeur rempli et l\'enregistre comme document sur un nœud (via le service de documentation). Prend 2 entrées : [classeur, nœud cible] et un paramètre « filename ». Activez « preserveCharts » pour conserver les graphiques intégrés au modèle d\'origine. Renvoie le nœud cible.',
+    inputs: {
+      workbook: 'Le classeur rempli.',
+      node: 'Le nœud auquel attacher le document .xlsx produit.',
+    },
+    parameters: {
+      filename: 'Nom de fichier du document enregistré (ex. « report.xlsx »). « .xlsx » est ajouté s\'il manque.',
+      preserveCharts: 'Si vrai, restaure les graphiques du modèle d\'origine qu\'ExcelJS supprimerait sinon (par défaut : faux).',
+    },
+  },
+  EXCEL_TO_BASE64: {
+    label: 'Excel vers Base64',
+    description: 'Génère le classeur rempli et le renvoie sous forme de chaîne base64 — pratique pour transmettre le rapport ailleurs (ex. POST via CURL_REQUEST, e-mail, stockage externe). Activez « preserveCharts » pour conserver les graphiques du modèle d\'origine.',
+    inputs: { workbook: 'Le classeur rempli.' },
+    parameters: { preserveCharts: 'Si vrai, restaure les graphiques du modèle d\'origine qu\'ExcelJS supprimerait sinon (par défaut : faux).' },
+  },
 };

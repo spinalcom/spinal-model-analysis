@@ -68,8 +68,8 @@ function resolveBooleanFlag(value, defaultValue = false) {
 exports.resolveBooleanFlag = resolveBooleanFlag;
 /**
  * Stamps `node.info.directModificationDate` with the current time so downstream
- * consumers (e.g. the BOS) can detect a direct modification of the
- * node. Creates the attribute if the node doesn't have it yet
+ * consumers (e.g. the other organs) can detect a direct modification of the
+ * node. Creates the node info attribute if the node doesn't have it yet
  */
 function touchDirectModificationDate(node) {
     const now = Date.now();

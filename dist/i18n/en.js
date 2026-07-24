@@ -126,5 +126,17 @@ exports.EN = {
     CREATE_TICKET: { label: 'Create Ticket' },
     GET_TICKETS_FROM_NODE: { label: 'Get Node Tickets' },
     MOVE_TICKET_TO_NEXT_STEP: { label: 'Move Ticket to Next Step' },
+    // ── excel ──
+    LOAD_EXCEL_TEMPLATE: { label: 'Load Excel Template' },
+    GET_EXCEL_VARIABLES: { label: 'Get Excel Variables' },
+    SET_EXCEL_VARIABLES: { label: 'Fill Excel Variables' },
+    SET_EXCEL_CELLS: { label: 'Set Excel Cells' },
+    SET_EXCEL_RANGE: { label: 'Fill Excel Range' },
+    SET_EXCEL_COMMENTS: { label: 'Set Excel Comments' },
+    ADD_EXCEL_SHEET: { label: 'Add Excel Sheet' },
+    RENAME_EXCEL_SHEET: { label: 'Rename Excel Sheet' },
+    DELETE_EXCEL_SHEET: { label: 'Delete Excel Sheet' },
+    SAVE_EXCEL_TO_NODE: { label: 'Save Excel to Node' },
+    EXCEL_TO_BASE64: { label: 'Excel to Base64' },
 };
 //# sourceMappingURL=en.js.map
