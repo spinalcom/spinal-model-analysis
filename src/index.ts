@@ -115,6 +115,7 @@ export {
   TIMESERIES_ALGORITHMS,
   HTTP_ALGORITHMS,
   TICKET_ALGORITHMS,
+  EXCEL_ALGORITHMS
 } from './algorithms/algorithms';
 
 export {
