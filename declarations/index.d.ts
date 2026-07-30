@@ -16,6 +16,7 @@ export { AnalyticNodeManagerService, WorkflowBlockManagerService, WorkflowExecut
 export { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX, foreachItemVirtualId, } from './services/WorkflowExecutionService';
 export type { WorkflowExecutionContext, } from './services/WorkflowExecutionService';
 export type { AnalysisExecutionResult, WorkNodeExecutionResult, } from './services/AnalysisExecutionService';
+export { serializeExecutionValue, serializeExecutionResult, } from './services/serialization';
 export type { IWorkflowBlock, ISubWorkflow, IWorkflowDAG, } from './interfaces/IWorkflowBlock';
 export type { IAlgorithm } from './interfaces/IAlgorithm';
 export type { IAlgorithmParameter } from './interfaces/IAlgorithmParameter';

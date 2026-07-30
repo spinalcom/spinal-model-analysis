@@ -59,6 +59,14 @@ export type {
   WorkNodeExecutionResult,
 } from './services/AnalysisExecutionService';
 
+// Execution-result serialization (JSON-safe): shared by the api-server execute route and
+// spinal-organ-analysis so neither has to know how a block output (node, model, Excel
+// workbook handle, …) turns into JSON.
+export {
+  serializeExecutionValue,
+  serializeExecutionResult,
+} from './services/serialization';
+
 // Interfaces
 export type {
   IWorkflowBlock,
