@@ -17,6 +17,8 @@ export { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX, foreac
 export type { WorkflowExecutionContext, } from './services/WorkflowExecutionService';
 export type { AnalysisExecutionResult, WorkNodeExecutionResult, } from './services/AnalysisExecutionService';
 export { serializeExecutionValue, serializeExecutionResult, } from './services/serialization';
+export { AnalysisAssignmentModel, ANALYSIS_ASSIGNMENT_DIR, loadOrCreateAssignmentFile, loadAssignmentFile, listAssignmentOrganNames, readAssignment, setAssignmentEnabled, setAssignmentAnalytics, addAssignedAnalytic, removeAssignedAnalytic, isAnalyticAssigned, } from './services/AnalysisAssignmentService';
+export type { IAssignmentState } from './services/AnalysisAssignmentService';
 export type { IWorkflowBlock, ISubWorkflow, IWorkflowDAG, } from './interfaces/IWorkflowBlock';
 export type { IAlgorithm } from './interfaces/IAlgorithm';
 export type { IAlgorithmParameter } from './interfaces/IAlgorithmParameter';

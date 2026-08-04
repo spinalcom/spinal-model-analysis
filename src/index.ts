@@ -67,6 +67,24 @@ export {
   serializeExecutionResult,
 } from './services/serialization';
 
+// Organ-analysis assignment: which analyses each organ manages (opt-in load splitting).
+// Shared by spinal-organ-analysis (filters its own work) and the api-server (manages the
+// per-organ hub files at /etc/Organs/Analysis/<ORGAN_NAME>).
+export {
+  AnalysisAssignmentModel,
+  ANALYSIS_ASSIGNMENT_DIR,
+  loadOrCreateAssignmentFile,
+  loadAssignmentFile,
+  listAssignmentOrganNames,
+  readAssignment,
+  setAssignmentEnabled,
+  setAssignmentAnalytics,
+  addAssignedAnalytic,
+  removeAssignedAnalytic,
+  isAnalyticAssigned,
+} from './services/AnalysisAssignmentService';
+export type { IAssignmentState } from './services/AnalysisAssignmentService';
+
 // Interfaces
 export type {
   IWorkflowBlock,

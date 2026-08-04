@@ -14,7 +14,8 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.SUPPORTED_LOCALES = exports.getLocaleTranslations = exports.localizeAlgorithm = exports.ALGORITHM_TAGS = exports.AlgorithmRegistry = exports.createAlgorithm = exports.EXCEL_ALGORITHMS = exports.TICKET_ALGORITHMS = exports.HTTP_ALGORITHMS = exports.TIMESERIES_ALGORITHMS = exports.STRING_ALGORITHMS = exports.OBJECT_ALGORITHMS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.LIST_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.TRIGGER_TYPE = exports.serializeExecutionResult = exports.serializeExecutionValue = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = exports.AnalysisTriggerService = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisTriggerService = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
+exports.AlgorithmRegistry = exports.createAlgorithm = exports.EXCEL_ALGORITHMS = exports.TICKET_ALGORITHMS = exports.HTTP_ALGORITHMS = exports.TIMESERIES_ALGORITHMS = exports.STRING_ALGORITHMS = exports.OBJECT_ALGORITHMS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.LIST_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.TRIGGER_TYPE = exports.isAnalyticAssigned = exports.removeAssignedAnalytic = exports.addAssignedAnalytic = exports.setAssignmentAnalytics = exports.setAssignmentEnabled = exports.readAssignment = exports.listAssignmentOrganNames = exports.loadAssignmentFile = exports.loadOrCreateAssignmentFile = exports.ANALYSIS_ASSIGNMENT_DIR = exports.AnalysisAssignmentModel = exports.serializeExecutionResult = exports.serializeExecutionValue = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = exports.AnalysisTriggerService = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisTriggerService = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
+exports.SUPPORTED_LOCALES = exports.getLocaleTranslations = exports.localizeAlgorithm = exports.ALGORITHM_TAGS = void 0;
 const version_1 = require("./version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
 const AnalyticNodeManagerService_1 = require("./services/AnalyticNodeManagerService");
@@ -54,6 +55,21 @@ Object.defineProperty(exports, "foreachItemVirtualId", { enumerable: true, get: 
 var serialization_1 = require("./services/serialization");
 Object.defineProperty(exports, "serializeExecutionValue", { enumerable: true, get: function () { return serialization_1.serializeExecutionValue; } });
 Object.defineProperty(exports, "serializeExecutionResult", { enumerable: true, get: function () { return serialization_1.serializeExecutionResult; } });
+// Organ-analysis assignment: which analyses each organ manages (opt-in load splitting).
+// Shared by spinal-organ-analysis (filters its own work) and the api-server (manages the
+// per-organ hub files at /etc/Organs/Analysis/<ORGAN_NAME>).
+var AnalysisAssignmentService_1 = require("./services/AnalysisAssignmentService");
+Object.defineProperty(exports, "AnalysisAssignmentModel", { enumerable: true, get: function () { return AnalysisAssignmentService_1.AnalysisAssignmentModel; } });
+Object.defineProperty(exports, "ANALYSIS_ASSIGNMENT_DIR", { enumerable: true, get: function () { return AnalysisAssignmentService_1.ANALYSIS_ASSIGNMENT_DIR; } });
+Object.defineProperty(exports, "loadOrCreateAssignmentFile", { enumerable: true, get: function () { return AnalysisAssignmentService_1.loadOrCreateAssignmentFile; } });
+Object.defineProperty(exports, "loadAssignmentFile", { enumerable: true, get: function () { return AnalysisAssignmentService_1.loadAssignmentFile; } });
+Object.defineProperty(exports, "listAssignmentOrganNames", { enumerable: true, get: function () { return AnalysisAssignmentService_1.listAssignmentOrganNames; } });
+Object.defineProperty(exports, "readAssignment", { enumerable: true, get: function () { return AnalysisAssignmentService_1.readAssignment; } });
+Object.defineProperty(exports, "setAssignmentEnabled", { enumerable: true, get: function () { return AnalysisAssignmentService_1.setAssignmentEnabled; } });
+Object.defineProperty(exports, "setAssignmentAnalytics", { enumerable: true, get: function () { return AnalysisAssignmentService_1.setAssignmentAnalytics; } });
+Object.defineProperty(exports, "addAssignedAnalytic", { enumerable: true, get: function () { return AnalysisAssignmentService_1.addAssignedAnalytic; } });
+Object.defineProperty(exports, "removeAssignedAnalytic", { enumerable: true, get: function () { return AnalysisAssignmentService_1.removeAssignedAnalytic; } });
+Object.defineProperty(exports, "isAnalyticAssigned", { enumerable: true, get: function () { return AnalysisAssignmentService_1.isAnalyticAssigned; } });
 var analysisTrigger_1 = require("./constants/analysisTrigger");
 Object.defineProperty(exports, "TRIGGER_TYPE", { enumerable: true, get: function () { return analysisTrigger_1.TRIGGER_TYPE; } });
 // Constants
