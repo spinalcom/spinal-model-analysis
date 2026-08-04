@@ -189,6 +189,55 @@ async function produceBuffer(
   return handle.filler.toBuffer();
 }
 
+/** What SAVE_EXCEL_TO_NODE does when the node already has a document with the same name. */
+type IfExists = 'replace' | 'error' | 'allow';
+
+/** Resolves the ifExists parameter (default 'replace'); accepts a few friendly aliases. */
+function resolveIfExists(value: unknown): IfExists {
+  if (typeof value === 'string') {
+    const v = value.trim().toLowerCase();
+    if (v === '' ) return 'replace';
+    if (v === 'replace' || v === 'overwrite') return 'replace';
+    if (v === 'error' || v === 'deny' || v === 'fail') return 'error';
+    if (v === 'allow' || v === 'keep' || v === 'both') return 'allow';
+    throw new Error(
+      `SAVE_EXCEL_TO_NODE: invalid "ifExists" value "${value}" (use "replace", "error", or "allow")`
+    );
+  }
+  return 'replace';
+}
+
+/**
+ * Saves a buffer as a document on a node, honoring the same-name conflict policy:
+ *  - 'replace' (default): remove every existing document with that name, then add the new one.
+ *  - 'error': throw if a document with that name already exists (nothing is written).
+ *  - 'allow': just add it (the previous behavior — may create duplicates).
+ */
+async function saveBufferAsDocument(
+  node: SpinalNode<any>,
+  filename: string,
+  buffer: Buffer,
+  ifExists: IfExists
+): Promise<void> {
+  if (ifExists !== 'allow') {
+    const existing = (await FileExplorer.getFilesLinkedToNode(node)) ?? [];
+    const matches = existing.filter((f: any) => safeFileName(f) === filename);
+    if (matches.length > 0) {
+      if (ifExists === 'error') {
+        throw new Error(
+          `SAVE_EXCEL_TO_NODE: a document named "${filename}" already exists on the node ` +
+          `(ifExists="error"). Use ifExists="replace" to overwrite, or "allow" to keep both.`
+        );
+      }
+      // 'replace' — drop all existing documents with that name before adding the new one.
+      for (const f of matches) {
+        await FileExplorer.removeFileLinked(node, f as any);
+      }
+    }
+  }
+  await FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
+}
+
 // ── blocks ───────────────────────────────────────────────────────────────────
 
 export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
@@ -444,8 +493,9 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
     name: 'SAVE_EXCEL_TO_NODE',
     description:
       'Renders the filled workbook and saves it as a document on a node (via the documentation ' +
-      'service). Takes 2 inputs: [workbook, targetNode] and a "filename" parameter. Set ' +
-      '"preserveCharts" to keep charts embedded in the original template. Returns the target node.',
+      'service). Takes 2 inputs: [workbook, targetNode] and a "filename" parameter. "ifExists" ' +
+      'controls same-name conflicts (replace by default). Set "preserveCharts" to keep charts ' +
+      'embedded in the original template. Returns the target node.',
     inputs: [
       { name: 'workbook', types: ['ExcelWorkbook'], description: 'The filled workbook.', required: true },
       { name: 'node', types: ['SpinalNode'], description: 'The node to attach the produced .xlsx document to.', required: true },
@@ -453,6 +503,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'SpinalNode',
     parameters: [
       { name: 'filename', type: 'string', description: 'File name for the saved document (e.g. "report.xlsx"). ".xlsx" is appended if missing.', required: true },
+      { name: 'ifExists', type: 'string', description: 'What to do if the node already has a document with the same name: "replace" (default — overwrite it), "error" (fail without writing), or "allow" (keep both, may create duplicates).', required: false },
       { name: 'preserveCharts', type: 'boolean', description: 'If true, restores charts from the original template that ExcelJS would otherwise drop (default: false).', required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
@@ -467,10 +518,11 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       filename = filename.trim();
       if (!/\.xlsx?$/i.test(filename)) filename += '.xlsx';
 
+      const ifExists = resolveIfExists(params?.ifExists);
       const preserveCharts = resolveBooleanFlag(params?.preserveCharts, false);
       const buffer = await produceBuffer(handle, preserveCharts);
 
-      await FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
+      await saveBufferAsDocument(node, filename, buffer, ifExists);
       return node as any;
     },
   }),

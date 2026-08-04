@@ -751,13 +751,14 @@ export const FR: LocaleTranslations = {
   },
   SAVE_EXCEL_TO_NODE: {
     label: 'Enregistrer l\'Excel sur un nœud',
-    description: 'Génère le classeur rempli et l\'enregistre comme document sur un nœud (via le service de documentation). Prend 2 entrées : [classeur, nœud cible] et un paramètre « filename ». Activez « preserveCharts » pour conserver les graphiques intégrés au modèle d\'origine. Renvoie le nœud cible.',
+    description: 'Génère le classeur rempli et l\'enregistre comme document sur un nœud (via le service de documentation). Prend 2 entrées : [classeur, nœud cible] et un paramètre « filename ». « ifExists » gère les conflits de nom (remplacement par défaut). Activez « preserveCharts » pour conserver les graphiques intégrés au modèle d\'origine. Renvoie le nœud cible.',
     inputs: {
       workbook: 'Le classeur rempli.',
       node: 'Le nœud auquel attacher le document .xlsx produit.',
     },
     parameters: {
       filename: 'Nom de fichier du document enregistré (ex. « report.xlsx »). « .xlsx » est ajouté s\'il manque.',
+      ifExists: 'Que faire si le nœud a déjà un document du même nom : « replace » (par défaut — le remplacer), « error » (échouer sans rien écrire) ou « allow » (garder les deux, peut créer des doublons).',
       preserveCharts: 'Si vrai, restaure les graphiques du modèle d\'origine qu\'ExcelJS supprimerait sinon (par défaut : faux).',
     },
   },

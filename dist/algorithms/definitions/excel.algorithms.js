@@ -146,6 +146,48 @@ function produceBuffer(handle, preserveCharts) {
         return handle.filler.toBuffer();
     });
 }
+/** Resolves the ifExists parameter (default 'replace'); accepts a few friendly aliases. */
+function resolveIfExists(value) {
+    if (typeof value === 'string') {
+        const v = value.trim().toLowerCase();
+        if (v === '')
+            return 'replace';
+        if (v === 'replace' || v === 'overwrite')
+            return 'replace';
+        if (v === 'error' || v === 'deny' || v === 'fail')
+            return 'error';
+        if (v === 'allow' || v === 'keep' || v === 'both')
+            return 'allow';
+        throw new Error(`SAVE_EXCEL_TO_NODE: invalid "ifExists" value "${value}" (use "replace", "error", or "allow")`);
+    }
+    return 'replace';
+}
+/**
+ * Saves a buffer as a document on a node, honoring the same-name conflict policy:
+ *  - 'replace' (default): remove every existing document with that name, then add the new one.
+ *  - 'error': throw if a document with that name already exists (nothing is written).
+ *  - 'allow': just add it (the previous behavior — may create duplicates).
+ */
+function saveBufferAsDocument(node, filename, buffer, ifExists) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        if (ifExists !== 'allow') {
+            const existing = (_a = (yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.getFilesLinkedToNode(node))) !== null && _a !== void 0 ? _a : [];
+            const matches = existing.filter((f) => safeFileName(f) === filename);
+            if (matches.length > 0) {
+                if (ifExists === 'error') {
+                    throw new Error(`SAVE_EXCEL_TO_NODE: a document named "${filename}" already exists on the node ` +
+                        `(ifExists="error"). Use ifExists="replace" to overwrite, or "allow" to keep both.`);
+                }
+                // 'replace' — drop all existing documents with that name before adding the new one.
+                for (const f of matches) {
+                    yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.removeFileLinked(node, f);
+                }
+            }
+        }
+        yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
+    });
+}
 // ── blocks ───────────────────────────────────────────────────────────────────
 exports.EXCEL_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
@@ -373,8 +415,9 @@ exports.EXCEL_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'SAVE_EXCEL_TO_NODE',
         description: 'Renders the filled workbook and saves it as a document on a node (via the documentation ' +
-            'service). Takes 2 inputs: [workbook, targetNode] and a "filename" parameter. Set ' +
-            '"preserveCharts" to keep charts embedded in the original template. Returns the target node.',
+            'service). Takes 2 inputs: [workbook, targetNode] and a "filename" parameter. "ifExists" ' +
+            'controls same-name conflicts (replace by default). Set "preserveCharts" to keep charts ' +
+            'embedded in the original template. Returns the target node.',
         inputs: [
             { name: 'workbook', types: ['ExcelWorkbook'], description: 'The filled workbook.', required: true },
             { name: 'node', types: ['SpinalNode'], description: 'The node to attach the produced .xlsx document to.', required: true },
@@ -382,6 +425,7 @@ exports.EXCEL_ALGORITHMS = [
         outputType: 'SpinalNode',
         parameters: [
             { name: 'filename', type: 'string', description: 'File name for the saved document (e.g. "report.xlsx"). ".xlsx" is appended if missing.', required: true },
+            { name: 'ifExists', type: 'string', description: 'What to do if the node already has a document with the same name: "replace" (default — overwrite it), "error" (fail without writing), or "allow" (keep both, may create duplicates).', required: false },
             { name: 'preserveCharts', type: 'boolean', description: 'If true, restores charts from the original template that ExcelJS would otherwise drop (default: false).', required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
@@ -396,9 +440,10 @@ exports.EXCEL_ALGORITHMS = [
             filename = filename.trim();
             if (!/\.xlsx?$/i.test(filename))
                 filename += '.xlsx';
+            const ifExists = resolveIfExists(params === null || params === void 0 ? void 0 : params.ifExists);
             const preserveCharts = (0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.preserveCharts, false);
             const buffer = yield produceBuffer(handle, preserveCharts);
-            yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
+            yield saveBufferAsDocument(node, filename, buffer, ifExists);
             return node;
         }),
     }),
