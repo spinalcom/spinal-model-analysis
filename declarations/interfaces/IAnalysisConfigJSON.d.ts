@@ -34,7 +34,11 @@ export interface IAnalysisConfigJSON {
     contextName: string;
     /** Name for the analysis node */
     analysisName: string;
-    /** Server id of the analysis node */
+    /**
+     * Server id of the analysis node (analysisNode._server_id). In modern BOS this is stable
+     * per-node across processes, so it's the key organ-analysis assignment matches on and what
+     * the rest of the api-server loads nodes by.
+     */
     analysisId?: number;
     /** Optional description */
     description?: string;

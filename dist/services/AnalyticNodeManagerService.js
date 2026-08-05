@@ -356,6 +356,8 @@ class AnalyticNodeManagerService {
             const result = {
                 contextName: context.getName().get(),
                 analysisName: analysisNode.getName().get(),
+                // server_id is stable per-node across processes in modern BOS, so it's both the key
+                // organ-analysis assignment matches on and what the rest of the api-server loads by.
                 analysisId: analysisNode._server_id,
                 description: (_b = (_a = analysisNode.info.description) === null || _a === void 0 ? void 0 : _a.get()) !== null && _b !== void 0 ? _b : '',
             };

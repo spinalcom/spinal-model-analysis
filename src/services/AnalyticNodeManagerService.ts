@@ -407,6 +407,8 @@ export default class AnalyticNodeManagerService {
     const result: IAnalysisConfigJSON = {
       contextName: context.getName().get(),
       analysisName: analysisNode.getName().get(),
+      // server_id is stable per-node across processes in modern BOS, so it's both the key
+      // organ-analysis assignment matches on and what the rest of the api-server loads by.
       analysisId: analysisNode._server_id!,
       description: analysisNode.info.description?.get() ?? '',
     };
