@@ -182,19 +182,17 @@ class WorkflowExecutionService {
             const itemVirtualId = foreachItemVirtualId(block.foreachItemRef);
             const results = [];
             for (const element of inputArray) {
-                // Create an isolated sub-context for this iteration
+                // Per-iteration sub-context. Inherit a COPY of the parent block outputs so a
+                // sub-block can read blocks computed before the FOREACH (parent refs) and any
+                // ancestor FOREACH item — the same inheritance IF branches get. Copying keeps
+                // iterations isolated from each other and from the parent: sub-block writes land
+                // in this map only, and the FOREACH's result is set on the parent context below.
                 const subContext = {
                     workNode: context.workNode,
                     inputRegisters: new Map(context.inputRegisters),
-                    blockOutputs: new Map(),
+                    blockOutputs: new Map(context.blockOutputs),
                     execution: context.execution,
                 };
-                // Propagate parent FOREACH item refs into the sub-context
-                for (const [key, value] of context.blockOutputs) {
-                    if (key.startsWith(exports.FOREACH_ITEM_PREFIX)) {
-                        subContext.blockOutputs.set(key, value);
-                    }
-                }
                 // Inject the current element under its named virtual ID
                 subContext.blockOutputs.set(itemVirtualId, element);
                 // Execute sub-workflow DAG

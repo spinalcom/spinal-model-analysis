@@ -332,6 +332,15 @@ class AnalysisFactoryService {
                     });
                 }
                 refToNode.set(blockDef.ref, blockNode);
+            }
+            // ── Phase 1b: Build FOREACH / IF sub-workflows ──
+            // Deferred until every top-level node exists, so a sub-block may reference a parent
+            // block declared later in the array — the workflow is a DAG, declaration order must
+            // not matter (building inline in Phase 1 only saw blocks defined before the FOREACH/IF).
+            for (const blockDef of workflowConfig.blocks) {
+                const blockNode = refToNode.get(blockDef.ref);
+                if (!blockNode)
+                    continue;
                 // If this is a FOREACH block with a sub-workflow, build it
                 if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
                     if (!blockDef.itemRef) {
@@ -447,10 +456,14 @@ class AnalysisFactoryService {
      * `parentRefToNode` provides access to blocks defined in the parent workflow scope.
      */
     buildForeachSubWorkflow(foreachNode, contextNode, subWorkflowConfig, itemRef, parentRefToNode, knownItemRefs = new Set()) {
-        var _a, _b;
+        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
             const refToNode = new Map();
             const itemVirtualId = (0, WorkflowExecutionService_1.foreachItemVirtualId)(itemRef);
+            // Track parent refs used by sub-blocks so we can add them as dependencies of the
+            // FOREACH block itself (ensures the topological sort runs those parent blocks first,
+            // and their outputs are present when we copy the parent context into each iteration).
+            const usedParentRefs = new Set();
             // Phase 1: Create sub-blocks
             for (const blockDef of subWorkflowConfig.blocks) {
                 const subBlockNode = yield this.blockManager.createForeachSubBlock(foreachNode, contextNode, blockDef.algorithmName, (_a = blockDef.parameters) !== null && _a !== void 0 ? _a : {}, {
@@ -458,6 +471,13 @@ class AnalysisFactoryService {
                     registerAs: blockDef.registerAs,
                 });
                 refToNode.set(blockDef.ref, subBlockNode);
+            }
+            // Phase 1b: Build nested FOREACH / IF sub-workflows (after all siblings exist, so a
+            // nested sub-block may reference a sibling declared later in this sub-workflow).
+            for (const blockDef of subWorkflowConfig.blocks) {
+                const subBlockNode = refToNode.get(blockDef.ref);
+                if (!subBlockNode)
+                    continue;
                 // Recursively build nested FOREACH sub-workflows
                 if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
                     if (!blockDef.itemRef) {
@@ -512,6 +532,7 @@ class AnalysisFactoryService {
                         const parentNode = parentRefToNode.get(sourceRef);
                         if (parentNode) {
                             finalIds.push(parentNode.getId().get());
+                            usedParentRefs.add(sourceRef);
                             continue;
                         }
                     }
@@ -532,6 +553,26 @@ class AnalysisFactoryService {
             this.blockManager.updateBlock(foreachNode, {
                 foreachOutputBlockId: outputNode.getId().get(),
             });
+            // Ensure parent refs used by sub-blocks are also dependencies of the FOREACH block.
+            // This guarantees the topological sort places those parent blocks before the FOREACH,
+            // so their outputs are available when each iteration inherits the parent context.
+            // Mirrors the IF block. The FOREACH executor only reads inputs[0] as the iteration
+            // collection, so these extra inputs (appended after slot 0) never affect iteration.
+            if (parentRefToNode && usedParentRefs.size > 0) {
+                const foreachInputBlockIds = JSON.parse((_d = (_c = foreachNode.info.inputBlockIds) === null || _c === void 0 ? void 0 : _c.get()) !== null && _d !== void 0 ? _d : '[]');
+                for (const parentRef of usedParentRefs) {
+                    const parentNode = parentRefToNode.get(parentRef);
+                    if (!parentNode)
+                        continue;
+                    const parentId = parentNode.getId().get();
+                    if (!foreachInputBlockIds.includes(parentId)) {
+                        foreachInputBlockIds.push(parentId);
+                        // Add graph edge so loadWorkflowDAG can traverse it
+                        yield this.blockManager.addDependency(parentNode, foreachNode, contextNode);
+                    }
+                }
+                foreachNode.info.inputBlockIds.set(JSON.stringify(foreachInputBlockIds));
+            }
         });
     }
     /**
@@ -557,6 +598,13 @@ class AnalysisFactoryService {
                     registerAs: blockDef.registerAs,
                 });
                 refToNode.set(blockDef.ref, subBlockNode);
+            }
+            // Phase 1b: Build nested FOREACH / IF sub-workflows (after all siblings exist, so a
+            // nested sub-block may reference a sibling declared later in this branch).
+            for (const blockDef of subWorkflowConfig.blocks) {
+                const subBlockNode = refToNode.get(blockDef.ref);
+                if (!subBlockNode)
+                    continue;
                 // Recursively build nested FOREACH sub-workflows
                 if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
                     if (!blockDef.itemRef) {

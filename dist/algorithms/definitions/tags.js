@@ -119,8 +119,13 @@ exports.ALGORITHM_TAGS = {
     GET_TICKETS_FROM_NODE: ['ticket', 'read', 'node'],
     MOVE_TICKET_TO_NEXT_STEP: ['ticket', 'write', 'workflow', 'step'],
     // ── excel ──
-    LOAD_EXCEL_TEMPLATE: ['excel', 'xlsx', 'document', 'file', 'report', 'template', 'read', 'io'],
+    LOAD_EXCEL: ['excel', 'xlsx', 'document', 'file', 'report', 'template', 'read', 'io'],
     GET_EXCEL_VARIABLES: ['excel', 'xlsx', 'report', 'template', 'read'],
+    GET_EXCEL_SHEETS: ['excel', 'xlsx', 'read', 'sheet', 'worksheet', 'extract'],
+    GET_EXCEL_CELL: ['excel', 'xlsx', 'read', 'cell', 'extract'],
+    GET_EXCEL_COLUMN: ['excel', 'xlsx', 'read', 'column', 'extract', 'timeseries'],
+    GET_EXCEL_RANGE: ['excel', 'xlsx', 'read', 'range', 'table', 'extract'],
+    COLUMNS_TO_TIMESERIES: ['excel', 'timeseries', 'transform', 'extract', 'inject'],
     SET_EXCEL_VARIABLES: ['excel', 'xlsx', 'report', 'template', 'fill', 'write'],
     SET_EXCEL_CELLS: ['excel', 'xlsx', 'report', 'fill', 'write', 'cell'],
     SET_EXCEL_RANGE: ['excel', 'xlsx', 'report', 'fill', 'write', 'range', 'table'],
@@ -142,5 +147,6 @@ exports.ALGORITHM_TAGS = {
     TIMESERIES_SUM: ['timeseries', 'reducer', 'aggregation', 'energy'],
     TIMESERIES_COUNT: ['timeseries', 'reducer', 'aggregation'],
     PUSH_ENDPOINT_VALUE: ['timeseries', 'endpoint', 'write', 'io', 'value'],
+    INSERT_TIMESERIES: ['timeseries', 'endpoint', 'write', 'io', 'inject', 'backfill', 'import'],
 };
 //# sourceMappingURL=tags.js.map

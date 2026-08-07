@@ -9,7 +9,7 @@ import type {
  *
  * Block outputs can be values that are NOT safe to hand to JSON.stringify: SpinalNodes and
  * spinal-core Models carry `_parents` back-references (cycles), and some blocks emit opaque
- * runtime handles (e.g. the Excel workbook from LOAD_EXCEL_TEMPLATE, which wraps a live
+ * runtime handles (e.g. the Excel workbook from LOAD_EXCEL, which wraps a live
  * ExcelJS workbook + a Buffer). This module owns the block-output shapes, so it owns how they
  * serialize — both the api-server (execute route) and spinal-organ-analysis import these
  * instead of re-implementing the knowledge of what a "block output" can be.

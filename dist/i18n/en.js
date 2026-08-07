@@ -118,6 +118,7 @@ exports.EN = {
     TIMESERIES_SUM: { label: 'Timeseries Sum' },
     TIMESERIES_COUNT: { label: 'Timeseries Count' },
     PUSH_ENDPOINT_VALUE: { label: 'Push Endpoint Value' },
+    INSERT_TIMESERIES: { label: 'Insert Timeseries' },
     // ── http ──
     CURL_REQUEST: { label: 'cURL Request' },
     // ── string ──
@@ -127,8 +128,13 @@ exports.EN = {
     GET_TICKETS_FROM_NODE: { label: 'Get Node Tickets' },
     MOVE_TICKET_TO_NEXT_STEP: { label: 'Move Ticket to Next Step' },
     // ── excel ──
-    LOAD_EXCEL_TEMPLATE: { label: 'Load Excel Template' },
+    LOAD_EXCEL: { label: 'Load Excel' },
     GET_EXCEL_VARIABLES: { label: 'Get Excel Variables' },
+    GET_EXCEL_SHEETS: { label: 'Get Excel Sheets' },
+    GET_EXCEL_CELL: { label: 'Get Excel Cell' },
+    GET_EXCEL_COLUMN: { label: 'Get Excel Column' },
+    GET_EXCEL_RANGE: { label: 'Get Excel Range' },
+    COLUMNS_TO_TIMESERIES: { label: 'Columns to Timeseries' },
     SET_EXCEL_VARIABLES: { label: 'Fill Excel Variables' },
     SET_EXCEL_CELLS: { label: 'Set Excel Cells' },
     SET_EXCEL_RANGE: { label: 'Fill Excel Range' },

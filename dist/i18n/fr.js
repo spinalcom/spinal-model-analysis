@@ -619,6 +619,18 @@ exports.FR = {
             updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
         },
     },
+    INSERT_TIMESERIES: {
+        label: 'Injecter une série temporelle',
+        description: 'Insère en masse une série temporelle ({ date, value }[]) dans la série d\'un endpoint, chaque point à son propre horodatage (créant la série si elle n\'existe pas) — ex. pour réinjecter un historique importé depuis Excel via COLUMNS_TO_TIMESERIES. Prend 2 entrées : [nœud endpoint, série]. Par défaut, ne touche PAS à la currentValue du nœud (réinjecter d\'anciennes données ne doit pas changer la valeur « courante ») ; activez « updateCurrentValue » pour la définir sur le dernier point. Renvoie le nombre de points insérés.',
+        inputs: {
+            endpoint: 'Le nœud endpoint où insérer la série temporelle.',
+            series: 'La série temporelle ({ date, value }[]) à insérer (ex. depuis COLUMNS_TO_TIMESERIES).',
+        },
+        parameters: {
+            updateCurrentValue: 'Si vrai, définit la currentValue du nœud sur la valeur du point le plus récent (date max) après insertion. Par défaut false.',
+            updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
+        },
+    },
     // ── http ──
     CURL_REQUEST: {
         label: 'Requête cURL',
@@ -661,25 +673,66 @@ exports.FR = {
         parameters: { contextName: 'Nom du contexte de tickets (alias workflow) auquel appartient le ticket.' },
     },
     // ── excel ──
-    LOAD_EXCEL_TEMPLATE: {
-        label: 'Charger un modèle Excel',
-        description: 'Charge un modèle .xlsx stocké comme document sur un nœud et renvoie un classeur Excel que l\'on remplit avec les blocs SET_EXCEL_* puis que l\'on enregistre avec SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. Par défaut, le premier document .xlsx du nœud est chargé ; utilisez le paramètre « filename » pour en choisir un précis. Une « defaultColor » optionnelle (hex, sans #) est appliquée en fond de chaque cellule remplie.',
-        inputs: { node: 'Le nœud portant le modèle .xlsx en document attaché.' },
+    LOAD_EXCEL: {
+        label: 'Charger un Excel',
+        description: 'Charge un document .xlsx stocké sur un nœud et renvoie un classeur Excel. À partir de là, vous pouvez LIRE (GET_EXCEL_CELL / GET_EXCEL_COLUMN / GET_EXCEL_RANGE / GET_EXCEL_SHEETS) et/ou REMPLIR (blocs SET_EXCEL_*) puis enregistrer avec SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. Par défaut, le premier document .xlsx du nœud est chargé ; utilisez le paramètre « filename » pour en choisir un précis. Une « defaultColor » optionnelle (hex, sans #) est appliquée en fond de chaque cellule remplie.',
+        inputs: { node: 'Le nœud portant le document .xlsx en pièce jointe.' },
         parameters: {
-            filename: 'Nom du document à charger (ex. « template.xlsx »). Si omis, le premier .xlsx attaché au nœud est utilisé.',
+            filename: 'Nom du document à charger (ex. « report.xlsx »). Si omis, le premier .xlsx attaché au nœud est utilisé.',
             defaultColor: 'Couleur de fond par défaut des cellules, en hexadécimal sans « # » (ex. « E3F2FD »), appliquée à chaque cellule remplie.',
         },
     },
     GET_EXCEL_VARIABLES: {
         label: 'Lire les variables Excel',
         description: 'Renvoie la liste des noms de variables {{token}} présentes dans le modèle chargé. Utile pour découvrir ce qu\'attend un modèle avant de le remplir (à envoyer vers LOG ou FOREACH).',
-        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
+    },
+    GET_EXCEL_SHEETS: {
+        label: 'Lire les feuilles Excel',
+        description: 'Renvoie les noms de toutes les feuilles du classeur chargé, dans l\'ordre des onglets — pratique pour découvrir les noms de feuilles avant de lire des cellules/colonnes/plages.',
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
+    },
+    GET_EXCEL_CELL: {
+        label: 'Lire une cellule Excel',
+        description: 'Lit la valeur d\'une seule cellule. Indiquez la cellule via le paramètre « ref » au format « NomFeuille!Cellule » (ex. « Sheet1!B3 »). Les cellules à formule renvoient leur résultat mis en cache ; les cellules vides renvoient null.',
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
+        parameters: { ref: 'Référence de cellule au format « NomFeuille!Cellule », ex. « Sheet1!B3 ».' },
+    },
+    GET_EXCEL_COLUMN: {
+        label: 'Lire une colonne Excel',
+        description: 'Lit une colonne entière de haut en bas sous forme de tableau de valeurs. Paramètres : « sheet » (nom), « column » (lettre comme « B » ou index 1-based), et en option « startRow »/« endRow » (1-based, inclus ; endRow par défaut = dernière ligne utilisée) et « skipHeader » pour ignorer la première ligne. Associez deux colonnes (horodatages + valeurs) à COLUMNS_TO_TIMESERIES pour construire une série injectable.',
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
+        parameters: {
+            sheet: 'Nom de la feuille à lire.',
+            column: 'Lettre de colonne (ex. « B ») ou index 1-based (ex. 2).',
+            startRow: 'Première ligne à lire (1-based). Par défaut 1.',
+            endRow: 'Dernière ligne à lire (1-based, incluse). Par défaut : la dernière ligne utilisée de la feuille.',
+            skipHeader: 'Ignorer la première ligne de la plage comme en-tête (par défaut false).',
+        },
+    },
+    GET_EXCEL_RANGE: {
+        label: 'Lire une plage Excel',
+        description: 'Lit une plage rectangulaire sous forme de tableau 2D ligne par ligne. Indiquez la plage via le paramètre « ref » au format « NomFeuille!A1:C100 » (une référence de cellule unique renvoie un tableau 1×1). Les cellules vides renvoient null ; les cellules à formule renvoient leur résultat mis en cache.',
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
+        parameters: { ref: 'Référence de plage au format « NomFeuille!A1:C100 ».' },
+    },
+    COLUMNS_TO_TIMESERIES: {
+        label: 'Colonnes vers série temporelle',
+        description: 'Associe une colonne d\'horodatages à une colonne de valeurs en une série temporelle ({ date, value }[]) prête à injecter avec INSERT_TIMESERIES. Prend 2 entrées : [horodatages, valeurs] (ex. deux sorties de GET_EXCEL_COLUMN). Les cellules au format date sont analysées automatiquement ; activez « dateIsExcelSerial » si la colonne d\'horodatages contient des numéros de série Excel bruts. Les lignes dont la date ou la valeur est illisible sont ignorées par défaut (mettez « dropInvalid » à false pour lever une erreur). La sortie est triée par date croissante.',
+        inputs: {
+            timestamps: 'Colonne d\'horodatages (cellules date, nombres en ms epoch, séries Excel, ou chaînes de date).',
+            values: 'Colonne de valeurs numériques, alignées ligne par ligne avec les horodatages.',
+        },
+        parameters: {
+            dateIsExcelSerial: 'Interpréter les horodatages numériques comme des numéros de série Excel (jours) plutôt que des ms epoch (par défaut false).',
+            dropInvalid: 'Ignorer les lignes dont la date ou la valeur est illisible (par défaut true). Mettez false pour lever une erreur à la première ligne invalide.',
+        },
     },
     SET_EXCEL_VARIABLES: {
         label: 'Remplir les variables Excel',
         description: 'Remplit les emplacements {{token}} du modèle à partir d\'un objet associant nom de variable → valeur. Les scalaires remplacent le token (les cellules ne contenant que le token conservent le type de la valeur ; les tokens intégrés dans du texte sont substitués en texte). Une valeur tableau remplit vers le bas depuis sa cellule. Renvoie le même classeur pour l\'enchaînement.',
         inputs: {
-            workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+            workbook: 'Le classeur issu de LOAD_EXCEL.',
             variables: 'Objet (ou chaîne JSON) associant nom de variable → valeur (scalaire ou tableau).',
         },
     },
@@ -687,7 +740,7 @@ exports.FR = {
         label: 'Définir des cellules Excel',
         description: 'Écrit des valeurs dans des cellules précises à partir d\'un objet dont les clés sont « NomFeuille!Cellule » (ex. « Sheet1!B3 ») et les valeurs, les valeurs de cellule. Une valeur peut aussi être un objet { « value » : <v>, « color » : « 4CAF50 », « comment » : « note » } pour colorer la cellule / y attacher une note. Renvoie le même classeur.',
         inputs: {
-            workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+            workbook: 'Le classeur issu de LOAD_EXCEL.',
             cells: 'Objet (ou chaîne JSON) associant « Feuille!Cellule » → valeur ou { value, color, comment }.',
         },
     },
@@ -695,7 +748,7 @@ exports.FR = {
         label: 'Remplir une plage Excel',
         description: 'Remplit une plage à partir d\'un tableau, en démarrant à une cellule d\'ancrage. Un tableau 1D remplit une colonne (par défaut) ou une ligne (« direction » = « row ») ; un tableau 2D remplit un bloc ligne par ligne — idéal pour les tableaux. Chaque valeur peut aussi être un objet { value, color, comment }. Renvoie le même classeur.',
         inputs: {
-            workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+            workbook: 'Le classeur issu de LOAD_EXCEL.',
             values: 'Un tableau 1D ou 2D (ou chaîne JSON) de valeurs à écrire depuis l\'ancrage.',
         },
         parameters: {
@@ -707,14 +760,14 @@ exports.FR = {
         label: 'Définir des commentaires Excel',
         description: 'Attache des commentaires (« notes » Excel) à des cellules sans modifier leurs valeurs, à partir d\'un objet associant « NomFeuille!Cellule » → texte du commentaire. Renvoie le même classeur.',
         inputs: {
-            workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.',
+            workbook: 'Le classeur issu de LOAD_EXCEL.',
             comments: 'Objet (ou chaîne JSON) associant « Feuille!Cellule » → texte du commentaire.',
         },
     },
     ADD_EXCEL_SHEET: {
         label: 'Ajouter une feuille Excel',
         description: 'Ajoute une feuille au classeur. Avec « copyFrom », duplique une feuille existante (valeurs, styles, largeurs de colonnes, hauteurs de lignes, cellules fusionnées — motif courant « une feuille par client » ; les images ne sont pas copiées). Les {{tokens}} de la feuille copiée deviennent aussi remplissables. Renvoie le même classeur.',
-        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
         parameters: {
             name: 'Nom de la nouvelle feuille.',
             copyFrom: 'Nom optionnel d\'une feuille existante à dupliquer.',
@@ -723,7 +776,7 @@ exports.FR = {
     RENAME_EXCEL_SHEET: {
         label: 'Renommer une feuille Excel',
         description: 'Renomme une feuille. Lève une erreur si la feuille source est absente ou si le nouveau nom est déjà pris. Renvoie le même classeur.',
-        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
         parameters: {
             oldName: 'Nom actuel de la feuille.',
             newName: 'Nouveau nom de la feuille.',
@@ -732,7 +785,7 @@ exports.FR = {
     DELETE_EXCEL_SHEET: {
         label: 'Supprimer une feuille Excel',
         description: 'Supprime une feuille du classeur par son nom. Lève une erreur si elle n\'existe pas. Renvoie le même classeur.',
-        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL_TEMPLATE.' },
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
         parameters: { name: 'Nom de la feuille à supprimer.' },
     },
     SAVE_EXCEL_TO_NODE: {

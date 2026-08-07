@@ -497,4 +497,78 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
       return value as any;
     },
   }),
+
+  createAlgorithm({
+    name: 'INSERT_TIMESERIES',
+    description:
+      'Bulk-inserts a timeseries ({ date, value }[]) into an endpoint\'s timeseries, each point ' +
+      'at its own timestamp (creating the timeseries if missing) — e.g. to backfill history ' +
+      'imported from Excel via COLUMNS_TO_TIMESERIES. Takes 2 inputs: [endpointNode, series]. ' +
+      'By default it does NOT touch the node\'s currentValue (backfilling old data shouldn\'t ' +
+      'change "current"); set "updateCurrentValue" to also set it to the latest point. Returns ' +
+      'the number of points inserted.',
+    inputs: [
+      { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node to insert the timeseries into.', required: true },
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to insert (e.g. from COLUMNS_TO_TIMESERIES).', required: true },
+    ],
+    outputType: 'number',
+    parameters: [
+      {
+        name: 'updateCurrentValue',
+        type: 'boolean',
+        description:
+          'If true, set the endpoint node\'s currentValue to the value of the latest (max-date) ' +
+          'point after inserting. Default false.',
+        required: false,
+      },
+      {
+        name: 'updateDirectModificationDate',
+        type: 'boolean',
+        description:
+          'If true, also stamps node.info.directModificationDate with the current time after ' +
+          'inserting, so the BOS can detect the direct modification (default: false).',
+        required: false,
+      },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      if (!Array.isArray(input) || input.length < 2) {
+        throw new Error('INSERT_TIMESERIES expects 2 inputs: [endpointNode, series]');
+      }
+      const node = input[0];
+      if (!isSpinalNode(node)) {
+        throw new Error('INSERT_TIMESERIES: first input must be a SpinalNode');
+      }
+      const series = asSeries(input[1], 'INSERT_TIMESERIES');
+      if (series.length === 0) return 0 as any;
+
+      // The timeseries service resolves the endpoint by id through SpinalGraphService, so
+      // register the node first (idempotent) — work nodes from raw traversal may not be in
+      // the registry, which would otherwise make the insert silently fail.
+      SpinalGraphService._addNode(node as SpinalNode<any>);
+      const nodeId = (node as SpinalNode<any>).getId().get();
+      const service = SingletonServiceTimeseries.getInstance();
+
+      let inserted = 0;
+      for (const point of series) {
+        const ok = await service.insertFromEndpoint(nodeId, point.value, point.date);
+        if (ok) inserted++;
+      }
+
+      // Optionally reflect the latest point on the node's currentValue. Off by default:
+      // backfilling historical data shouldn't move "current".
+      if (resolveBooleanFlag(params?.updateCurrentValue, false)) {
+        const latest = series.reduce((a, b) => (b.date > a.date ? b : a), series[0]);
+        const nodeElement = await (node as SpinalNode<any>).element?.load();
+        if (nodeElement?.currentValue?.set) {
+          nodeElement.currentValue.set(latest.value);
+        }
+      }
+
+      if (resolveBooleanFlag(params?.updateDirectModificationDate, false)) {
+        touchDirectModificationDate(node as SpinalNode<any>);
+      }
+
+      return inserted as any;
+    },
+  }),
 ];

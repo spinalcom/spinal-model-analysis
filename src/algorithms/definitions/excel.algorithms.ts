@@ -16,11 +16,11 @@ import { resolveBooleanFlag } from '../../services/utils';
  * load an .xlsx template stored as a document on a node, fill its `{{tokens}}` / cells /
  * ranges, manage sheets, then save the result back onto a node or export it as base64.
  *
- * Pipeline model: LOAD_EXCEL_TEMPLATE returns an **Excel workbook handle** — a live,
+ * Pipeline model: LOAD_EXCEL returns an **Excel workbook handle** — a live,
  * stateful object that flows between blocks as an ordinary block output. Each SET_* /
  * *_SHEET block mutates that handle in place and returns it, so you chain them linearly:
  *
- *   LOAD_EXCEL_TEMPLATE(node) → SET_EXCEL_VARIABLES([wb, vars]) → SAVE_EXCEL_TO_NODE([wb, node])
+ *   LOAD_EXCEL(node) → SET_EXCEL_VARIABLES([wb, vars]) → SAVE_EXCEL_TO_NODE([wb, node])
  *
  * Because the handle is mutated in place, treat it as a single linear pipeline (don't fan
  * the same handle into parallel mutating branches and expect independent copies).
@@ -55,6 +55,9 @@ async function loadFillerClass(): Promise<any> {
  * The subset of the SpinalExcelFiller surface these blocks use. Declared locally so we
  * stay decoupled from the ESM package's types (which we can't statically import here).
  */
+/** A value read out of a cell (formula → result, rich text → string, empty → null). */
+type ExcelCellValue = string | number | boolean | Date | null;
+
 interface IExcelFiller {
   loadTemplateFromBuffer(buffer: Buffer): Promise<void>;
   getVariables(): string[];
@@ -72,6 +75,15 @@ interface IExcelFiller {
   deleteSheet(name: string): void;
   toBuffer(): Promise<Buffer>;
   toBufferWithCharts(originalBuffer: Buffer): Promise<Buffer>;
+  // ── read side ──
+  getSheetNames(): string[];
+  getCell(ref: string): ExcelCellValue;
+  getColumn(
+    sheet: string,
+    column: string | number,
+    options?: { startRow?: number; endRow?: number; skipHeader?: boolean }
+  ): ExcelCellValue[];
+  getRange(ref: string): ExcelCellValue[][];
 }
 
 /** Live workbook passed between Excel blocks. `__excelHandle` brands it for detection. */
@@ -105,7 +117,7 @@ const isExcelHandle = (value: unknown): value is ExcelWorkbookHandle =>
 function requireHandle(input: unknown, blockName: string): ExcelWorkbookHandle {
   if (isExcelHandle(input)) return input;
   throw new Error(
-    `${blockName}: expected an Excel workbook (wire it from LOAD_EXCEL_TEMPLATE)`
+    `${blockName}: expected an Excel workbook (wire it from LOAD_EXCEL)`
   );
 }
 
@@ -238,72 +250,126 @@ async function saveBufferAsDocument(
   await FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
 }
 
+/**
+ * Loads the .xlsx document attached to a node into a live Excel workbook handle that supports
+ * both reading (GET_EXCEL_*) and filling (SET_EXCEL_*).
+ */
+async function loadWorkbookHandle(
+  input: unknown,
+  params: Record<string, unknown> | undefined,
+  blockName: string
+): Promise<ExcelWorkbookHandle> {
+  const node = resolveNode(input);
+  if (!node) throw new Error(`${blockName}: input must be a SpinalNode`);
+
+  const files = await FileExplorer.getFilesLinkedToNode(node);
+  if (!files || files.length === 0) {
+    throw new Error(`${blockName}: the node has no attached document`);
+  }
+
+  const requested = typeof params?.filename === 'string' ? params.filename.trim() : '';
+  let chosen: any;
+  if (requested) {
+    chosen =
+      files.find((f) => safeFileName(f) === requested) ||
+      files.find((f) => safeFileName(f).toLowerCase() === requested.toLowerCase());
+    if (!chosen) {
+      const available = files.map((f) => safeFileName(f)).filter(Boolean).join(', ');
+      throw new Error(
+        `${blockName}: no document named "${requested}" on the node (found: ${available || 'none'})`
+      );
+    }
+  } else {
+    chosen = files.find((f) => /\.xlsx?$/i.test(safeFileName(f))) || files[0];
+  }
+
+  if (typeof chosen.getCurrentVersionAsBuffer !== 'function') {
+    throw new Error(`${blockName}: document "${safeFileName(chosen)}" cannot be read as a buffer`);
+  }
+  const buffer: Buffer = await chosen.getCurrentVersionAsBuffer(getHubUrl());
+
+  const Filler = await loadFillerClass();
+  const defaultColor =
+    typeof params?.defaultColor === 'string' && (params.defaultColor as string).trim().length > 0
+      ? (params.defaultColor as string).trim()
+      : undefined;
+  const filler: IExcelFiller = new Filler(defaultColor ? { defaultColor } : {});
+  await filler.loadTemplateFromBuffer(buffer);
+
+  return {
+    __excelHandle: true,
+    filler,
+    originalBuffer: buffer,
+    sourceName: safeFileName(chosen) || null,
+  };
+}
+
+// ── read/extraction value shaping ─────────────────────────────────────────────
+// Days between Excel's epoch (1899-12-30, incl. the 1900 leap-year bug) and 1970-01-01.
+const EXCEL_EPOCH_OFFSET_DAYS = 25569;
+const MS_PER_DAY = 86400000;
+
+/**
+ * Coerces a read cell value to an epoch-ms timestamp, or null if it can't be parsed.
+ * Date cells arrive as JS Dates (the common case). Numbers are epoch ms by default, or
+ * Excel serial days when `excelSerial` is true. Strings are parsed as a number then a date.
+ */
+function toEpochMs(value: unknown, excelSerial: boolean): number | null {
+  if (value === null || value === undefined || value === '') return null;
+  if (value instanceof Date) {
+    const t = value.getTime();
+    return isNaN(t) ? null : t;
+  }
+  if (typeof value === 'number') {
+    if (isNaN(value)) return null;
+    return excelSerial ? Math.round((value - EXCEL_EPOCH_OFFSET_DAYS) * MS_PER_DAY) : value;
+  }
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (!s) return null;
+    const n = Number(s);
+    if (!isNaN(n)) return excelSerial ? Math.round((n - EXCEL_EPOCH_OFFSET_DAYS) * MS_PER_DAY) : n;
+    const d = Date.parse(s);
+    return isNaN(d) ? null : d;
+  }
+  return null;
+}
+
+/** Coerces a read cell value to a number (booleans → 1/0), or null if it isn't numeric. */
+function toNumericValue(value: unknown): number | null {
+  if (typeof value === 'boolean') return value ? 1 : 0;
+  if (typeof value === 'number') return isNaN(value) ? null : value;
+  if (typeof value === 'string') {
+    const s = value.trim();
+    if (!s) return null;
+    const n = Number(s);
+    return isNaN(n) ? null : n;
+  }
+  return null;
+}
+
 // ── blocks ───────────────────────────────────────────────────────────────────
 
 export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
   createAlgorithm({
-    name: 'LOAD_EXCEL_TEMPLATE',
+    name: 'LOAD_EXCEL',
     description:
-      'Loads an .xlsx template stored as a document on a node and returns an Excel workbook ' +
-      'you can fill with the SET_EXCEL_* blocks and then save with SAVE_EXCEL_TO_NODE / ' +
-      'EXCEL_TO_BASE64. By default it picks the first .xlsx document on the node; set the ' +
-      '"filename" parameter to choose a specific one. An optional "defaultColor" (hex, no #) ' +
-      'is applied as the background of every filled cell.',
+      'Loads an .xlsx document stored on a node and returns an Excel workbook handle. From it ' +
+      'you can READ (GET_EXCEL_CELL / GET_EXCEL_COLUMN / GET_EXCEL_RANGE / GET_EXCEL_SHEETS) ' +
+      'and/or FILL (SET_EXCEL_* blocks) then save with SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. ' +
+      'By default it picks the first .xlsx document on the node; set the "filename" parameter ' +
+      'to choose a specific one. An optional "defaultColor" (hex, no #) is applied as the ' +
+      'background of every filled cell.',
     inputs: [
-      { name: 'node', types: ['SpinalNode'], description: 'The node holding the .xlsx template as an attached document.', required: true },
+      { name: 'node', types: ['SpinalNode'], description: 'The node holding the .xlsx document as an attachment.', required: true },
     ],
     outputType: 'ExcelWorkbook',
     parameters: [
-      { name: 'filename', type: 'string', description: 'Name of the document to load (e.g. "template.xlsx"). If omitted, the first .xlsx attached to the node is used.', required: false },
+      { name: 'filename', type: 'string', description: 'Name of the document to load (e.g. "report.xlsx"). If omitted, the first .xlsx attached to the node is used.', required: false },
       { name: 'defaultColor', type: 'string', description: 'Optional default cell background color as a hex string without "#" (e.g. "E3F2FD"), applied to every filled cell.', required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
-      const node = resolveNode(input);
-      if (!node) throw new Error('LOAD_EXCEL_TEMPLATE: input must be a SpinalNode');
-
-      const files = await FileExplorer.getFilesLinkedToNode(node);
-      if (!files || files.length === 0) {
-        throw new Error('LOAD_EXCEL_TEMPLATE: the node has no attached document');
-      }
-
-      const requested = typeof params?.filename === 'string' ? params.filename.trim() : '';
-      let chosen: any;
-      if (requested) {
-        chosen =
-          files.find((f) => safeFileName(f) === requested) ||
-          files.find((f) => safeFileName(f).toLowerCase() === requested.toLowerCase());
-        if (!chosen) {
-          const available = files.map((f) => safeFileName(f)).filter(Boolean).join(', ');
-          throw new Error(
-            `LOAD_EXCEL_TEMPLATE: no document named "${requested}" on the node (found: ${available || 'none'})`
-          );
-        }
-      } else {
-        chosen = files.find((f) => /\.xlsx?$/i.test(safeFileName(f))) || files[0];
-      }
-
-      if (typeof chosen.getCurrentVersionAsBuffer !== 'function') {
-        throw new Error(
-          `LOAD_EXCEL_TEMPLATE: document "${safeFileName(chosen)}" cannot be read as a buffer`
-        );
-      }
-      const buffer: Buffer = await chosen.getCurrentVersionAsBuffer(getHubUrl());
-
-      const Filler = await loadFillerClass();
-      const defaultColor =
-        typeof params?.defaultColor === 'string' && params.defaultColor.trim().length > 0
-          ? params.defaultColor.trim()
-          : undefined;
-      const filler: IExcelFiller = new Filler(defaultColor ? { defaultColor } : {});
-      await filler.loadTemplateFromBuffer(buffer);
-
-      const handle: ExcelWorkbookHandle = {
-        __excelHandle: true,
-        filler,
-        originalBuffer: buffer,
-        sourceName: safeFileName(chosen) || null,
-      };
-      return handle as any;
+      return (await loadWorkbookHandle(input, params, 'LOAD_EXCEL')) as any;
     },
   }),
 
@@ -313,13 +379,157 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'Returns the list of {{token}} variable names found in the loaded template. Useful to ' +
       'discover what a template expects before filling it (feed it to LOG or FOREACH).',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
     ],
     outputType: 'string[]',
     parameters: [],
     run: async (input): AlgorithmRunResult => {
       const handle = requireHandle(input, 'GET_EXCEL_VARIABLES');
       return handle.filler.getVariables() as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'GET_EXCEL_SHEETS',
+    description:
+      'Returns the names of every worksheet in the loaded workbook, in tab order — handy to ' +
+      'discover sheet names before reading cells/columns/ranges.',
+    inputs: [
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
+    ],
+    outputType: 'string[]',
+    parameters: [],
+    run: async (input): AlgorithmRunResult => {
+      const handle = requireHandle(input, 'GET_EXCEL_SHEETS');
+      return handle.filler.getSheetNames() as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'GET_EXCEL_CELL',
+    description:
+      'Reads a single cell value. Give the cell as a "ref" parameter in "SheetName!CellRef" ' +
+      'form (e.g. "Sheet1!B3"). Formula cells return their computed result; empty cells return null.',
+    inputs: [
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
+    ],
+    outputType: 'any',
+    parameters: [
+      { name: 'ref', type: 'string', description: 'Cell reference in "SheetName!CellRef" form, e.g. "Sheet1!B3".', required: true },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const handle = requireHandle(input, 'GET_EXCEL_CELL');
+      const ref = typeof params?.ref === 'string' ? params.ref.trim() : '';
+      if (!ref) throw new Error('GET_EXCEL_CELL requires a "ref" parameter (e.g. "Sheet1!B3")');
+      return handle.filler.getCell(ref) as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'GET_EXCEL_COLUMN',
+    description:
+      'Reads a whole column top-to-bottom as an array of values. Params: "sheet" (name), ' +
+      '"column" (letter like "B" or 1-based index), plus optional "startRow"/"endRow" ' +
+      '(1-based, inclusive; endRow defaults to the last used row) and "skipHeader" to drop the ' +
+      'first row. Pair two columns (timestamps + values) with COLUMNS_TO_TIMESERIES to build ' +
+      'an injectable series.',
+    inputs: [
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
+    ],
+    outputType: 'any[]',
+    parameters: [
+      { name: 'sheet', type: 'string', description: 'Worksheet name to read from.', required: true },
+      { name: 'column', type: 'string', description: 'Column letter (e.g. "B") or 1-based index (e.g. 2).', required: true },
+      { name: 'startRow', type: 'number', description: 'First row to read (1-based). Default 1.', required: false },
+      { name: 'endRow', type: 'number', description: 'Last row to read (1-based, inclusive). Default: the sheet\'s last used row.', required: false },
+      { name: 'skipHeader', type: 'boolean', description: 'Skip the first row in range as a header (default false).', required: false },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const handle = requireHandle(input, 'GET_EXCEL_COLUMN');
+      const sheet = typeof params?.sheet === 'string' ? params.sheet.trim() : '';
+      if (!sheet) throw new Error('GET_EXCEL_COLUMN requires a "sheet" parameter');
+      if (params?.column === undefined || params?.column === null || params?.column === '') {
+        throw new Error('GET_EXCEL_COLUMN requires a "column" parameter (letter or 1-based index)');
+      }
+      // Accept a letter ("B"), a number (2), or a numeric string ("2").
+      let column: string | number = params.column as string | number;
+      if (typeof column === 'string') {
+        const s = column.trim();
+        column = /^\d+$/.test(s) ? Number(s) : s;
+      }
+      const options = {
+        startRow: params?.startRow !== undefined ? Number(params.startRow) : undefined,
+        endRow: params?.endRow !== undefined ? Number(params.endRow) : undefined,
+        skipHeader: resolveBooleanFlag(params?.skipHeader, false),
+      };
+      return handle.filler.getColumn(sheet, column, options) as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'GET_EXCEL_RANGE',
+    description:
+      'Reads a rectangular range as a row-major 2D array. Give the range as a "ref" parameter ' +
+      'in "SheetName!A1:C100" form (a single-cell ref returns a 1×1 array). Empty cells read ' +
+      'as null; formula cells return their computed result.',
+    inputs: [
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
+    ],
+    outputType: 'any[][]',
+    parameters: [
+      { name: 'ref', type: 'string', description: 'Range reference in "SheetName!A1:C100" form.', required: true },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const handle = requireHandle(input, 'GET_EXCEL_RANGE');
+      const ref = typeof params?.ref === 'string' ? params.ref.trim() : '';
+      if (!ref) throw new Error('GET_EXCEL_RANGE requires a "ref" parameter (e.g. "Sheet1!A1:C100")');
+      return handle.filler.getRange(ref) as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'COLUMNS_TO_TIMESERIES',
+    description:
+      'Pairs a timestamps column with a values column into a timeseries ({ date, value }[]) ' +
+      'ready to inject with INSERT_TIMESERIES. Takes 2 inputs: [timestamps, values] (e.g. two ' +
+      'GET_EXCEL_COLUMN outputs). Date-formatted cells parse automatically; set ' +
+      '"dateIsExcelSerial" if the timestamp column holds raw Excel serial numbers. Rows whose ' +
+      'date or value can\'t be parsed are dropped by default (set "dropInvalid" false to throw). ' +
+      'Output is sorted by date ascending.',
+    inputs: [
+      { name: 'timestamps', types: ['any[]'], description: 'Column of timestamps (Date cells, epoch-ms numbers, Excel serials, or date strings).', required: true },
+      { name: 'values', types: ['any[]'], description: 'Column of numeric values, aligned row-for-row with timestamps.', required: true },
+    ],
+    outputType: 'SpinalDateValue[]',
+    parameters: [
+      { name: 'dateIsExcelSerial', type: 'boolean', description: 'Interpret numeric timestamps as Excel serial day numbers instead of epoch ms (default false).', required: false },
+      { name: 'dropInvalid', type: 'boolean', description: 'Drop rows whose date or value can\'t be parsed (default true). Set false to throw on the first bad row.', required: false },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      if (!Array.isArray(input) || input.length < 2) {
+        throw new Error('COLUMNS_TO_TIMESERIES expects 2 inputs: [timestamps, values]');
+      }
+      const dates = asArray(input[0], 'COLUMNS_TO_TIMESERIES');
+      const values = asArray(input[1], 'COLUMNS_TO_TIMESERIES');
+      const excelSerial = resolveBooleanFlag(params?.dateIsExcelSerial, false);
+      const dropInvalid = resolveBooleanFlag(params?.dropInvalid, true);
+
+      const n = Math.min(dates.length, values.length);
+      const out: { date: number; value: number }[] = [];
+      for (let i = 0; i < n; i++) {
+        const date = toEpochMs(dates[i], excelSerial);
+        const value = toNumericValue(values[i]);
+        if (date === null || value === null) {
+          if (dropInvalid) continue;
+          throw new Error(
+            `COLUMNS_TO_TIMESERIES: unparseable pair at row ${i} ` +
+            `(date=${JSON.stringify(dates[i])}, value=${JSON.stringify(values[i])})`
+          );
+        }
+        out.push({ date, value });
+      }
+      out.sort((a, b) => a.date - b.date);
+      return out as any;
     },
   }),
 
@@ -331,7 +541,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'tokens are substituted as text). An array value fills downward from its cell. Returns ' +
       'the same workbook so you can chain more blocks.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
       { name: 'variables', types: ['object', 'string'], description: 'Object (or JSON string) mapping variable name → value (scalar or array).', required: true },
     ],
     outputType: 'ExcelWorkbook',
@@ -351,7 +561,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       '{ "value": <v>, "color": "4CAF50", "comment": "note" } to color the cell / attach a ' +
       'note. Returns the same workbook.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
       { name: 'cells', types: ['object', 'string'], description: 'Object (or JSON string) mapping "Sheet!Cell" → value or { value, color, comment }.', required: true },
     ],
     outputType: 'ExcelWorkbook',
@@ -371,7 +581,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'ideal for tables. Each value may be a { value, color, comment } object too. Returns ' +
       'the same workbook.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
       { name: 'values', types: ['array', 'string'], description: 'A 1D or 2D array (or JSON string) of values to write from the anchor.', required: true },
     ],
     outputType: 'ExcelWorkbook',
@@ -398,7 +608,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'Attaches comments (Excel "notes") to cells without changing their values, from an ' +
       'object mapping "SheetName!CellRef" → comment text. Returns the same workbook.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
       { name: 'comments', types: ['object', 'string'], description: 'Object (or JSON string) mapping "Sheet!Cell" → comment text.', required: true },
     ],
     outputType: 'ExcelWorkbook',
@@ -418,7 +628,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'pattern; images are not copied). {{tokens}} on the copied sheet become fillable too. ' +
       'Returns the same workbook.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
     ],
     outputType: 'ExcelWorkbook',
     parameters: [
@@ -446,7 +656,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'Renames a sheet. Throws if the source sheet is missing or the new name is already taken. ' +
       'Returns the same workbook.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
     ],
     outputType: 'ExcelWorkbook',
     parameters: [
@@ -472,7 +682,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
     name: 'DELETE_EXCEL_SHEET',
     description: 'Removes a sheet from the workbook by name. Throws if it does not exist. Returns the same workbook.',
     inputs: [
-      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL_TEMPLATE.', required: true },
+      { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
     ],
     outputType: 'ExcelWorkbook',
     parameters: [
