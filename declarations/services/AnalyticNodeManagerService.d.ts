@@ -155,13 +155,15 @@ export default class AnalyticNodeManagerService {
      */
     private topologicalSort;
     /**
-     * Determines how many "real" inputs an IF block has (excluding synthetic
-     * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
+     * Determines how many "real" (declared) inputs an IF or FOREACH block has, excluding the
+     * synthetic parent-ref dependencies appended by buildIfSubWorkflow / buildForeachSubWorkflow
+     * to force topological ordering.
      *
-     * IF only has 1 real input: the boolean predicate (inputs[0]).
-     * Everything else is synthetic for topological ordering.
+     * Both carry exactly one real input at slot 0 — the IF's boolean predicate, or the FOREACH's
+     * iteration collection. Everything after it is synthetic ordering, and must NOT be emitted as
+     * a declared input: doing so re-wires (and double-wires) those edges on re-import.
      */
-    private getIfRealInputCount;
+    private getRealInputCount;
     linkNodeToAnchorNode(anchorNode: SpinalNode<any>, nodeToLink: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;
     removeLinkToAnchorNode(anchorNode: SpinalNode<any>, anchoredNode: SpinalNode<any>): Promise<void>;
     private removeChild;

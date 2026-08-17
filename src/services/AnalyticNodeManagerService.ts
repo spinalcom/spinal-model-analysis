@@ -524,10 +524,12 @@ export default class AnalyticNodeManagerService {
       config.parameters = block.parameters;
     }
 
-    // For IF blocks, only include "real" inputs (predicate only).
-    // Extra inputBlockIds are synthetic deps added for topological ordering by buildIfSubWorkflow.
-    if (block.algorithmName === 'IF') {
-      const realCount = this.getIfRealInputCount(block);
+    // For IF / FOREACH, only include the "real" input (predicate / iteration collection at
+    // slot 0). Extra inputBlockIds are synthetic deps appended for topological ordering by
+    // buildIfSubWorkflow / buildForeachSubWorkflow — emitting them as declared inputs would
+    // re-wire (and double-wire → "Cannot add a child twice") those edges on re-import.
+    if (block.algorithmName === 'IF' || block.algorithmName === 'FOREACH') {
+      const realCount = this.getRealInputCount(block);
       const realIds = block.inputBlockIds.slice(0, realCount);
       if (realIds.length > 0) {
         config.inputs = realIds.map((id) => this.idToInputRef(id, idToRef, parentIdToRef));
@@ -633,13 +635,15 @@ export default class AnalyticNodeManagerService {
   }
 
   /**
-   * Determines how many "real" inputs an IF block has (excluding synthetic
-   * parent-ref dependencies appended by buildIfSubWorkflow for topological ordering).
+   * Determines how many "real" (declared) inputs an IF or FOREACH block has, excluding the
+   * synthetic parent-ref dependencies appended by buildIfSubWorkflow / buildForeachSubWorkflow
+   * to force topological ordering.
    *
-   * IF only has 1 real input: the boolean predicate (inputs[0]).
-   * Everything else is synthetic for topological ordering.
+   * Both carry exactly one real input at slot 0 — the IF's boolean predicate, or the FOREACH's
+   * iteration collection. Everything after it is synthetic ordering, and must NOT be emitted as
+   * a declared input: doing so re-wires (and double-wires) those edges on re-import.
    */
-  private getIfRealInputCount(block: IWorkflowBlock): number {
+  private getRealInputCount(block: IWorkflowBlock): number {
     return Math.min(1, block.inputBlockIds.length);
   }
 
