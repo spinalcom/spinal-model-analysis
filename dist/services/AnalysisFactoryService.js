@@ -347,9 +347,12 @@ class AnalysisFactoryService {
                         throw new Error(`[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef. ` +
                             'Each FOREACH must declare a named ref for its iteration element.');
                     }
-                    // Store itemRef on the node
+                    // Store itemRef + (optional) iteration concurrency on the node
                     this.blockManager.updateBlock(blockNode, {
                         foreachItemRef: blockDef.itemRef,
+                        foreachConcurrency: blockDef.concurrency
+                            ? JSON.stringify(blockDef.concurrency)
+                            : undefined,
                     });
                     yield this.buildForeachSubWorkflow(blockNode, contextNode, blockDef.subWorkflow, blockDef.itemRef, refToNode, new Set([blockDef.itemRef]));
                 }
@@ -485,6 +488,9 @@ class AnalysisFactoryService {
                     }
                     this.blockManager.updateBlock(subBlockNode, {
                         foreachItemRef: blockDef.itemRef,
+                        foreachConcurrency: blockDef.concurrency
+                            ? JSON.stringify(blockDef.concurrency)
+                            : undefined,
                     });
                     const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
                     yield this.buildForeachSubWorkflow(subBlockNode, contextNode, blockDef.subWorkflow, blockDef.itemRef, refToNode, childItemRefs);
@@ -612,6 +618,9 @@ class AnalysisFactoryService {
                     }
                     this.blockManager.updateBlock(subBlockNode, {
                         foreachItemRef: blockDef.itemRef,
+                        foreachConcurrency: blockDef.concurrency
+                            ? JSON.stringify(blockDef.concurrency)
+                            : undefined,
                     });
                     const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
                     yield this.buildForeachSubWorkflow(subBlockNode, contextNode, blockDef.subWorkflow, blockDef.itemRef, refToNode, childItemRefs);

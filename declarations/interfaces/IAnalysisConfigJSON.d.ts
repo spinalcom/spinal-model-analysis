@@ -178,6 +178,15 @@ export interface IBlockConfigJSON {
      */
     itemRef?: string;
     /**
+     * For FOREACH blocks only: how the iteration elements are dispatched.
+     * Independent of the analysis-level `concurrency` (which spreads across work nodes).
+     * Defaults to `SEQUENTIAL` (one element at a time — the historical behavior) when omitted,
+     * so a FOREACH only runs in parallel when it explicitly opts in. Use `BOUNDED` (with a
+     * `limit`) to cap in-flight iterations, or `FULL` for all at once. Results stay in input
+     * order regardless of mode.
+     */
+    concurrency?: IConcurrencyConfig;
+    /**
      * Register the output as a named variable (for input workflow).
      * e.g., "I0", "I1"
      */

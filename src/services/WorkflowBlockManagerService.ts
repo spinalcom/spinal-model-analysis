@@ -276,6 +276,8 @@ export default class WorkflowBlockManagerService {
             name?: string;
             foreachOutputBlockId?: string;
             foreachItemRef?: string;
+            /** JSON-stringified IConcurrencyConfig for a FOREACH block (dispatch strategy). */
+            foreachConcurrency?: string;
             ifThenOutputBlockId?: string;
             ifElseOutputBlockId?: string;
             [key: string]: unknown;
@@ -309,6 +311,13 @@ export default class WorkflowBlockManagerService {
                 blockNode.info.add_attr('foreachItemRef', updates.foreachItemRef);
             } else {
                 blockNode.info.foreachItemRef.set(updates.foreachItemRef);
+            }
+        }
+        if (updates.foreachConcurrency !== undefined) {
+            if (!blockNode.info.foreachConcurrency) {
+                blockNode.info.add_attr('foreachConcurrency', updates.foreachConcurrency);
+            } else {
+                blockNode.info.foreachConcurrency.set(updates.foreachConcurrency);
             }
         }
         if (updates.ifThenOutputBlockId !== undefined) {
@@ -523,6 +532,14 @@ export default class WorkflowBlockManagerService {
 
         if (blockNode.info.foreachItemRef) {
             block.foreachItemRef = blockNode.info.foreachItemRef.get();
+        }
+
+        if (blockNode.info.foreachConcurrency) {
+            try {
+                block.foreachConcurrency = JSON.parse(blockNode.info.foreachConcurrency.get());
+            } catch {
+                /* invalid JSON — leave undefined (executor falls back to SEQUENTIAL) */
+            }
         }
 
         return block;

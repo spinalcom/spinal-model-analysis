@@ -89,6 +89,8 @@ export default class WorkflowBlockManagerService {
         name?: string;
         foreachOutputBlockId?: string;
         foreachItemRef?: string;
+        /** JSON-stringified IConcurrencyConfig for a FOREACH block (dispatch strategy). */
+        foreachConcurrency?: string;
         ifThenOutputBlockId?: string;
         ifElseOutputBlockId?: string;
         [key: string]: unknown;

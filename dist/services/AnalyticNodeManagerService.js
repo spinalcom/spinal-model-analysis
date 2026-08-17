@@ -481,9 +481,12 @@ class AnalyticNodeManagerService {
         if (block.registerAs) {
             config.registerAs = block.registerAs;
         }
-        // FOREACH: add itemRef
+        // FOREACH: add itemRef + (optional) iteration concurrency
         if (block.foreachItemRef) {
             config.itemRef = block.foreachItemRef;
+        }
+        if (block.foreachConcurrency) {
+            config.concurrency = block.foreachConcurrency;
         }
         if (block.subWorkflow) {
             config.subWorkflow = this.subWorkflowToConfig(block.subWorkflow, idToRef);

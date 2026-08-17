@@ -220,6 +220,14 @@ class WorkflowBlockManagerService {
                 blockNode.info.foreachItemRef.set(updates.foreachItemRef);
             }
         }
+        if (updates.foreachConcurrency !== undefined) {
+            if (!blockNode.info.foreachConcurrency) {
+                blockNode.info.add_attr('foreachConcurrency', updates.foreachConcurrency);
+            }
+            else {
+                blockNode.info.foreachConcurrency.set(updates.foreachConcurrency);
+            }
+        }
         if (updates.ifThenOutputBlockId !== undefined) {
             if (!blockNode.info.ifThenOutputBlockId) {
                 blockNode.info.add_attr('ifThenOutputBlockId', updates.ifThenOutputBlockId);
@@ -396,6 +404,14 @@ class WorkflowBlockManagerService {
         }
         if (blockNode.info.foreachItemRef) {
             block.foreachItemRef = blockNode.info.foreachItemRef.get();
+        }
+        if (blockNode.info.foreachConcurrency) {
+            try {
+                block.foreachConcurrency = JSON.parse(blockNode.info.foreachConcurrency.get());
+            }
+            catch (_f) {
+                /* invalid JSON — leave undefined (executor falls back to SEQUENTIAL) */
+            }
         }
         return block;
     }

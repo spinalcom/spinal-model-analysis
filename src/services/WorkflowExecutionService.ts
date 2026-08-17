@@ -7,6 +7,7 @@ import {
     AlgorithmParams,
     ExecutionMetadata,
 } from '../algorithms/definitions/core';
+import { runWithConcurrency, normalizeForeachConcurrency } from './concurrency';
 
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
@@ -235,14 +236,16 @@ export default class WorkflowExecutionService {
         }
 
         const itemVirtualId = foreachItemVirtualId(block.foreachItemRef);
-        const results: unknown[] = [];
+        const subWorkflow = block.subWorkflow;
+        const concurrency = normalizeForeachConcurrency(block.foreachConcurrency);
 
-        for (const element of inputArray) {
-            // Per-iteration sub-context. Inherit a COPY of the parent block outputs so a
-            // sub-block can read blocks computed before the FOREACH (parent refs) and any
-            // ancestor FOREACH item — the same inheritance IF branches get. Copying keeps
-            // iterations isolated from each other and from the parent: sub-block writes land
-            // in this map only, and the FOREACH's result is set on the parent context below.
+        // Dispatch the iterations per the block's concurrency (default SEQUENTIAL). Each
+        // iteration runs in its own sub-context — a COPY of the parent block outputs plus the
+        // current element — so a sub-block can read blocks computed before the FOREACH (parent
+        // refs) and any ancestor FOREACH item (the same inheritance IF branches get), while
+        // iterations stay isolated from each other and from the parent. Results come back in
+        // input order regardless of mode; the FOREACH's own output is set on the parent below.
+        const results = await runWithConcurrency(inputArray, concurrency, async (element) => {
             const subContext: WorkflowExecutionContext = {
                 workNode: context.workNode,
                 inputRegisters: new Map(context.inputRegisters),
@@ -254,17 +257,11 @@ export default class WorkflowExecutionService {
             subContext.blockOutputs.set(itemVirtualId, element);
 
             // Execute sub-workflow DAG
-            await this.executeDAG(
-                { blocks: block.subWorkflow.blocks },
-                subContext
-            );
+            await this.executeDAG({ blocks: subWorkflow.blocks }, subContext);
 
-            // Collect the designated output
-            const result = subContext.blockOutputs.get(
-                block.subWorkflow.outputBlockId
-            );
-            results.push(result);
-        }
+            // Return the designated output for this element
+            return subContext.blockOutputs.get(subWorkflow.outputBlockId);
+        });
 
         context.blockOutputs.set(block.id, results);
     }

@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.describeValue = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = void 0;
+const concurrency_1 = require("./concurrency");
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
  * Blocks that need the work node can reference this in their inputBlockIds.
@@ -180,13 +181,15 @@ class WorkflowExecutionService {
                     `got ${typeof inputArray}`);
             }
             const itemVirtualId = foreachItemVirtualId(block.foreachItemRef);
-            const results = [];
-            for (const element of inputArray) {
-                // Per-iteration sub-context. Inherit a COPY of the parent block outputs so a
-                // sub-block can read blocks computed before the FOREACH (parent refs) and any
-                // ancestor FOREACH item — the same inheritance IF branches get. Copying keeps
-                // iterations isolated from each other and from the parent: sub-block writes land
-                // in this map only, and the FOREACH's result is set on the parent context below.
+            const subWorkflow = block.subWorkflow;
+            const concurrency = (0, concurrency_1.normalizeForeachConcurrency)(block.foreachConcurrency);
+            // Dispatch the iterations per the block's concurrency (default SEQUENTIAL). Each
+            // iteration runs in its own sub-context — a COPY of the parent block outputs plus the
+            // current element — so a sub-block can read blocks computed before the FOREACH (parent
+            // refs) and any ancestor FOREACH item (the same inheritance IF branches get), while
+            // iterations stay isolated from each other and from the parent. Results come back in
+            // input order regardless of mode; the FOREACH's own output is set on the parent below.
+            const results = yield (0, concurrency_1.runWithConcurrency)(inputArray, concurrency, (element) => __awaiter(this, void 0, void 0, function* () {
                 const subContext = {
                     workNode: context.workNode,
                     inputRegisters: new Map(context.inputRegisters),
@@ -196,11 +199,10 @@ class WorkflowExecutionService {
                 // Inject the current element under its named virtual ID
                 subContext.blockOutputs.set(itemVirtualId, element);
                 // Execute sub-workflow DAG
-                yield this.executeDAG({ blocks: block.subWorkflow.blocks }, subContext);
-                // Collect the designated output
-                const result = subContext.blockOutputs.get(block.subWorkflow.outputBlockId);
-                results.push(result);
-            }
+                yield this.executeDAG({ blocks: subWorkflow.blocks }, subContext);
+                // Return the designated output for this element
+                return subContext.blockOutputs.get(subWorkflow.outputBlockId);
+            }));
             context.blockOutputs.set(block.id, results);
         });
     }

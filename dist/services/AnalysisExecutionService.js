@@ -13,6 +13,7 @@ const analysisAnchor_1 = require("../constants/analysisAnchor");
 const WorkflowBlockManagerService_1 = require("./WorkflowBlockManagerService");
 const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
 const utils_1 = require("./utils");
+const concurrency_1 = require("./concurrency");
 /**
  * Orchestrates the full analysis execution pipeline:
  *
@@ -58,7 +59,7 @@ class AnalysisExecutionService {
             (0, utils_1.logMessage)(`[AnalysisExecution] Dispatching ${workNodes.length} work node(s) — ` +
                 `concurrency: ${concurrency.mode}` +
                 `${concurrency.mode === 'BOUNDED' ? ` (limit ${concurrency.limit})` : ''}`);
-            const results = yield this.runWithConcurrency(workNodes, concurrency, (workNode) => this.executeOnWorkNode(analysisNode, workNode, execution));
+            const results = yield (0, concurrency_1.runWithConcurrency)(workNodes, concurrency, (workNode) => this.executeOnWorkNode(analysisNode, workNode, execution));
             (0, utils_1.logMessage)(`[AnalysisExecution] Analysis complete: ${analysisName} — ` +
                 `${results.filter((r) => r.success).length}/${results.length} succeeded`);
             return {
@@ -68,46 +69,6 @@ class AnalysisExecutionService {
                 totalWorkNodes: workNodes.length,
                 results,
             };
-        });
-    }
-    /**
-     * Dispatches a task over a list of items according to the resolved concurrency
-     * strategy, preserving input order in the returned results array.
-     *
-     * - `SEQUENTIAL` — one at a time (awaits each before starting the next).
-     * - `FULL`       — all at once (`limit` effectively = item count).
-     * - `BOUNDED`    — a worker pool of at most `limit` in flight at any time.
-     *
-     * The task is expected to never reject (work-node execution catches its own
-     * errors and reports them as results), so one bad item won't abort the batch.
-     */
-    runWithConcurrency(items, concurrency, task) {
-        return __awaiter(this, void 0, void 0, function* () {
-            if (items.length === 0)
-                return [];
-            if (concurrency.mode === 'SEQUENTIAL') {
-                const out = [];
-                for (let i = 0; i < items.length; i++) {
-                    out.push(yield task(items[i], i));
-                }
-                return out;
-            }
-            // FULL = no cap (limit = item count); BOUNDED = clamp to [1, item count].
-            const effectiveLimit = concurrency.mode === 'FULL'
-                ? items.length
-                : Math.max(1, Math.min(concurrency.limit, items.length));
-            const results = new Array(items.length);
-            let cursor = 0;
-            const worker = () => __awaiter(this, void 0, void 0, function* () {
-                for (;;) {
-                    const index = cursor++;
-                    if (index >= items.length)
-                        return;
-                    results[index] = yield task(items[index], index);
-                }
-            });
-            yield Promise.all(Array.from({ length: effectiveLimit }, () => worker()));
-            return results;
         });
     }
     /**

@@ -444,9 +444,12 @@ export default class AnalysisFactoryService {
                         'Each FOREACH must declare a named ref for its iteration element.'
                     );
                 }
-                // Store itemRef on the node
+                // Store itemRef + (optional) iteration concurrency on the node
                 this.blockManager.updateBlock(blockNode, {
                     foreachItemRef: blockDef.itemRef,
+                    foreachConcurrency: blockDef.concurrency
+                        ? JSON.stringify(blockDef.concurrency)
+                        : undefined,
                 });
                 await this.buildForeachSubWorkflow(
                     blockNode,
@@ -655,6 +658,9 @@ export default class AnalysisFactoryService {
                 }
                 this.blockManager.updateBlock(subBlockNode, {
                     foreachItemRef: blockDef.itemRef,
+                    foreachConcurrency: blockDef.concurrency
+                        ? JSON.stringify(blockDef.concurrency)
+                        : undefined,
                 });
                 const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
                 await this.buildForeachSubWorkflow(
@@ -849,6 +855,9 @@ export default class AnalysisFactoryService {
                 }
                 this.blockManager.updateBlock(subBlockNode, {
                     foreachItemRef: blockDef.itemRef,
+                    foreachConcurrency: blockDef.concurrency
+                        ? JSON.stringify(blockDef.concurrency)
+                        : undefined,
                 });
                 const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
                 await this.buildForeachSubWorkflow(

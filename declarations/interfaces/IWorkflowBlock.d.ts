@@ -1,3 +1,4 @@
+import { IConcurrencyConfig } from './IAnalysisConfigJSON';
 /**
  * In-memory representation of a workflow block for the DAG execution engine.
  * Each block wraps an algorithm and defines its ordered dependencies (inputs from other blocks).
@@ -49,6 +50,12 @@ export interface IWorkflowBlock {
      * Defines the sub-workflow DAG to execute for each element of the input array.
      */
     subWorkflow?: ISubWorkflow;
+    /**
+     * For FOREACH blocks only.
+     * How iteration elements are dispatched (SEQUENTIAL / BOUNDED / FULL). Absent → SEQUENTIAL.
+     * Independent of the analysis-level work-node concurrency.
+     */
+    foreachConcurrency?: IConcurrencyConfig;
     /**
      * For IF blocks only.
      * Sub-workflow executed when the boolean predicate (inputs[0]) is true.
