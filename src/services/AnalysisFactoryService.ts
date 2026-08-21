@@ -88,6 +88,9 @@ export default class AnalysisFactoryService {
         if (config.status !== undefined && config.status !== 'Active' && config.status !== 'Inactive') {
             errors.push('status: must be either "Active" or "Inactive"');
         }
+        if (config.errorPolicy !== undefined && config.errorPolicy !== 'stop' && config.errorPolicy !== 'continue') {
+            errors.push('errorPolicy: must be either "stop" or "continue"');
+        }
 
         return errors;
     }
@@ -155,7 +158,8 @@ export default class AnalysisFactoryService {
             config.description ?? '',
             contextNode,
             config.concurrency,
-            config.status
+            config.status,
+            config.errorPolicy
         );
         logMessage(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
 
@@ -209,6 +213,7 @@ export default class AnalysisFactoryService {
         }
         await this.nodeManager.setConcurrencyConfig(analysisNode, config.concurrency);
         await this.nodeManager.setStatus(analysisNode, config.status);
+        await this.nodeManager.setErrorPolicy(analysisNode, config.errorPolicy);
 
         // ── 2. Wipe the whole sub-structure (keeping the analysis node) ──
         await this.nodeManager.resetAnalysisSubNodes(analysisNode);
@@ -239,7 +244,7 @@ export default class AnalysisFactoryService {
      */
     public async patchAnalysis(
         analysisNode: SpinalNode<any>,
-        patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status'>>
+        patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status' | 'errorPolicy'>>
     ): Promise<SpinalNode<any>> {
         // ── Validate only the provided fields ──
         const errors: string[] = [];
@@ -254,6 +259,9 @@ export default class AnalysisFactoryService {
         }
         if (patch.status !== undefined && patch.status !== 'Active' && patch.status !== 'Inactive') {
             errors.push('status: must be either "Active" or "Inactive"');
+        }
+        if (patch.errorPolicy !== undefined && patch.errorPolicy !== 'stop' && patch.errorPolicy !== 'continue') {
+            errors.push('errorPolicy: must be either "stop" or "continue"');
         }
         if (errors.length > 0) {
             throw new Error(

@@ -100,7 +100,7 @@ class AnalyticNodeManagerService {
      * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode, concurrency, status) {
+    addAnalysisNode(analysisNodeName, analysisNodeDescription, contextNode, concurrency, status, errorPolicy) {
         return __awaiter(this, void 0, void 0, function* () {
             const analysisNodeInfo = {
                 name: analysisNodeName,
@@ -116,6 +116,7 @@ class AnalyticNodeManagerService {
             // documentation attributes, and stamp the initial revision.
             yield this.setConcurrencyConfig(analysisNode, concurrency);
             yield this.setStatus(analysisNode, status);
+            yield this.setErrorPolicy(analysisNode, errorPolicy);
             this.setLastUpdate(analysisNode);
             // Add mandatory sub-nodes (workflows, anchor, trigger, ...).
             yield this.addMandatorySubNodes(analysisNode, contextNode);
@@ -269,6 +270,38 @@ class AnalyticNodeManagerService {
         });
     }
     /**
+     * Coerces an arbitrary value into a valid {@link ErrorPolicy}. Only an explicit "stop"
+     * selects fail-fast; anything else (missing, typo'd, or "continue") falls back to
+     * {@link DEFAULT_ERROR_POLICY} (continue) — so analyses default to fault-isolated.
+     */
+    normalizeErrorPolicy(policy) {
+        return typeof policy === 'string' && policy.trim().toLowerCase() === 'stop'
+            ? 'stop'
+            : analysisNode_1.DEFAULT_ERROR_POLICY;
+    }
+    /**
+     * Reads the error policy from the analysis node's documentation attributes. Falls back
+     * to {@link DEFAULT_ERROR_POLICY} (continue) when missing or invalid — including analyses
+     * created before this feature existed, which therefore become fault-isolated by default.
+     */
+    getErrorPolicy(analysisNode) {
+        var _a;
+        return __awaiter(this, void 0, void 0, function* () {
+            const attrs = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(analysisNode, analysisNode_1.ERROR_POLICY_CATEGORY);
+            const policyAttr = attrs === null || attrs === void 0 ? void 0 : attrs.find((a) => { var _a; return ((_a = a.label) === null || _a === void 0 ? void 0 : _a.get()) === analysisNode_1.ERROR_POLICY_ATTR; });
+            return this.normalizeErrorPolicy((_a = policyAttr === null || policyAttr === void 0 ? void 0 : policyAttr.value) === null || _a === void 0 ? void 0 : _a.get());
+        });
+    }
+    /**
+     * Writes the error policy as a documentation attribute on the analysis node (creating the
+     * category/attribute on first write). Normalizes first so the stored value is always valid.
+     */
+    setErrorPolicy(analysisNode, policy) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(analysisNode, analysisNode_1.ERROR_POLICY_CATEGORY, { [analysisNode_1.ERROR_POLICY_ATTR]: this.normalizeErrorPolicy(policy) });
+        });
+    }
+    /**
      * Reads the last-update revision (ms timestamp) from the analysis node's info.
      * Returns 0 when never stamped (e.g. analyses created before this feature). The
      * organ uses this to detect when an analysis was updated and must be re-assessed.
@@ -377,6 +410,8 @@ class AnalyticNodeManagerService {
             result.concurrency = yield this.getConcurrencyConfig(analysisNode);
             // ── Status ── (always emitted so the lifecycle state is explicit)
             result.status = yield this.getStatus(analysisNode);
+            // ── Error policy ── (always emitted so the failure behavior is explicit)
+            result.errorPolicy = yield this.getErrorPolicy(analysisNode);
             return result;
         });
     }

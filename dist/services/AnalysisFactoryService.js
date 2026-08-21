@@ -70,6 +70,9 @@ class AnalysisFactoryService {
         if (config.status !== undefined && config.status !== 'Active' && config.status !== 'Inactive') {
             errors.push('status: must be either "Active" or "Inactive"');
         }
+        if (config.errorPolicy !== undefined && config.errorPolicy !== 'stop' && config.errorPolicy !== 'continue') {
+            errors.push('errorPolicy: must be either "stop" or "continue"');
+        }
         return errors;
     }
     /**
@@ -117,7 +120,7 @@ class AnalysisFactoryService {
             const contextNode = yield this.nodeManager.createContext(config.contextName, graph);
             (0, utils_1.logMessage)(`[AnalysisFactory] Context: ${config.contextName}`);
             // ── 2. Create analysis node (creates all mandatory sub-nodes) ──
-            const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode, config.concurrency, config.status);
+            const analysisNode = yield this.nodeManager.addAnalysisNode(config.analysisName, (_b = config.description) !== null && _b !== void 0 ? _b : '', contextNode, config.concurrency, config.status, config.errorPolicy);
             (0, utils_1.logMessage)(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
             // ── 3. Link anchor, build workflows, store triggers ──
             yield this.populateAnalysis(analysisNode, contextNode, config);
@@ -164,6 +167,7 @@ class AnalysisFactoryService {
             }
             yield this.nodeManager.setConcurrencyConfig(analysisNode, config.concurrency);
             yield this.nodeManager.setStatus(analysisNode, config.status);
+            yield this.nodeManager.setErrorPolicy(analysisNode, config.errorPolicy);
             // ── 2. Wipe the whole sub-structure (keeping the analysis node) ──
             yield this.nodeManager.resetAnalysisSubNodes(analysisNode);
             // ── 3. Recreate mandatory sub-nodes, then anchor / workflows / triggers ──
@@ -203,6 +207,9 @@ class AnalysisFactoryService {
             }
             if (patch.status !== undefined && patch.status !== 'Active' && patch.status !== 'Inactive') {
                 errors.push('status: must be either "Active" or "Inactive"');
+            }
+            if (patch.errorPolicy !== undefined && patch.errorPolicy !== 'stop' && patch.errorPolicy !== 'continue') {
+                errors.push('errorPolicy: must be either "stop" or "continue"');
             }
             if (errors.length > 0) {
                 throw new Error(`[AnalysisFactory] Invalid patch for "${analysisNode.getName().get()}": \n` +

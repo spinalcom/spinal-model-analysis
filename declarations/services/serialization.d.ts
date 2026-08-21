@@ -17,6 +17,7 @@ export declare function serializeExecutionResult(result: AnalysisExecutionResult
         workNodeName: string;
         success: boolean;
         error?: string | undefined;
+        blockFailures?: import("./WorkflowExecutionService").BlockFailure[] | undefined;
     }[];
     analysisName: string;
     referenceTime: number;

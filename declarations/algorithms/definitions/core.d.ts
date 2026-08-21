@@ -25,6 +25,12 @@ export interface ExecutionMetadata {
     referenceTime: number;
     /** Optional trigger metadata describing what initiated the execution */
     trigger?: ExecutionTriggerContext;
+    /**
+     * How block failures propagate for this execution: 'continue' (fault-isolated, default)
+     * or 'stop' (fail-fast). Read by the DAG executor. Flows through every context, including
+     * FOREACH/IF sub-workflows.
+     */
+    errorPolicy?: 'stop' | 'continue';
 }
 export interface AlgorithmRunContext {
     selfNode?: SpinalNode<any>;

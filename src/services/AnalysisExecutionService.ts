@@ -10,6 +10,7 @@ import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import WorkflowExecutionService, {
     WorkflowExecutionContext,
+    BlockFailure,
 } from './WorkflowExecutionService';
 import { logMessage } from './utils';
 import { runWithConcurrency } from './concurrency';
@@ -56,8 +57,12 @@ export default class AnalysisExecutionService {
         const execution: ExecutionMetadata = {
             referenceTime: metadata?.referenceTime ?? Date.now(),
             trigger: metadata?.trigger,
+            // How block failures propagate within each work node's workflow (default 'continue').
+            errorPolicy: await this.nodeManager.getErrorPolicy(analysisNode),
         };
-        logMessage(`[AnalysisExecution] Starting analysis: ${analysisName}`);
+        logMessage(
+            `[AnalysisExecution] Starting analysis: ${analysisName} (errorPolicy: ${execution.errorPolicy})`
+        );
 
         // ── Step 1: Resolve the anchor target node ──
         const targetNode = await this.resolveAnchorTarget(analysisNode);
@@ -150,11 +155,17 @@ export default class AnalysisExecutionService {
         const workNodeName = workNode.getName().get();
         logMessage(`[AnalysisExecution] Processing work node: ${workNodeName}`);
 
+        // Under the 'continue' policy, block failures are collected here (shared across the
+        // input + execution workflows and their sub-workflows) instead of aborting. Under
+        // 'stop', a block error throws and is caught below as a hard work-node failure.
+        const failures: BlockFailure[] = [];
+
         try {
             const inputRegisters = await this.executeInputWorkflow(
                 analysisNode,
                 workNode,
-                execution
+                execution,
+                failures
             );
 
             logMessage(
@@ -167,19 +178,30 @@ export default class AnalysisExecutionService {
                 analysisNode,
                 workNode,
                 inputRegisters,
-                execution
+                execution,
+                failures
             );
 
-            logMessage(
-                `[AnalysisExecution] Execution workflow complete for: ${workNodeName}`
-            );
+            const errored = failures.filter((f) => f.reason === 'error');
+            if (failures.length > 0) {
+                console.warn(
+                    `[AnalysisExecution] Work node "${workNodeName}": ${errored.length} block error(s), ` +
+                    `${failures.length - errored.length} skipped (errorPolicy=continue). ` +
+                    `Errors: ${errored.map((f) => `${f.blockName} [${f.algorithmName}]: ${f.error}`).join(' | ')}`
+                );
+            } else {
+                logMessage(`[AnalysisExecution] Execution workflow complete for: ${workNodeName}`);
+            }
 
             return {
                 workNodeId: workNode.getId().get(),
                 workNodeName,
+                // The work node ran; partial block failures are reported in blockFailures rather
+                // than marking the whole node failed (that's reserved for a hard 'stop' abort).
                 success: true,
                 inputRegisters: Object.fromEntries(inputRegisters),
                 executionOutputs,
+                blockFailures: failures.length > 0 ? failures : undefined,
             };
         } catch (error: any) {
             const errorMessage =
@@ -253,7 +275,9 @@ export default class AnalysisExecutionService {
             workNode: targetNode,
             inputRegisters: new Map(),
             blockOutputs: new Map(),
-            execution,
+            // The resolver decides WHAT to operate on — always fail-fast, regardless of the
+            // analysis error policy. A partial/ambiguous work-node list should error loudly.
+            execution: { ...execution, errorPolicy: 'stop' },
         };
 
         await this.executor.executeDAG(dag, context);
@@ -287,7 +311,8 @@ export default class AnalysisExecutionService {
     private async executeInputWorkflow(
         analysisNode: SpinalNode<any>,
         workNode: SpinalNode<any>,
-        execution: ExecutionMetadata
+        execution: ExecutionMetadata,
+        failures?: BlockFailure[]
     ): Promise<Map<string, unknown>> {
         const inputNode =
             await this.nodeManager.getAnalysisInputNode(analysisNode);
@@ -303,6 +328,7 @@ export default class AnalysisExecutionService {
             inputRegisters: new Map(),
             blockOutputs: new Map(),
             execution,
+            failures,
         };
 
         await this.executor.executeDAG(dag, context);
@@ -324,7 +350,8 @@ export default class AnalysisExecutionService {
         analysisNode: SpinalNode<any>,
         workNode: SpinalNode<any>,
         inputRegisters: Map<string, unknown>,
-        execution: ExecutionMetadata
+        execution: ExecutionMetadata,
+        failures?: BlockFailure[]
     ): Promise<Record<string, unknown>> {
         const workflowNode =
             await this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
@@ -340,6 +367,7 @@ export default class AnalysisExecutionService {
             inputRegisters,
             blockOutputs: new Map(),
             execution,
+            failures,
         };
 
         await this.executor.executeDAG(dag, context);
@@ -426,4 +454,10 @@ export interface WorkNodeExecutionResult {
     inputRegisters?: Record<string, unknown>;
     executionOutputs?: Record<string, unknown>;
     error?: string;
+    /**
+     * Per-block failures under the 'continue' error policy — blocks that errored or were
+     * skipped because a dependency failed. Absent when everything ran (or under 'stop', where
+     * the first error becomes a hard work-node failure in `error`).
+     */
+    blockFailures?: BlockFailure[];
 }

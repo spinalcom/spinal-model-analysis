@@ -1,5 +1,5 @@
 import { ANALYSIS_CONTEXT_NODE_TYPE } from './analysisContext';
-import { IConcurrencyConfig, AnalysisStatus, ConcurrencyMode } from '../interfaces/IAnalysisConfigJSON';
+import { IConcurrencyConfig, AnalysisStatus, ConcurrencyMode, ErrorPolicy } from '../interfaces/IAnalysisConfigJSON';
 
 export const ANALYSIS_NODE_TYPE = 'analysisNode';
 export const ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = ANALYSIS_CONTEXT_NODE_TYPE + 'Has' + ANALYSIS_NODE_TYPE;
@@ -47,6 +47,26 @@ export const ANALYSIS_STATUS_VALUES: readonly AnalysisStatus[] = ['Active', 'Ina
  * parked until explicitly activated.
  */
 export const DEFAULT_ANALYSIS_STATUS: AnalysisStatus = 'Inactive';
+
+/**
+ * Documentation-attribute category holding the analysis error policy, stored as a
+ * visible/editable attribute on the analysis node (like the concurrency config / status).
+ * Read at execution time to decide whether a block failure aborts the whole workflow
+ * (`stop`) or is isolated to its downstream cone while independent branches continue (`continue`).
+ */
+export const ERROR_POLICY_CATEGORY = 'errorPolicy';
+/** Attribute label holding the error policy (stop | continue). */
+export const ERROR_POLICY_ATTR = 'policy';
+
+/** The two valid error policies. */
+export const ERROR_POLICY_VALUES: readonly ErrorPolicy[] = ['stop', 'continue'];
+
+/**
+ * Error policy applied when an analysis has no stored policy (omitted in the JSON, or
+ * created before this feature existed). Defaults to `continue` — a failed block isolates
+ * to its downstream cone and independent branches keep running (resilient by default).
+ */
+export const DEFAULT_ERROR_POLICY: ErrorPolicy = 'continue';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  CLIENT-FACING OPTION DEFINITIONS
@@ -150,5 +170,35 @@ export const ANALYSIS_STATUS_DEFINITIONS: IAnalysisStatusDefinition[] = [
         description:
             'Parked — stored in the database but not running. The default.',
         default: (DEFAULT_ANALYSIS_STATUS as AnalysisStatus) === 'Inactive',
+    },
+];
+
+/**
+ * Describes a selectable error policy.
+ */
+export interface IErrorPolicyDefinition {
+    /** The policy value. */
+    value: ErrorPolicy;
+    /** Human-readable explanation of what the policy does. */
+    description: string;
+    /** Whether this is the value applied when none is specified. */
+    default: boolean;
+}
+
+/**
+ * The available error policies. Keep in sync with ErrorPolicy.
+ */
+export const ERROR_POLICY_DEFINITIONS: IErrorPolicyDefinition[] = [
+    {
+        value: 'continue',
+        description:
+            'Fault-isolated: a failed block and its downstream cone are skipped, but independent branches keep running. The default.',
+        default: (DEFAULT_ERROR_POLICY as ErrorPolicy) === 'continue',
+    },
+    {
+        value: 'stop',
+        description:
+            'Fail-fast: the first block error aborts the whole workflow for that work node.',
+        default: (DEFAULT_ERROR_POLICY as ErrorPolicy) === 'stop',
     },
 ];

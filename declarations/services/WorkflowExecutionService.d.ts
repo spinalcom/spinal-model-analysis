@@ -28,9 +28,30 @@ export declare function describeValue(value: unknown): string;
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
  */
+/**
+ * A block that did not produce a value during a `continue`-policy execution — either it
+ * threw (`reason: 'error'`) or it was skipped because a dependency failed (`reason: 'skipped'`).
+ * Collected so the caller can report per-output failures instead of aborting the whole run.
+ */
+export interface BlockFailure {
+    blockId: string;
+    blockName: string;
+    algorithmName: string;
+    reason: 'error' | 'skipped';
+    /** The error message (for `reason: 'error'`). */
+    error?: string;
+    /** The failed/skipped block id this one depended on (for `reason: 'skipped'`). */
+    blockedBy?: string;
+}
 export interface WorkflowExecutionContext {
     /** The current work node being processed */
     workNode: SpinalNode<any>;
+    /**
+     * Sink for block failures under the `continue` error policy (shared by reference across
+     * a work node's input/execution workflows and their FOREACH/IF sub-contexts). Absent for
+     * `stop`-policy runs, which abort on the first error instead of collecting.
+     */
+    failures?: BlockFailure[];
     /**
      * Named input variables registered during the input workflow (e.g., I0, I1).
      * Readable during the execution workflow via FETCH_INPUT_REGISTER blocks.
@@ -72,6 +93,8 @@ export default class WorkflowExecutionService {
      * @param context - The execution context (workNode, registers, outputs)
      */
     executeDAG(dag: IWorkflowDAG, context: WorkflowExecutionContext): Promise<void>;
+    /** Records a block failure/skip into the shared context sink (continue policy only). */
+    private recordFailure;
     /**
      * Executes a DAG and returns the output of a specific block.
      * Useful for workflows that produce a single result (e.g., worknode resolver).

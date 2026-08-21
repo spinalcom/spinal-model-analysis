@@ -82,7 +82,27 @@ export interface IAnalysisConfigJSON {
      * database without running until explicitly activated.
      */
     status?: AnalysisStatus;
+
+    /**
+     * How a block failure is handled within a work node's workflow (optional).
+     * - `continue` (default) — fault-isolated: the failed block and everything that
+     *   transitively depends on it are skipped, but independent branches keep running.
+     *   The execution reports per-block failures instead of aborting the whole analysis.
+     * - `stop` — fail-fast: the first block error aborts the entire workflow for that
+     *   work node (the historical behavior).
+     * The worknode resolver always runs fail-fast regardless of this setting.
+     */
+    errorPolicy?: ErrorPolicy;
 }
+
+/**
+ * How a block failure propagates within a work node's workflow.
+ *
+ * - `continue` — isolate the failure to the failed block's downstream cone; independent
+ *   branches still run. The right default for multi-output analytics.
+ * - `stop`     — abort the whole workflow on the first block error.
+ */
+export type ErrorPolicy = 'stop' | 'continue';
 
 /**
  * Lifecycle status of an analysis, gating whether the analysis organ runs it.

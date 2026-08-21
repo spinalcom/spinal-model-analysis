@@ -53,9 +53,32 @@ const BLOCK_TAGGED = Symbol('blockTagged');
  * Runtime context for workflow DAG execution.
  * Carries the current work node, named input registers, and cached block outputs.
  */
+/**
+ * A block that did not produce a value during a `continue`-policy execution — either it
+ * threw (`reason: 'error'`) or it was skipped because a dependency failed (`reason: 'skipped'`).
+ * Collected so the caller can report per-output failures instead of aborting the whole run.
+ */
+export interface BlockFailure {
+    blockId: string;
+    blockName: string;
+    algorithmName: string;
+    reason: 'error' | 'skipped';
+    /** The error message (for `reason: 'error'`). */
+    error?: string;
+    /** The failed/skipped block id this one depended on (for `reason: 'skipped'`). */
+    blockedBy?: string;
+}
+
 export interface WorkflowExecutionContext {
     /** The current work node being processed */
     workNode: SpinalNode<any>;
+
+    /**
+     * Sink for block failures under the `continue` error policy (shared by reference across
+     * a work node's input/execution workflows and their FOREACH/IF sub-contexts). Absent for
+     * `stop`-policy runs, which abort on the first error instead of collecting.
+     */
+    failures?: BlockFailure[];
 
     /**
      * Named input variables registered during the input workflow (e.g., I0, I1).
@@ -116,10 +139,51 @@ export default class WorkflowExecutionService {
         context.blockOutputs.set(WORK_NODE_RESERVED_ID, context.workNode);
 
         const sorted = this.topologicalSort(dag.blocks);
+        // 'stop' → fail-fast (abort on first error). 'continue' (default) → fault-isolated:
+        // a failed block and its downstream cone are skipped, independent branches keep going.
+        const stopOnError = context.execution?.errorPolicy === 'stop';
+
+        // Block ids that failed or were skipped in THIS dag — used to skip their dependents.
+        const failedIds = new Set<string>();
 
         for (const block of sorted) {
-            await this.executeBlock(block, context);
+            if (!stopOnError) {
+                // Skip a block whose input/order dependency (within this dag) already failed:
+                // its output is missing, so running it would just error on a missing input.
+                const blockedBy = [...block.inputBlockIds, ...block.orderBlockIds]
+                    .find((depId) => failedIds.has(depId));
+                if (blockedBy !== undefined) {
+                    failedIds.add(block.id);
+                    this.recordFailure(context, block, { reason: 'skipped', blockedBy });
+                    continue;
+                }
+            }
+
+            try {
+                await this.executeBlock(block, context);
+            } catch (error: any) {
+                if (stopOnError) throw error; // fail-fast (opt-in)
+                failedIds.add(block.id);
+                const message = error instanceof Error ? error.message : String(error);
+                this.recordFailure(context, block, { reason: 'error', error: message });
+                console.error(`[Execution] ${message} — isolated; independent branches continue.`);
+            }
         }
+    }
+
+    /** Records a block failure/skip into the shared context sink (continue policy only). */
+    private recordFailure(
+        context: WorkflowExecutionContext,
+        block: IWorkflowBlock,
+        detail: { reason: 'error'; error: string } | { reason: 'skipped'; blockedBy: string }
+    ): void {
+        if (!context.failures) return;
+        context.failures.push({
+            blockId: block.id,
+            blockName: block.name,
+            algorithmName: block.algorithmName,
+            ...detail,
+        });
     }
 
     /**
@@ -251,6 +315,7 @@ export default class WorkflowExecutionService {
                 inputRegisters: new Map(context.inputRegisters),
                 blockOutputs: new Map(context.blockOutputs),
                 execution: context.execution,
+                failures: context.failures,
             };
 
             // Inject the current element under its named virtual ID
@@ -307,6 +372,7 @@ export default class WorkflowExecutionService {
             inputRegisters: new Map(context.inputRegisters),
             blockOutputs: new Map(context.blockOutputs),
             execution: context.execution,
+            failures: context.failures,
         };
 
         // Execute the branch sub-workflow

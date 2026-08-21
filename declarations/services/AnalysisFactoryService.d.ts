@@ -74,7 +74,7 @@ export default class AnalysisFactoryService {
      * @param patch - The subset of metadata fields to change
      * @returns The same analysis node, updated
      */
-    patchAnalysis(analysisNode: SpinalNode<any>, patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status'>>): Promise<SpinalNode<any>>;
+    patchAnalysis(analysisNode: SpinalNode<any>, patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status' | 'errorPolicy'>>): Promise<SpinalNode<any>>;
     /**
      * Links the anchor target, builds the three workflow DAGs, and stores the
      * trigger configs from a config object onto an analysis node whose mandatory

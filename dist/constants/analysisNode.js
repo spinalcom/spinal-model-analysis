@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.ANALYSIS_STATUS_DEFINITIONS = exports.CONCURRENCY_MODE_DEFINITIONS = exports.DEFAULT_ANALYSIS_STATUS = exports.ANALYSIS_STATUS_VALUES = exports.STATUS_ATTR = exports.STATUS_CATEGORY = exports.DEFAULT_CONCURRENCY = exports.DEFAULT_CONCURRENCY_LIMIT = exports.CONCURRENCY_ATTR_LIMIT = exports.CONCURRENCY_ATTR_MODE = exports.CONCURRENCY_CATEGORY = exports.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = exports.ANALYSIS_NODE_TYPE = void 0;
+exports.ERROR_POLICY_DEFINITIONS = exports.ANALYSIS_STATUS_DEFINITIONS = exports.CONCURRENCY_MODE_DEFINITIONS = exports.DEFAULT_ERROR_POLICY = exports.ERROR_POLICY_VALUES = exports.ERROR_POLICY_ATTR = exports.ERROR_POLICY_CATEGORY = exports.DEFAULT_ANALYSIS_STATUS = exports.ANALYSIS_STATUS_VALUES = exports.STATUS_ATTR = exports.STATUS_CATEGORY = exports.DEFAULT_CONCURRENCY = exports.DEFAULT_CONCURRENCY_LIMIT = exports.CONCURRENCY_ATTR_LIMIT = exports.CONCURRENCY_ATTR_MODE = exports.CONCURRENCY_CATEGORY = exports.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = exports.ANALYSIS_NODE_TYPE = void 0;
 const analysisContext_1 = require("./analysisContext");
 exports.ANALYSIS_NODE_TYPE = 'analysisNode';
 exports.ANALYSIS_CONTEXT_TO_ANALYSIS_NODE_RELATION = analysisContext_1.ANALYSIS_CONTEXT_NODE_TYPE + 'Has' + exports.ANALYSIS_NODE_TYPE;
@@ -42,6 +42,23 @@ exports.ANALYSIS_STATUS_VALUES = ['Active', 'Inactive'];
  * parked until explicitly activated.
  */
 exports.DEFAULT_ANALYSIS_STATUS = 'Inactive';
+/**
+ * Documentation-attribute category holding the analysis error policy, stored as a
+ * visible/editable attribute on the analysis node (like the concurrency config / status).
+ * Read at execution time to decide whether a block failure aborts the whole workflow
+ * (`stop`) or is isolated to its downstream cone while independent branches continue (`continue`).
+ */
+exports.ERROR_POLICY_CATEGORY = 'errorPolicy';
+/** Attribute label holding the error policy (stop | continue). */
+exports.ERROR_POLICY_ATTR = 'policy';
+/** The two valid error policies. */
+exports.ERROR_POLICY_VALUES = ['stop', 'continue'];
+/**
+ * Error policy applied when an analysis has no stored policy (omitted in the JSON, or
+ * created before this feature existed). Defaults to `continue` — a failed block isolates
+ * to its downstream cone and independent branches keep running (resilient by default).
+ */
+exports.DEFAULT_ERROR_POLICY = 'continue';
 /**
  * The available work-node concurrency modes and their configuration fields.
  * Keep in sync with ConcurrencyMode and AnalyticNodeManagerService.normalizeConcurrency.
@@ -87,6 +104,21 @@ exports.ANALYSIS_STATUS_DEFINITIONS = [
         value: 'Inactive',
         description: 'Parked — stored in the database but not running. The default.',
         default: exports.DEFAULT_ANALYSIS_STATUS === 'Inactive',
+    },
+];
+/**
+ * The available error policies. Keep in sync with ErrorPolicy.
+ */
+exports.ERROR_POLICY_DEFINITIONS = [
+    {
+        value: 'continue',
+        description: 'Fault-isolated: a failed block and its downstream cone are skipped, but independent branches keep running. The default.',
+        default: exports.DEFAULT_ERROR_POLICY === 'continue',
+    },
+    {
+        value: 'stop',
+        description: 'Fail-fast: the first block error aborts the whole workflow for that work node.',
+        default: exports.DEFAULT_ERROR_POLICY === 'stop',
     },
 ];
 //# sourceMappingURL=analysisNode.js.map

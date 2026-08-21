@@ -18,7 +18,10 @@ import {
   DEFAULT_CONCURRENCY_LIMIT,
   STATUS_CATEGORY,
   STATUS_ATTR,
-  DEFAULT_ANALYSIS_STATUS
+  DEFAULT_ANALYSIS_STATUS,
+  ERROR_POLICY_CATEGORY,
+  ERROR_POLICY_ATTR,
+  DEFAULT_ERROR_POLICY
 } from '../constants/analysisNode';
 
 import {
@@ -41,7 +44,7 @@ import { parseValue } from './utils';
 import { VERSION } from '../version';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX } from './WorkflowExecutionService';
-import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, IConcurrencyConfig, ConcurrencyMode, AnalysisStatus } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IWorkflowConfigJSON, IBlockConfigJSON, ITriggerConfigJSON, IConcurrencyConfig, ConcurrencyMode, AnalysisStatus, ErrorPolicy } from '../interfaces/IAnalysisConfigJSON';
 import { IWorkflowBlock, ISubWorkflow } from '../interfaces/IWorkflowBlock';
 
 export default class AnalyticNodeManagerService {
@@ -131,6 +134,7 @@ export default class AnalyticNodeManagerService {
     contextNode: SpinalNode<any>,
     concurrency?: IConcurrencyConfig,
     status?: AnalysisStatus,
+    errorPolicy?: ErrorPolicy,
   ): Promise<SpinalNode<any>> {
 
     const analysisNodeInfo = {
@@ -151,6 +155,7 @@ export default class AnalyticNodeManagerService {
     // documentation attributes, and stamp the initial revision.
     await this.setConcurrencyConfig(analysisNode, concurrency);
     await this.setStatus(analysisNode, status);
+    await this.setErrorPolicy(analysisNode, errorPolicy);
     this.setLastUpdate(analysisNode);
 
     // Add mandatory sub-nodes (workflows, anchor, trigger, ...).
@@ -311,6 +316,40 @@ export default class AnalyticNodeManagerService {
   }
 
   /**
+   * Coerces an arbitrary value into a valid {@link ErrorPolicy}. Only an explicit "stop"
+   * selects fail-fast; anything else (missing, typo'd, or "continue") falls back to
+   * {@link DEFAULT_ERROR_POLICY} (continue) — so analyses default to fault-isolated.
+   */
+  public normalizeErrorPolicy(policy?: unknown): ErrorPolicy {
+    return typeof policy === 'string' && policy.trim().toLowerCase() === 'stop'
+      ? 'stop'
+      : DEFAULT_ERROR_POLICY;
+  }
+
+  /**
+   * Reads the error policy from the analysis node's documentation attributes. Falls back
+   * to {@link DEFAULT_ERROR_POLICY} (continue) when missing or invalid — including analyses
+   * created before this feature existed, which therefore become fault-isolated by default.
+   */
+  public async getErrorPolicy(analysisNode: SpinalNode<any>): Promise<ErrorPolicy> {
+    const attrs = await attributeService.getAttributesByCategory(analysisNode, ERROR_POLICY_CATEGORY);
+    const policyAttr = attrs?.find((a: any) => a.label?.get() === ERROR_POLICY_ATTR);
+    return this.normalizeErrorPolicy(policyAttr?.value?.get());
+  }
+
+  /**
+   * Writes the error policy as a documentation attribute on the analysis node (creating the
+   * category/attribute on first write). Normalizes first so the stored value is always valid.
+   */
+  public async setErrorPolicy(analysisNode: SpinalNode<any>, policy?: ErrorPolicy): Promise<void> {
+    await attributeService.createOrUpdateAttrsAndCategories(
+      analysisNode,
+      ERROR_POLICY_CATEGORY,
+      { [ERROR_POLICY_ATTR]: this.normalizeErrorPolicy(policy) }
+    );
+  }
+
+  /**
    * Reads the last-update revision (ms timestamp) from the analysis node's info.
    * Returns 0 when never stamped (e.g. analyses created before this feature). The
    * organ uses this to detect when an analysis was updated and must be re-assessed.
@@ -431,6 +470,9 @@ export default class AnalyticNodeManagerService {
 
     // ── Status ── (always emitted so the lifecycle state is explicit)
     result.status = await this.getStatus(analysisNode);
+
+    // ── Error policy ── (always emitted so the failure behavior is explicit)
+    result.errorPolicy = await this.getErrorPolicy(analysisNode);
 
     return result;
   }

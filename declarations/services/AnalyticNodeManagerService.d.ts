@@ -1,5 +1,5 @@
 import { SpinalNode, SpinalGraph, SpinalContext } from 'spinal-env-viewer-graph-service';
-import { IAnalysisConfigJSON, IConcurrencyConfig, AnalysisStatus } from '../interfaces/IAnalysisConfigJSON';
+import { IAnalysisConfigJSON, IConcurrencyConfig, AnalysisStatus, ErrorPolicy } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalyticNodeManagerService {
     constructor();
     /**
@@ -34,7 +34,7 @@ export default class AnalyticNodeManagerService {
      * @returns {Promise<SpinalNode<any>>} A Promise that resolves to the newly created analytic info.
      * @memberof AnalyticService
      */
-    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>, concurrency?: IConcurrencyConfig, status?: AnalysisStatus): Promise<SpinalNode<any>>;
+    addAnalysisNode(analysisNodeName: string, analysisNodeDescription: string, contextNode: SpinalNode<any>, concurrency?: IConcurrencyConfig, status?: AnalysisStatus, errorPolicy?: ErrorPolicy): Promise<SpinalNode<any>>;
     /**
      * Creates the mandatory sub-node structure under an analysis node (execution /
      * input / output workflows, trigger, worknode resolver, anchor). Used both when
@@ -93,6 +93,23 @@ export default class AnalyticNodeManagerService {
      * value is always a valid status.
      */
     setStatus(analysisNode: SpinalNode<any>, status?: AnalysisStatus): Promise<void>;
+    /**
+     * Coerces an arbitrary value into a valid {@link ErrorPolicy}. Only an explicit "stop"
+     * selects fail-fast; anything else (missing, typo'd, or "continue") falls back to
+     * {@link DEFAULT_ERROR_POLICY} (continue) — so analyses default to fault-isolated.
+     */
+    normalizeErrorPolicy(policy?: unknown): ErrorPolicy;
+    /**
+     * Reads the error policy from the analysis node's documentation attributes. Falls back
+     * to {@link DEFAULT_ERROR_POLICY} (continue) when missing or invalid — including analyses
+     * created before this feature existed, which therefore become fault-isolated by default.
+     */
+    getErrorPolicy(analysisNode: SpinalNode<any>): Promise<ErrorPolicy>;
+    /**
+     * Writes the error policy as a documentation attribute on the analysis node (creating the
+     * category/attribute on first write). Normalizes first so the stored value is always valid.
+     */
+    setErrorPolicy(analysisNode: SpinalNode<any>, policy?: ErrorPolicy): Promise<void>;
     /**
      * Reads the last-update revision (ms timestamp) from the analysis node's info.
      * Returns 0 when never stamped (e.g. analyses created before this feature). The

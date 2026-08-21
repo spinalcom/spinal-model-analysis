@@ -46,8 +46,10 @@ class AnalysisExecutionService {
             const execution = {
                 referenceTime: (_a = metadata === null || metadata === void 0 ? void 0 : metadata.referenceTime) !== null && _a !== void 0 ? _a : Date.now(),
                 trigger: metadata === null || metadata === void 0 ? void 0 : metadata.trigger,
+                // How block failures propagate within each work node's workflow (default 'continue').
+                errorPolicy: yield this.nodeManager.getErrorPolicy(analysisNode),
             };
-            (0, utils_1.logMessage)(`[AnalysisExecution] Starting analysis: ${analysisName}`);
+            (0, utils_1.logMessage)(`[AnalysisExecution] Starting analysis: ${analysisName} (errorPolicy: ${execution.errorPolicy})`);
             // ── Step 1: Resolve the anchor target node ──
             const targetNode = yield this.resolveAnchorTarget(analysisNode);
             (0, utils_1.logMessage)(`[AnalysisExecution] Anchor target resolved: ${targetNode.getName().get()}`);
@@ -112,19 +114,34 @@ class AnalysisExecutionService {
         return __awaiter(this, void 0, void 0, function* () {
             const workNodeName = workNode.getName().get();
             (0, utils_1.logMessage)(`[AnalysisExecution] Processing work node: ${workNodeName}`);
+            // Under the 'continue' policy, block failures are collected here (shared across the
+            // input + execution workflows and their sub-workflows) instead of aborting. Under
+            // 'stop', a block error throws and is caught below as a hard work-node failure.
+            const failures = [];
             try {
-                const inputRegisters = yield this.executeInputWorkflow(analysisNode, workNode, execution);
+                const inputRegisters = yield this.executeInputWorkflow(analysisNode, workNode, execution, failures);
                 (0, utils_1.logMessage)(`[AnalysisExecution] Input workflow complete. Registers: [${[
                     ...inputRegisters.keys(),
                 ].join(', ')}]`);
-                const executionOutputs = yield this.executeExecutionWorkflow(analysisNode, workNode, inputRegisters, execution);
-                (0, utils_1.logMessage)(`[AnalysisExecution] Execution workflow complete for: ${workNodeName}`);
+                const executionOutputs = yield this.executeExecutionWorkflow(analysisNode, workNode, inputRegisters, execution, failures);
+                const errored = failures.filter((f) => f.reason === 'error');
+                if (failures.length > 0) {
+                    console.warn(`[AnalysisExecution] Work node "${workNodeName}": ${errored.length} block error(s), ` +
+                        `${failures.length - errored.length} skipped (errorPolicy=continue). ` +
+                        `Errors: ${errored.map((f) => `${f.blockName} [${f.algorithmName}]: ${f.error}`).join(' | ')}`);
+                }
+                else {
+                    (0, utils_1.logMessage)(`[AnalysisExecution] Execution workflow complete for: ${workNodeName}`);
+                }
                 return {
                     workNodeId: workNode.getId().get(),
                     workNodeName,
+                    // The work node ran; partial block failures are reported in blockFailures rather
+                    // than marking the whole node failed (that's reserved for a hard 'stop' abort).
                     success: true,
                     inputRegisters: Object.fromEntries(inputRegisters),
                     executionOutputs,
+                    blockFailures: failures.length > 0 ? failures : undefined,
                 };
             }
             catch (error) {
@@ -177,7 +194,9 @@ class AnalysisExecutionService {
                 workNode: targetNode,
                 inputRegisters: new Map(),
                 blockOutputs: new Map(),
-                execution,
+                // The resolver decides WHAT to operate on — always fail-fast, regardless of the
+                // analysis error policy. A partial/ambiguous work-node list should error loudly.
+                execution: Object.assign(Object.assign({}, execution), { errorPolicy: 'stop' }),
             };
             yield this.executor.executeDAG(dag, context);
             // Get the output of the leaf block(s) — the final result
@@ -203,7 +222,7 @@ class AnalysisExecutionService {
      *
      * @returns The populated input registers map
      */
-    executeInputWorkflow(analysisNode, workNode, execution) {
+    executeInputWorkflow(analysisNode, workNode, execution, failures) {
         return __awaiter(this, void 0, void 0, function* () {
             const inputNode = yield this.nodeManager.getAnalysisInputNode(analysisNode);
             const dag = yield this.blockManager.loadWorkflowDAG(inputNode);
@@ -215,6 +234,7 @@ class AnalysisExecutionService {
                 inputRegisters: new Map(),
                 blockOutputs: new Map(),
                 execution,
+                failures,
             };
             yield this.executor.executeDAG(dag, context);
             return context.inputRegisters;
@@ -229,7 +249,7 @@ class AnalysisExecutionService {
      *
      * @returns A record of block outputs keyed by block name (ref)
      */
-    executeExecutionWorkflow(analysisNode, workNode, inputRegisters, execution) {
+    executeExecutionWorkflow(analysisNode, workNode, inputRegisters, execution, failures) {
         return __awaiter(this, void 0, void 0, function* () {
             const workflowNode = yield this.nodeManager.getAnalysisExecutionWorkflowNode(analysisNode);
             const dag = yield this.blockManager.loadWorkflowDAG(workflowNode);
@@ -241,6 +261,7 @@ class AnalysisExecutionService {
                 inputRegisters,
                 blockOutputs: new Map(),
                 execution,
+                failures,
             };
             yield this.executor.executeDAG(dag, context);
             // Convert ID-keyed blockOutputs to name-keyed results

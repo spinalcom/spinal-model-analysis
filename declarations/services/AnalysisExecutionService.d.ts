@@ -1,6 +1,7 @@
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import { AlgorithmRegistry, ExecutionMetadata } from '../algorithms/definitions/core';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
+import { BlockFailure } from './WorkflowExecutionService';
 /**
  * Orchestrates the full analysis execution pipeline:
  *
@@ -99,4 +100,10 @@ export interface WorkNodeExecutionResult {
     inputRegisters?: Record<string, unknown>;
     executionOutputs?: Record<string, unknown>;
     error?: string;
+    /**
+     * Per-block failures under the 'continue' error policy — blocks that errored or were
+     * skipped because a dependency failed. Absent when everything ran (or under 'stop', where
+     * the first error becomes a hard work-node failure in `error`).
+     */
+    blockFailures?: BlockFailure[];
 }
