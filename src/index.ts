@@ -162,6 +162,11 @@ export {
 
 export { ALGORITHM_TAGS } from './algorithms/definitions/tags';
 
+// Runtime capability probe: whether the installed documentation-service exposes the file API
+// the file-backed Excel blocks need. Lets clients/organs report Excel availability without a
+// branch fork (LOAD_EXCEL / SAVE_EXCEL_TO_NODE self-guard at runtime when it returns false).
+export { docServiceSupportsFileApi } from './algorithms/definitions/excel.algorithms';
+
 // Algorithm metadata localization (i18n)
 export {
   localizeAlgorithm,

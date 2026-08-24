@@ -1,13 +1,47 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
 import { FileSystem } from 'spinal-core-connectorjs_type';
-import { FileExplorer } from 'spinal-env-viewer-plugin-documentation-service';
+// The file-management APIs used by LOAD_EXCEL / SAVE_EXCEL_TO_NODE
+// (getFilesLinkedToNode / uploadFiles / removeFileLinked / getCurrentVersionAsBuffer) exist
+// only on the newer documentation-service. Access FileExplorer through `any` so this module
+// compiles against ANY doc-service version, and detect availability at runtime
+// (see docServiceSupportsFileApi) so on an older doc-service those two blocks fail with a clear
+// message instead of "not a function". Every other Excel block operates purely on the in-memory
+// workbook handle and needs none of this.
+import * as documentationService from 'spinal-env-viewer-plugin-documentation-service';
+const FileExplorer: any = (documentationService as any)?.FileExplorer;
 import {
   AlgorithmDefinition,
   AlgorithmRunResult,
   createAlgorithm,
 } from './core';
 import { resolveBooleanFlag } from '../../services/utils';
+
+/**
+ * Whether the installed documentation-service exposes the file-management API the file-backed
+ * Excel blocks need. Lets a deployment run with the stable doc-service (Excel document read/write
+ * dormant) or the newer one (fully enabled) from the same codebase — no branch fork, no
+ * commented-out code. Reusable for any future doc-service-file-dependent feature.
+ */
+export function docServiceSupportsFileApi(): boolean {
+  return Boolean(
+    FileExplorer &&
+    typeof FileExplorer.getFilesLinkedToNode === 'function' &&
+    typeof FileExplorer.uploadFiles === 'function' &&
+    typeof FileExplorer.removeFileLinked === 'function'
+  );
+}
+
+/** Throws a clear, actionable error when the doc-service file API is missing. */
+function requireDocServiceFileApi(blockName: string): void {
+  if (docServiceSupportsFileApi()) return;
+  throw new Error(
+    `${blockName}: requires the documentation-service file API ` +
+    `(getFilesLinkedToNode / uploadFiles / removeFileLinked). This deployment's ` +
+    `spinal-env-viewer-plugin-documentation-service does not provide it — update it to enable ` +
+    `Excel document read/write. (All non-file Excel blocks still work.)`
+  );
+}
 
 /**
  * Excel report blocks.
@@ -231,6 +265,7 @@ async function saveBufferAsDocument(
   buffer: Buffer,
   ifExists: IfExists
 ): Promise<void> {
+  requireDocServiceFileApi('SAVE_EXCEL_TO_NODE');
   if (ifExists !== 'allow') {
     const existing = (await FileExplorer.getFilesLinkedToNode(node)) ?? [];
     const matches = existing.filter((f: any) => safeFileName(f) === filename);
@@ -259,6 +294,7 @@ async function loadWorkbookHandle(
   params: Record<string, unknown> | undefined,
   blockName: string
 ): Promise<ExcelWorkbookHandle> {
+  requireDocServiceFileApi(blockName);
   const node = resolveNode(input);
   if (!node) throw new Error(`${blockName}: input must be a SpinalNode`);
 

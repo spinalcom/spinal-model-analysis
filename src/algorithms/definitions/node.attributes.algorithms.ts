@@ -98,7 +98,11 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
                 }
             }
 
-            await attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
+            // The 4th arg (updateDirectModificationDate) exists only on the newer doc-service;
+            // cast to `any` so this compiles against any version. On an older doc-service the
+            // extra arg is harmlessly ignored — the attribute still updates, it just doesn't
+            // stamp directModificationDate.
+            await (attributeService as any).createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value as any;
         },
     }),
@@ -143,7 +147,9 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
                 }
             }
 
-            await attributeService.createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) }, updateDirectModificationDate);
+            // See note above: the 4th arg is doc-service-version-dependent, cast for compile
+            // portability; harmlessly ignored on an older doc-service.
+            await (attributeService as any).createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value as any;
         },
     }),

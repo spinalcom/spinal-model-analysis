@@ -91,6 +91,10 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
                     throw new Error(`Attribute "${label}" not found in category "${categoryName}" and createIfNotExist is false`);
                 }
             }
+            // The 4th arg (updateDirectModificationDate) exists only on the newer doc-service;
+            // cast to `any` so this compiles against any version. On an older doc-service the
+            // extra arg is harmlessly ignored — the attribute still updates, it just doesn't
+            // stamp directModificationDate.
             yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value;
         }),
@@ -133,6 +137,8 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
                     throw new Error(`Attribute "${label}" not found in category "${categoryName}" and createIfNotExist is false`);
                 }
             }
+            // See note above: the 4th arg is doc-service-version-dependent, cast for compile
+            // portability; harmlessly ignored on an older doc-service.
             yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(input, categoryName, { [label]: String(value) }, updateDirectModificationDate);
             return value;
         }),

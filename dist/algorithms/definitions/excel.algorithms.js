@@ -9,11 +9,41 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.EXCEL_ALGORITHMS = void 0;
+exports.EXCEL_ALGORITHMS = exports.docServiceSupportsFileApi = void 0;
 const spinal_core_connectorjs_type_1 = require("spinal-core-connectorjs_type");
-const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+// The file-management APIs used by LOAD_EXCEL / SAVE_EXCEL_TO_NODE
+// (getFilesLinkedToNode / uploadFiles / removeFileLinked / getCurrentVersionAsBuffer) exist
+// only on the newer documentation-service. Access FileExplorer through `any` so this module
+// compiles against ANY doc-service version, and detect availability at runtime
+// (see docServiceSupportsFileApi) so on an older doc-service those two blocks fail with a clear
+// message instead of "not a function". Every other Excel block operates purely on the in-memory
+// workbook handle and needs none of this.
+const documentationService = require("spinal-env-viewer-plugin-documentation-service");
+const FileExplorer = documentationService === null || documentationService === void 0 ? void 0 : documentationService.FileExplorer;
 const core_1 = require("./core");
 const utils_1 = require("../../services/utils");
+/**
+ * Whether the installed documentation-service exposes the file-management API the file-backed
+ * Excel blocks need. Lets a deployment run with the stable doc-service (Excel document read/write
+ * dormant) or the newer one (fully enabled) from the same codebase — no branch fork, no
+ * commented-out code. Reusable for any future doc-service-file-dependent feature.
+ */
+function docServiceSupportsFileApi() {
+    return Boolean(FileExplorer &&
+        typeof FileExplorer.getFilesLinkedToNode === 'function' &&
+        typeof FileExplorer.uploadFiles === 'function' &&
+        typeof FileExplorer.removeFileLinked === 'function');
+}
+exports.docServiceSupportsFileApi = docServiceSupportsFileApi;
+/** Throws a clear, actionable error when the doc-service file API is missing. */
+function requireDocServiceFileApi(blockName) {
+    if (docServiceSupportsFileApi())
+        return;
+    throw new Error(`${blockName}: requires the documentation-service file API ` +
+        `(getFilesLinkedToNode / uploadFiles / removeFileLinked). This deployment's ` +
+        `spinal-env-viewer-plugin-documentation-service does not provide it — update it to enable ` +
+        `Excel document read/write. (All non-file Excel blocks still work.)`);
+}
 /**
  * Excel report blocks.
  *
@@ -171,8 +201,9 @@ function resolveIfExists(value) {
 function saveBufferAsDocument(node, filename, buffer, ifExists) {
     var _a;
     return __awaiter(this, void 0, void 0, function* () {
+        requireDocServiceFileApi('SAVE_EXCEL_TO_NODE');
         if (ifExists !== 'allow') {
-            const existing = (_a = (yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.getFilesLinkedToNode(node))) !== null && _a !== void 0 ? _a : [];
+            const existing = (_a = (yield FileExplorer.getFilesLinkedToNode(node))) !== null && _a !== void 0 ? _a : [];
             const matches = existing.filter((f) => safeFileName(f) === filename);
             if (matches.length > 0) {
                 if (ifExists === 'error') {
@@ -181,11 +212,11 @@ function saveBufferAsDocument(node, filename, buffer, ifExists) {
                 }
                 // 'replace' — drop all existing documents with that name before adding the new one.
                 for (const f of matches) {
-                    yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.removeFileLinked(node, f);
+                    yield FileExplorer.removeFileLinked(node, f);
                 }
             }
         }
-        yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
+        yield FileExplorer.uploadFiles(node, [{ name: filename, buffer }]);
     });
 }
 /**
@@ -194,10 +225,11 @@ function saveBufferAsDocument(node, filename, buffer, ifExists) {
  */
 function loadWorkbookHandle(input, params, blockName) {
     return __awaiter(this, void 0, void 0, function* () {
+        requireDocServiceFileApi(blockName);
         const node = resolveNode(input);
         if (!node)
             throw new Error(`${blockName}: input must be a SpinalNode`);
-        const files = yield spinal_env_viewer_plugin_documentation_service_1.FileExplorer.getFilesLinkedToNode(node);
+        const files = yield FileExplorer.getFilesLinkedToNode(node);
         if (!files || files.length === 0) {
             throw new Error(`${blockName}: the node has no attached document`);
         }

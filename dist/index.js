@@ -15,7 +15,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AlgorithmRegistry = exports.createAlgorithm = exports.EXCEL_ALGORITHMS = exports.TICKET_ALGORITHMS = exports.HTTP_ALGORITHMS = exports.TIMESERIES_ALGORITHMS = exports.STRING_ALGORITHMS = exports.OBJECT_ALGORITHMS = exports.CONVERSION_ALGORITHMS = exports.BOOLEAN_ALGORITHMS = exports.LIST_ALGORITHMS = exports.REGISTER_ALGORITHMS = exports.FLOW_CONTROL_ALGORITHMS = exports.NODE_ATTRIBUTES_ALGORITHMS = exports.NODE_ALGORITHMS = exports.NUMBER_ALGORITHMS = exports.ALGORITHMS = exports.ALGORITHM_REGISTRY = exports.ALGORITHM_DEFINITIONS = exports.TRIGGER_TYPE = exports.isAnalyticAssigned = exports.removeAssignedAnalytic = exports.addAssignedAnalytic = exports.setAssignmentAnalytics = exports.setAssignmentEnabled = exports.readAssignment = exports.listAssignmentOrganNames = exports.loadAssignmentFile = exports.loadOrCreateAssignmentFile = exports.ANALYSIS_ASSIGNMENT_DIR = exports.AnalysisAssignmentModel = exports.serializeExecutionResult = exports.serializeExecutionValue = exports.foreachItemVirtualId = exports.FOREACH_ITEM_SUFFIX = exports.FOREACH_ITEM_PREFIX = exports.WORK_NODE_RESERVED_ID = exports.AnalysisTriggerService = exports.AnalysisFactoryService = exports.AnalysisExecutionService = exports.WorkflowExecutionService = exports.WorkflowBlockManagerService = exports.AnalyticNodeManagerService = exports.VERSION = exports.spinalAnalysisTriggerService = exports.spinalAnalysisFactoryService = exports.spinalAnalysisExecutionService = exports.spinalWorkflowExecutionService = exports.spinalWorkflowBlockManagerService = exports.spinalAnalyticNodeManagerService = void 0;
-exports.SUPPORTED_LOCALES = exports.getLocaleTranslations = exports.localizeAlgorithm = exports.ALGORITHM_TAGS = void 0;
+exports.SUPPORTED_LOCALES = exports.getLocaleTranslations = exports.localizeAlgorithm = exports.docServiceSupportsFileApi = exports.ALGORITHM_TAGS = void 0;
 const version_1 = require("./version");
 Object.defineProperty(exports, "VERSION", { enumerable: true, get: function () { return version_1.VERSION; } });
 const AnalyticNodeManagerService_1 = require("./services/AnalyticNodeManagerService");
@@ -107,6 +107,11 @@ Object.defineProperty(exports, "createAlgorithm", { enumerable: true, get: funct
 Object.defineProperty(exports, "AlgorithmRegistry", { enumerable: true, get: function () { return core_1.AlgorithmRegistry; } });
 var tags_1 = require("./algorithms/definitions/tags");
 Object.defineProperty(exports, "ALGORITHM_TAGS", { enumerable: true, get: function () { return tags_1.ALGORITHM_TAGS; } });
+// Runtime capability probe: whether the installed documentation-service exposes the file API
+// the file-backed Excel blocks need. Lets clients/organs report Excel availability without a
+// branch fork (LOAD_EXCEL / SAVE_EXCEL_TO_NODE self-guard at runtime when it returns false).
+var excel_algorithms_1 = require("./algorithms/definitions/excel.algorithms");
+Object.defineProperty(exports, "docServiceSupportsFileApi", { enumerable: true, get: function () { return excel_algorithms_1.docServiceSupportsFileApi; } });
 // Algorithm metadata localization (i18n)
 var localize_1 = require("./i18n/localize");
 Object.defineProperty(exports, "localizeAlgorithm", { enumerable: true, get: function () { return localize_1.localizeAlgorithm; } });
