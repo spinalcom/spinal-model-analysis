@@ -38,6 +38,32 @@ export const NUMBER_ALGORITHMS: AlgorithmDefinition[] = [
     },
   }),
   createAlgorithm({
+    name: 'COMPACT_NUMBERS',
+    description:
+      'Removes null, undefined and non-numeric entries from a number array, returning only the valid numbers. ' +
+      'Place it between a FOREACH (whose items may be missing — e.g. floors without a timeseries, giving ' +
+      '[0,2,4,null,3]) and SUM_NUMBERS / AVERAGE_NUMBERS / MIN_NUMBERS / MAX_NUMBERS so aggregation proceeds ' +
+      'over the values that exist instead of failing on the gaps. Numeric strings are kept and converted to numbers.',
+    inputs: [
+      { name: 'numbers', types: NUMERIC_TYPES, description: 'One or more values; null / undefined / non-numeric entries are dropped.', required: true, variadic: true },
+    ],
+    outputType: 'any',
+    parameters: [],
+    run: async (input): AlgorithmRunResult => {
+      const arr: unknown[] = Array.isArray(input) ? input : [input];
+      const cleaned: number[] = [];
+      for (const value of arr) {
+        if (typeof value === 'number' && !isNaN(value)) {
+          cleaned.push(value);
+        } else if (typeof value === 'string' && value.trim() !== '') {
+          const n = Number(value);
+          if (!isNaN(n)) cleaned.push(n);
+        }
+      }
+      return cleaned as any;
+    },
+  }),
+  createAlgorithm({
     name: 'SUBTRACT',
     description:
       'Subtracts numbers in order from a number array input: input[0] − input[1] − … ' +

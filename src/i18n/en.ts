@@ -13,6 +13,7 @@ export const EN: LocaleTranslations = {
   // ── number ──
   COPY_FIRST_NUMBER: { label: 'First Number' },
   SUM_NUMBERS: { label: 'Sum' },
+  COMPACT_NUMBERS: { label: 'Compact Numbers' },
   SUBTRACT: { label: 'Subtract' },
   RANDOM_NUMBER: { label: 'Random Number' },
   CONSTANT_NUMBER: { label: 'Constant Number' },

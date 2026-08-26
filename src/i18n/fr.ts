@@ -29,6 +29,15 @@ export const FR: LocaleTranslations = {
     description: 'Additionne tous les nombres reçus en entrée. Les chaînes numériques sont acceptées.',
     inputs: { numbers: 'Un ou plusieurs nombres (ou chaînes numériques) à additionner.' },
   },
+  COMPACT_NUMBERS: {
+    label: 'Compacter les nombres',
+    description:
+      'Retire les valeurs nulles, indéfinies et non numériques d\'un tableau de nombres, ne renvoyant que les nombres valides. ' +
+      'À placer entre un FOREACH (dont certains éléments peuvent manquer — par ex. des étages sans série temporelle) et ' +
+      'SUM_NUMBERS / AVERAGE_NUMBERS / MIN_NUMBERS / MAX_NUMBERS afin que l\'agrégation se fasse sur les valeurs présentes. ' +
+      'Les chaînes numériques sont conservées et converties en nombres.',
+    inputs: { numbers: 'Une ou plusieurs valeurs ; les entrées nulles / indéfinies / non numériques sont supprimées.' },
+  },
   SUBTRACT: {
     label: 'Soustraction',
     description: 'Soustrait les nombres dans l\'ordre à partir du tableau en entrée : input[0] − input[1] − … Requiert au moins deux nombres (ex. deux entrées [a, b] → a − b). Les chaînes numériques sont acceptées.',

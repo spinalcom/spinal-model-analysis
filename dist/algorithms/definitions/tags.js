@@ -77,6 +77,7 @@ exports.ALGORITHM_TAGS = {
     // ── number ──
     COPY_FIRST_NUMBER: ['number', 'math'],
     SUM_NUMBERS: ['number', 'math', 'aggregation', 'reducer'],
+    COMPACT_NUMBERS: ['number', 'array', 'filter', 'clean', 'null'],
     SUBTRACT: ['number', 'math', 'reducer'],
     RANDOM_NUMBER: ['number', 'math', 'random', 'source'],
     CONSTANT_NUMBER: ['number', 'source', 'constant'],
