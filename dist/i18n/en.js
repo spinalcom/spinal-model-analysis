@@ -120,6 +120,8 @@ exports.EN = {
     TIMESERIES_COUNT: { label: 'Timeseries Count' },
     PUSH_ENDPOINT_VALUE: { label: 'Push Endpoint Value' },
     INSERT_TIMESERIES: { label: 'Insert Timeseries' },
+    GENERATE_TIMESTAMPS: { label: 'Generate Timestamps' },
+    TIMESERIES_DESPIKE: { label: 'Despike Timeseries' },
     // ── http ──
     CURL_REQUEST: { label: 'cURL Request' },
     // ── string ──

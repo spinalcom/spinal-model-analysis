@@ -638,6 +638,53 @@ export const FR: LocaleTranslations = {
       updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
     },
   },
+  GENERATE_TIMESTAMPS: {
+    label: 'Générer des horodatages',
+    description:
+      'Construit un tableau d\'horodatages (epoch ms) pour le jour d\'exécution de l\'analytic — à associer ' +
+      'à une colonne de valeurs statiques via COLUMNS_TO_TIMESERIES pour injecter une série quotidienne dont ' +
+      'les dates suivent toujours « aujourd\'hui », sans aucune formule de date Excel. Le jour provient du ' +
+      'referenceTime de l\'exécution (déterministe pour la reprise/simulation), décalé par « dayOffset ». Deux ' +
+      'modes : GRID (par défaut) génère « count » horodatages à partir de « start » espacés de « interval » ; ' +
+      'STAMP prend un tableau d\'heures-de-la-journée en entrée (« HH:mm », fractions de temps Excel ou cellules ' +
+      'Date) et applique chacune au jour d\'exécution. En mode GRID, « count » vaut par défaut la longueur du ' +
+      'tableau d\'entrée (optionnel) — câbler la colonne de valeurs fait donc correspondre l\'axe automatiquement.',
+    inputs: {
+      reference:
+        'Optionnel. Mode GRID : tout tableau dont la longueur définit « count » (ex. la colonne de valeurs, ' +
+        'pour que l\'axe y corresponde). Mode STAMP : les heures-de-la-journée à appliquer au jour d\'exécution.',
+    },
+    parameters: {
+      mode: 'GRID (générer depuis start+interval) ou STAMP (appliquer les heures-de-la-journée en entrée au jour d\'exécution). Par défaut GRID.',
+      interval: 'Espacement en mode GRID : minutes (nombre) ou « 15m »/« 1h »/« 30s »/« 1d ». Requis en mode GRID.',
+      start: 'Heure-de-la-journée du premier horodatage en mode GRID (« HH:mm » ou « HH:mm:ss »). Par défaut « 00:00 ».',
+      count: 'Nombre d\'horodatages en mode GRID. Par défaut la longueur du tableau d\'entrée câblé.',
+      dayOffset: 'Décalage en jours par rapport au jour d\'exécution (referenceTime) : 0 = aujourd\'hui, -1 = hier. Par défaut 0.',
+      timezone: '« local » (minuit heure locale du serveur, par défaut) ou « utc » (minuit UTC) pour le début du jour.',
+    },
+  },
+  TIMESERIES_DESPIKE: {
+    label: 'Nettoyer les pics',
+    description:
+      'Supprime les pics/décrochages transitoires d\'une série temporelle ({ date, value }[]) — par ex. un ' +
+      'compteur d\'énergie cumulatif qui lit momentanément 0 (…958, 0, 959…) et injecte d\'énormes fausses ' +
+      'variations dans la consommation. Un point n\'est considéré comme un pic que s\'il s\'écarte fortement de ' +
+      'la tendance locale ET que la série se rétablit juste après (la lecture suivante revient au niveau des ' +
+      'voisins) — les décrochages isolés sont donc retirés tandis que les vraies remises à zéro/débordements ' +
+      'du compteur (…958, 0, 1, 2…) sont conservés. L\'échelle de détection est le paramètre « maxDelta » (la ' +
+      'plus grande variation plausible entre deux échantillons) ; s\'il est omis, elle vaut « factor » × le pas ' +
+      'médian absolu de la série (robuste aux pics eux-mêmes). Cible les pics isolés d\'un seul échantillon. La ' +
+      'sortie est triée par date ; une série de moins de 3 points est renvoyée inchangée.',
+    inputs: {
+      series: 'La série temporelle ({ date, value }[]) à nettoyer.',
+    },
+    parameters: {
+      action: 'Que faire d\'un pic détecté : « drop » (par défaut — retirer le point, la variation relie alors ses bons voisins) ou « interpolate » (remplacer sa valeur par la tendance des voisins, en gardant l\'horodatage et le nombre de points).',
+      maxDelta: 'La plus grande variation plausible entre deux échantillons consécutifs. Un point s\'écartant de la tendance locale de plus que cela (alors que la série se rétablit autour) est un pic. Si omis, un seuil automatique est utilisé.',
+      factor: 'Multiplicateur du seuil automatique (factor × pas médian absolu) quand « maxDelta » n\'est pas fourni. Par défaut 6.',
+      cleanEdges: 'Nettoyer aussi le premier et le dernier point (par défaut vrai). À une extrémité, aucune lecture de « rétablissement » ne confirme le pic : la tendance précédente/suivante est donc extrapolée. Mettez à false pour laisser intact le dernier (et le premier) point — utile lorsque le dernier échantillon est la valeur courante, non encore confirmée, et que vous préférez attendre la lecture suivante pour décider.',
+    },
+  },
   INSERT_TIMESERIES: {
     label: 'Injecter une série temporelle',
     description: 'Insère en masse une série temporelle ({ date, value }[]) dans la série d\'un endpoint, chaque point à son propre horodatage (créant la série si elle n\'existe pas) — ex. pour réinjecter un historique importé depuis Excel via COLUMNS_TO_TIMESERIES. Prend 2 entrées : [nœud endpoint, série]. Par défaut, ne touche PAS à la currentValue du nœud (réinjecter d\'anciennes données ne doit pas changer la valeur « courante ») ; activez « updateCurrentValue » pour la définir sur le dernier point. Renvoie le nombre de points insérés.',

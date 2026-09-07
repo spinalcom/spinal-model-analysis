@@ -149,5 +149,7 @@ exports.ALGORITHM_TAGS = {
     TIMESERIES_COUNT: ['timeseries', 'reducer', 'aggregation'],
     PUSH_ENDPOINT_VALUE: ['timeseries', 'endpoint', 'write', 'io', 'value'],
     INSERT_TIMESERIES: ['timeseries', 'endpoint', 'write', 'io', 'inject', 'backfill', 'import'],
+    GENERATE_TIMESTAMPS: ['timeseries', 'date', 'time', 'generate', 'axis', 'daily', 'schedule'],
+    TIMESERIES_DESPIKE: ['timeseries', 'clean', 'filter', 'outlier', 'spike', 'quality', 'meter'],
 };
 //# sourceMappingURL=tags.js.map

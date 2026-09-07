@@ -104,7 +104,135 @@ const resolveWindowMs = (params) => {
         return fromUnit(params.lastDays, DAY_MS, 'lastDays');
     return undefined;
 };
+/**
+ * Parses a GENERATE_TIMESTAMPS "interval" into milliseconds. Accepts a bare number (minutes),
+ * or a string with an optional unit: "15m"/"15min", "1h"/"1hr", "30s", "500ms", "1d".
+ */
+const parseInterval = (value) => {
+    if (typeof value === 'number' && isFinite(value) && value > 0)
+        return value * 60 * 1000; // bare number = minutes
+    if (typeof value === 'string') {
+        const m = value.trim().toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|min|h|hr|d)?$/);
+        if (m) {
+            const n = parseFloat(m[1]);
+            const unitMs = { ms: 1, s: 1000, m: 60000, min: 60000, h: HOUR_MS, hr: HOUR_MS, d: DAY_MS };
+            const mult = unitMs[m[2] || 'm'];
+            if (n > 0 && mult !== undefined)
+                return n * mult;
+        }
+    }
+    throw new Error(`GENERATE_TIMESTAMPS: invalid "interval" — expected minutes as a number, or "15m"/"1h"/"30s"/"1d", got ${JSON.stringify(value)}`);
+};
+/**
+ * Extracts a time-of-day (ms since midnight, [0, DAY_MS)) from a value:
+ * - "HH:mm" / "HH:mm:ss" strings,
+ * - numbers as Excel time fractions (the fractional part of a serial → time of day),
+ * - Date instances (their UTC time-of-day, matching how ExcelJS surfaces date cells),
+ * - any other parseable date string (its UTC time-of-day).
+ */
+const timeOfDayMs = (value, label) => {
+    if (value instanceof Date && !isNaN(value.getTime())) {
+        return ((value.getUTCHours() * 60 + value.getUTCMinutes()) * 60 + value.getUTCSeconds()) * 1000 + value.getUTCMilliseconds();
+    }
+    if (typeof value === 'number' && isFinite(value)) {
+        const frac = value - Math.floor(value); // fractional part of an Excel serial = time of day
+        return Math.round(frac * DAY_MS);
+    }
+    if (typeof value === 'string') {
+        const s = value.trim();
+        const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+            const h = Number(m[1]), min = Number(m[2]), sec = m[3] ? Number(m[3]) : 0;
+            if (h < 24 && min < 60 && sec < 60)
+                return ((h * 60 + min) * 60 + sec) * 1000;
+        }
+        const parsed = Date.parse(s);
+        if (!isNaN(parsed)) {
+            const d = new Date(parsed);
+            return ((d.getUTCHours() * 60 + d.getUTCMinutes()) * 60 + d.getUTCSeconds()) * 1000 + d.getUTCMilliseconds();
+        }
+    }
+    throw new Error(`GENERATE_TIMESTAMPS: invalid time-of-day (${label}) — expected "HH:mm", "HH:mm:ss", an Excel time fraction, or a Date, got ${JSON.stringify(value)}`);
+};
+/**
+ * Epoch-ms of 00:00 on the run day, shifted by dayOffset days, in the local or UTC zone.
+ */
+const startOfDayMs = (referenceTime, dayOffset, timezone) => {
+    const d = new Date(referenceTime);
+    if (timezone === 'utc') {
+        return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + dayOffset, 0, 0, 0, 0);
+    }
+    d.setDate(d.getDate() + dayOffset);
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+};
 exports.TIMESERIES_ALGORITHMS = [
+    (0, core_1.createAlgorithm)({
+        name: 'GENERATE_TIMESTAMPS',
+        description: 'Builds an array of epoch-ms timestamps for the analytic\'s run day — pair it with a static ' +
+            'value column via COLUMNS_TO_TIMESERIES to inject a daily timeseries whose dates always follow ' +
+            '"today" with no Excel date formula. The day comes from the execution\'s referenceTime ' +
+            '(deterministic for backfill/simulation), shifted by "dayOffset". Two modes: GRID (default) ' +
+            'generates "count" timestamps from "start" spaced by "interval"; STAMP takes an input array of ' +
+            'time-of-day values ("HH:mm", Excel time fractions, or Date cells) and stamps each onto the run ' +
+            'day. In GRID mode "count" defaults to the length of the (optional) input array — so wiring the ' +
+            'value column makes the axis match it automatically.',
+        inputs: [
+            {
+                name: 'reference',
+                types: ['any[]'],
+                description: 'Optional. GRID mode: any array whose length sets "count" (e.g. the value column, so the ' +
+                    'axis auto-matches it). STAMP mode: the time-of-day values to stamp onto the run day.',
+                required: false,
+            },
+        ],
+        outputType: 'any',
+        parameters: [
+            { name: 'mode', type: 'string', description: 'GRID (generate from start+interval) or STAMP (stamp the input time-of-day values onto the run day). Default GRID.', required: false },
+            { name: 'interval', type: 'string', description: 'GRID spacing: minutes as a number, or "15m"/"1h"/"30s"/"1d". Required in GRID mode.', required: false },
+            { name: 'start', type: 'string', description: 'GRID first timestamp\'s time-of-day ("HH:mm" or "HH:mm:ss"). Default "00:00".', required: false },
+            { name: 'count', type: 'number', description: 'GRID number of timestamps. Defaults to the length of the wired input array.', required: false },
+            { name: 'dayOffset', type: 'number', description: 'Days to shift from the run day (referenceTime): 0 = today, -1 = yesterday. Default 0.', required: false },
+            { name: 'timezone', type: 'string', description: '"local" (server-local midnight, default) or "utc" (UTC midnight) for the start of the day.', required: false },
+        ],
+        run: (input, params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a, _b, _c, _d, _e, _f;
+            const referenceTime = (_b = (_a = context === null || context === void 0 ? void 0 : context.execution) === null || _a === void 0 ? void 0 : _a.referenceTime) !== null && _b !== void 0 ? _b : Date.now();
+            const dayOffset = (params === null || params === void 0 ? void 0 : params.dayOffset) !== undefined ? Number(params.dayOffset) : 0;
+            if (!Number.isFinite(dayOffset))
+                throw new Error('GENERATE_TIMESTAMPS: "dayOffset" must be a number');
+            const timezone = String((_c = params === null || params === void 0 ? void 0 : params.timezone) !== null && _c !== void 0 ? _c : 'local').trim().toLowerCase() === 'utc' ? 'utc' : 'local';
+            const dayStart = startOfDayMs(referenceTime, Math.trunc(dayOffset), timezone);
+            const inputArray = Array.isArray(input)
+                ? input
+                : input === undefined || input === null
+                    ? []
+                    : [input];
+            const mode = String((_d = params === null || params === void 0 ? void 0 : params.mode) !== null && _d !== void 0 ? _d : 'grid').trim().toLowerCase();
+            if (mode === 'stamp') {
+                if (inputArray.length === 0) {
+                    throw new Error('GENERATE_TIMESTAMPS (STAMP mode): requires an input array of time-of-day values');
+                }
+                return inputArray.map((v, i) => dayStart + timeOfDayMs(v, `input[${i}]`));
+            }
+            // GRID mode
+            if ((params === null || params === void 0 ? void 0 : params.interval) === undefined || (params === null || params === void 0 ? void 0 : params.interval) === null || `${params.interval}` === '') {
+                throw new Error('GENERATE_TIMESTAMPS (GRID mode): requires an "interval" parameter (e.g. "15m")');
+            }
+            const intervalMs = parseInterval(params.interval);
+            const base = dayStart + timeOfDayMs((_e = params === null || params === void 0 ? void 0 : params.start) !== null && _e !== void 0 ? _e : '00:00', 'start');
+            const rawCount = (params === null || params === void 0 ? void 0 : params.count) !== undefined && (params === null || params === void 0 ? void 0 : params.count) !== null && `${params.count}` !== ''
+                ? Number(params.count)
+                : inputArray.length;
+            if (!Number.isFinite(rawCount) || rawCount <= 0 || Math.trunc(rawCount) !== rawCount) {
+                throw new Error(`GENERATE_TIMESTAMPS (GRID mode): "count" must be a positive integer (or wire an input array to derive it), got ${JSON.stringify((_f = params === null || params === void 0 ? void 0 : params.count) !== null && _f !== void 0 ? _f : inputArray.length)}`);
+            }
+            const out = new Array(rawCount);
+            for (let i = 0; i < rawCount; i++)
+                out[i] = base + i * intervalMs;
+            return out;
+        }),
+    }),
     (0, core_1.createAlgorithm)({
         name: 'GET_ENDPOINT_TIMESERIES',
         description: 'Fetches the timeseries of a BmsEndpoint node as an array of { date, value } points ' +
@@ -168,7 +296,7 @@ exports.TIMESERIES_ALGORITHMS = [
             },
         ],
         run: (input, params, context) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a, _b, _c;
+            var _g, _h, _j;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
             // Resolve the timeseries directly from the node via its relation. This avoids
@@ -177,11 +305,11 @@ exports.TIMESERIES_ALGORITHMS = [
             const tsChildren = yield input.getChildren([spinal_model_timeseries_1.SpinalTimeSeries.relationName]);
             if (tsChildren.length === 0)
                 return [];
-            const timeseries = yield ((_a = tsChildren[0].element) === null || _a === void 0 ? void 0 : _a.load());
+            const timeseries = yield ((_g = tsChildren[0].element) === null || _g === void 0 ? void 0 : _g.load());
             if (!timeseries)
                 return [];
             // ── Resolve the time window ──
-            const referenceTime = (_c = (_b = context === null || context === void 0 ? void 0 : context.execution) === null || _b === void 0 ? void 0 : _b.referenceTime) !== null && _c !== void 0 ? _c : Date.now();
+            const referenceTime = (_j = (_h = context === null || context === void 0 ? void 0 : context.execution) === null || _h === void 0 ? void 0 : _h.referenceTime) !== null && _j !== void 0 ? _j : Date.now();
             const end = (params === null || params === void 0 ? void 0 : params.end) !== undefined ? parseTime(params.end, 'end') : referenceTime;
             let start;
             if ((params === null || params === void 0 ? void 0 : params.start) !== undefined) {
@@ -257,6 +385,85 @@ exports.TIMESERIES_ALGORITHMS = [
             if (series.length === 0)
                 return resolveEmpty(params, 'TIMESERIES_DELTA');
             return series[series.length - 1].value - series[0].value;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'TIMESERIES_DESPIKE',
+        description: 'Removes transient spikes/dropouts from a timeseries ({ date, value }[]) — e.g. a cumulative ' +
+            'energy counter that momentarily reads 0 (…958, 0, 959…) and injects huge false deltas into ' +
+            'consumption. A point is treated as a spike only when it deviates sharply from the local trend ' +
+            'AND the series recovers right after (the next reading returns to the neighbours\' level) — so ' +
+            'isolated dropouts are removed while genuine meter resets/rollovers (…958, 0, 1, 2…) are kept. ' +
+            'The detection scale is the "maxDelta" parameter (the largest plausible change between two ' +
+            'samples); if omitted it is "factor" × the median absolute step of the series (robust to the ' +
+            'spikes themselves). Targets isolated single-sample spikes. Output is sorted by date; a series ' +
+            'shorter than 3 points is returned unchanged.',
+        inputs: [
+            { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to clean.', required: true },
+        ],
+        outputType: 'SpinalDateValue[]',
+        parameters: [
+            { name: 'action', type: 'string', description: 'What to do with a detected spike: "drop" (default — remove the point, so the delta bridges its good neighbours) or "interpolate" (replace its value with the neighbours\' trend, keeping the timestamp and point count).', required: false },
+            { name: 'maxDelta', type: 'number', description: 'Largest plausible change between two consecutive samples. A point deviating from the local trend by more than this (while the series recovers around it) is a spike. If omitted, an automatic threshold is used.', required: false },
+            { name: 'factor', type: 'number', description: 'Multiplier for the automatic threshold (factor × median absolute step) when "maxDelta" is not given. Default 6.', required: false },
+            { name: 'cleanEdges', type: 'boolean', description: 'Whether to also clean the first and last points (default true). At an edge there is no "recovery" reading to confirm a spike, so the preceding/following trend is extrapolated instead. Set false to leave the latest (and earliest) point untouched — useful when the last sample is the current, not-yet-confirmed value and you would rather wait for the next reading to decide.', required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            var _k;
+            const raw = asSeries(input, 'TIMESERIES_DESPIKE');
+            if (raw.length < 3)
+                return [...raw];
+            const series = [...raw].sort((a, b) => a.date - b.date);
+            const n = series.length;
+            const v = series.map((p) => p.value);
+            // Detection scale: explicit maxDelta, else factor × median(|Δ|). The median is robust to the
+            // very spikes we're removing, so a couple of huge steps don't inflate it.
+            let threshold;
+            if ((params === null || params === void 0 ? void 0 : params.maxDelta) !== undefined && Number.isFinite(Number(params.maxDelta))) {
+                threshold = Math.abs(Number(params.maxDelta));
+            }
+            else {
+                const factor = (params === null || params === void 0 ? void 0 : params.factor) !== undefined && Number.isFinite(Number(params.factor)) ? Number(params.factor) : 6;
+                const steps = [];
+                for (let i = 1; i < n; i++)
+                    steps.push(Math.abs(v[i] - v[i - 1]));
+                steps.sort((a, b) => a - b);
+                const mid = Math.floor(steps.length / 2);
+                const median = steps.length % 2 ? steps[mid] : (steps[mid - 1] + steps[mid]) / 2;
+                threshold = factor * median;
+            }
+            const action = String((_k = params === null || params === void 0 ? void 0 : params.action) !== null && _k !== void 0 ? _k : 'drop').trim().toLowerCase() === 'interpolate' ? 'interpolate' : 'drop';
+            const cleanEdges = (0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.cleanEdges, true);
+            // Expected value from the local trend, and how consistent the series is across the point
+            // (the "recovery" test). Interior points interpolate their neighbours; endpoints linearly
+            // extrapolate from the two inner points.
+            const analyze = (i) => {
+                if (i > 0 && i < n - 1) {
+                    return { expected: (v[i - 1] + v[i + 1]) / 2, consistency: Math.abs(v[i + 1] - v[i - 1]) };
+                }
+                if (i === 0) {
+                    return { expected: 2 * v[1] - v[2], consistency: Math.abs(v[2] - v[1]) };
+                }
+                return { expected: 2 * v[n - 2] - v[n - 3], consistency: Math.abs(v[n - 2] - v[n - 3]) };
+            };
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                const isEdge = i === 0 || i === n - 1;
+                if (isEdge && !cleanEdges) {
+                    out.push(series[i]);
+                    continue;
+                }
+                const a = analyze(i);
+                const isSpike = Math.abs(v[i] - a.expected) > threshold && a.consistency <= threshold;
+                if (!isSpike) {
+                    out.push(series[i]);
+                }
+                else if (action === 'interpolate') {
+                    out.push({ date: series[i].date, value: a.expected });
+                }
+                // action 'drop' → the spike is skipped entirely
+            }
+            return out;
         }),
     }),
     (0, core_1.createAlgorithm)({
@@ -405,7 +612,7 @@ exports.TIMESERIES_ALGORITHMS = [
             },
         ],
         run: (input, params, context) => __awaiter(void 0, void 0, void 0, function* () {
-            var _d, _e, _f;
+            var _l, _m, _o;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('PUSH_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
             }
@@ -427,7 +634,7 @@ exports.TIMESERIES_ALGORITHMS = [
                 value = n;
             }
             // ── 1. Update the node's current value (same as SET_ENDPOINT_VALUE) ──
-            const nodeElement = yield ((_d = node.element) === null || _d === void 0 ? void 0 : _d.load());
+            const nodeElement = yield ((_l = node.element) === null || _l === void 0 ? void 0 : _l.load());
             if (!nodeElement)
                 throw new Error('PUSH_ENDPOINT_VALUE: node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -446,7 +653,7 @@ exports.TIMESERIES_ALGORITHMS = [
             const nodeId = node.getId().get();
             const date = (params === null || params === void 0 ? void 0 : params.date) !== undefined
                 ? parseTime(params.date, 'date')
-                : (_f = (_e = context === null || context === void 0 ? void 0 : context.execution) === null || _e === void 0 ? void 0 : _e.referenceTime) !== null && _f !== void 0 ? _f : Date.now();
+                : (_o = (_m = context === null || context === void 0 ? void 0 : context.execution) === null || _m === void 0 ? void 0 : _m.referenceTime) !== null && _o !== void 0 ? _o : Date.now();
             const service = SingletonTimeSeries_1.SingletonServiceTimeseries.getInstance();
             const ok = yield service.insertFromEndpoint(nodeId, value, date);
             if (!ok) {
@@ -485,7 +692,7 @@ exports.TIMESERIES_ALGORITHMS = [
             },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _g, _h;
+            var _p, _q;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('INSERT_TIMESERIES expects 2 inputs: [endpointNode, series]');
             }
@@ -512,8 +719,8 @@ exports.TIMESERIES_ALGORITHMS = [
             // backfilling historical data shouldn't move "current".
             if ((0, utils_1.resolveBooleanFlag)(params === null || params === void 0 ? void 0 : params.updateCurrentValue, false)) {
                 const latest = series.reduce((a, b) => (b.date > a.date ? b : a), series[0]);
-                const nodeElement = yield ((_g = node.element) === null || _g === void 0 ? void 0 : _g.load());
-                if ((_h = nodeElement === null || nodeElement === void 0 ? void 0 : nodeElement.currentValue) === null || _h === void 0 ? void 0 : _h.set) {
+                const nodeElement = yield ((_p = node.element) === null || _p === void 0 ? void 0 : _p.load());
+                if ((_q = nodeElement === null || nodeElement === void 0 ? void 0 : nodeElement.currentValue) === null || _q === void 0 ? void 0 : _q.set) {
                     nodeElement.currentValue.set(latest.value);
                 }
             }

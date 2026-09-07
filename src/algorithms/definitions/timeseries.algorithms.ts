@@ -114,7 +114,145 @@ const resolveWindowMs = (params?: AlgorithmParams): number | undefined => {
   return undefined;
 };
 
+/**
+ * Parses a GENERATE_TIMESTAMPS "interval" into milliseconds. Accepts a bare number (minutes),
+ * or a string with an optional unit: "15m"/"15min", "1h"/"1hr", "30s", "500ms", "1d".
+ */
+const parseInterval = (value: unknown): number => {
+  if (typeof value === 'number' && isFinite(value) && value > 0) return value * 60 * 1000; // bare number = minutes
+  if (typeof value === 'string') {
+    const m = value.trim().toLowerCase().match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|min|h|hr|d)?$/);
+    if (m) {
+      const n = parseFloat(m[1]);
+      const unitMs: Record<string, number> = { ms: 1, s: 1000, m: 60000, min: 60000, h: HOUR_MS, hr: HOUR_MS, d: DAY_MS };
+      const mult = unitMs[m[2] || 'm'];
+      if (n > 0 && mult !== undefined) return n * mult;
+    }
+  }
+  throw new Error(
+    `GENERATE_TIMESTAMPS: invalid "interval" — expected minutes as a number, or "15m"/"1h"/"30s"/"1d", got ${JSON.stringify(value)}`
+  );
+};
+
+/**
+ * Extracts a time-of-day (ms since midnight, [0, DAY_MS)) from a value:
+ * - "HH:mm" / "HH:mm:ss" strings,
+ * - numbers as Excel time fractions (the fractional part of a serial → time of day),
+ * - Date instances (their UTC time-of-day, matching how ExcelJS surfaces date cells),
+ * - any other parseable date string (its UTC time-of-day).
+ */
+const timeOfDayMs = (value: unknown, label: string): number => {
+  if (value instanceof Date && !isNaN(value.getTime())) {
+    return ((value.getUTCHours() * 60 + value.getUTCMinutes()) * 60 + value.getUTCSeconds()) * 1000 + value.getUTCMilliseconds();
+  }
+  if (typeof value === 'number' && isFinite(value)) {
+    const frac = value - Math.floor(value); // fractional part of an Excel serial = time of day
+    return Math.round(frac * DAY_MS);
+  }
+  if (typeof value === 'string') {
+    const s = value.trim();
+    const m = s.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (m) {
+      const h = Number(m[1]), min = Number(m[2]), sec = m[3] ? Number(m[3]) : 0;
+      if (h < 24 && min < 60 && sec < 60) return ((h * 60 + min) * 60 + sec) * 1000;
+    }
+    const parsed = Date.parse(s);
+    if (!isNaN(parsed)) {
+      const d = new Date(parsed);
+      return ((d.getUTCHours() * 60 + d.getUTCMinutes()) * 60 + d.getUTCSeconds()) * 1000 + d.getUTCMilliseconds();
+    }
+  }
+  throw new Error(
+    `GENERATE_TIMESTAMPS: invalid time-of-day (${label}) — expected "HH:mm", "HH:mm:ss", an Excel time fraction, or a Date, got ${JSON.stringify(value)}`
+  );
+};
+
+/**
+ * Epoch-ms of 00:00 on the run day, shifted by dayOffset days, in the local or UTC zone.
+ */
+const startOfDayMs = (referenceTime: number, dayOffset: number, timezone: 'local' | 'utc'): number => {
+  const d = new Date(referenceTime);
+  if (timezone === 'utc') {
+    return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + dayOffset, 0, 0, 0, 0);
+  }
+  d.setDate(d.getDate() + dayOffset);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
 export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
+  createAlgorithm({
+    name: 'GENERATE_TIMESTAMPS',
+    description:
+      'Builds an array of epoch-ms timestamps for the analytic\'s run day — pair it with a static ' +
+      'value column via COLUMNS_TO_TIMESERIES to inject a daily timeseries whose dates always follow ' +
+      '"today" with no Excel date formula. The day comes from the execution\'s referenceTime ' +
+      '(deterministic for backfill/simulation), shifted by "dayOffset". Two modes: GRID (default) ' +
+      'generates "count" timestamps from "start" spaced by "interval"; STAMP takes an input array of ' +
+      'time-of-day values ("HH:mm", Excel time fractions, or Date cells) and stamps each onto the run ' +
+      'day. In GRID mode "count" defaults to the length of the (optional) input array — so wiring the ' +
+      'value column makes the axis match it automatically.',
+    inputs: [
+      {
+        name: 'reference',
+        types: ['any[]'],
+        description:
+          'Optional. GRID mode: any array whose length sets "count" (e.g. the value column, so the ' +
+          'axis auto-matches it). STAMP mode: the time-of-day values to stamp onto the run day.',
+        required: false,
+      },
+    ],
+    outputType: 'any',
+    parameters: [
+      { name: 'mode', type: 'string', description: 'GRID (generate from start+interval) or STAMP (stamp the input time-of-day values onto the run day). Default GRID.', required: false },
+      { name: 'interval', type: 'string', description: 'GRID spacing: minutes as a number, or "15m"/"1h"/"30s"/"1d". Required in GRID mode.', required: false },
+      { name: 'start', type: 'string', description: 'GRID first timestamp\'s time-of-day ("HH:mm" or "HH:mm:ss"). Default "00:00".', required: false },
+      { name: 'count', type: 'number', description: 'GRID number of timestamps. Defaults to the length of the wired input array.', required: false },
+      { name: 'dayOffset', type: 'number', description: 'Days to shift from the run day (referenceTime): 0 = today, -1 = yesterday. Default 0.', required: false },
+      { name: 'timezone', type: 'string', description: '"local" (server-local midnight, default) or "utc" (UTC midnight) for the start of the day.', required: false },
+    ],
+    run: async (input, params, context): AlgorithmRunResult => {
+      const referenceTime = context?.execution?.referenceTime ?? Date.now();
+      const dayOffset = params?.dayOffset !== undefined ? Number(params.dayOffset) : 0;
+      if (!Number.isFinite(dayOffset)) throw new Error('GENERATE_TIMESTAMPS: "dayOffset" must be a number');
+      const timezone = String(params?.timezone ?? 'local').trim().toLowerCase() === 'utc' ? 'utc' : 'local';
+      const dayStart = startOfDayMs(referenceTime, Math.trunc(dayOffset), timezone);
+
+      const inputArray: unknown[] = Array.isArray(input)
+        ? input
+        : input === undefined || input === null
+          ? []
+          : [input];
+      const mode = String(params?.mode ?? 'grid').trim().toLowerCase();
+
+      if (mode === 'stamp') {
+        if (inputArray.length === 0) {
+          throw new Error('GENERATE_TIMESTAMPS (STAMP mode): requires an input array of time-of-day values');
+        }
+        return inputArray.map((v, i) => dayStart + timeOfDayMs(v, `input[${i}]`)) as any;
+      }
+
+      // GRID mode
+      if (params?.interval === undefined || params?.interval === null || `${params.interval}` === '') {
+        throw new Error('GENERATE_TIMESTAMPS (GRID mode): requires an "interval" parameter (e.g. "15m")');
+      }
+      const intervalMs = parseInterval(params.interval);
+      const base = dayStart + timeOfDayMs(params?.start ?? '00:00', 'start');
+
+      const rawCount = params?.count !== undefined && params?.count !== null && `${params.count}` !== ''
+        ? Number(params.count)
+        : inputArray.length;
+      if (!Number.isFinite(rawCount) || rawCount <= 0 || Math.trunc(rawCount) !== rawCount) {
+        throw new Error(
+          `GENERATE_TIMESTAMPS (GRID mode): "count" must be a positive integer (or wire an input array to derive it), got ${JSON.stringify(params?.count ?? inputArray.length)}`
+        );
+      }
+
+      const out: number[] = new Array(rawCount);
+      for (let i = 0; i < rawCount; i++) out[i] = base + i * intervalMs;
+      return out as any;
+    },
+  }),
   createAlgorithm({
     name: 'GET_ENDPOINT_TIMESERIES',
     description:
@@ -278,6 +416,87 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
       const series = asSeries(input, 'TIMESERIES_DELTA');
       if (series.length === 0) return resolveEmpty(params, 'TIMESERIES_DELTA');
       return series[series.length - 1].value - series[0].value;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'TIMESERIES_DESPIKE',
+    description:
+      'Removes transient spikes/dropouts from a timeseries ({ date, value }[]) — e.g. a cumulative ' +
+      'energy counter that momentarily reads 0 (…958, 0, 959…) and injects huge false deltas into ' +
+      'consumption. A point is treated as a spike only when it deviates sharply from the local trend ' +
+      'AND the series recovers right after (the next reading returns to the neighbours\' level) — so ' +
+      'isolated dropouts are removed while genuine meter resets/rollovers (…958, 0, 1, 2…) are kept. ' +
+      'The detection scale is the "maxDelta" parameter (the largest plausible change between two ' +
+      'samples); if omitted it is "factor" × the median absolute step of the series (robust to the ' +
+      'spikes themselves). Targets isolated single-sample spikes. Output is sorted by date; a series ' +
+      'shorter than 3 points is returned unchanged.',
+    inputs: [
+      { name: 'series', types: ['SpinalDateValue[]'], description: 'The timeseries ({ date, value }[]) to clean.', required: true },
+    ],
+    outputType: 'SpinalDateValue[]',
+    parameters: [
+      { name: 'action', type: 'string', description: 'What to do with a detected spike: "drop" (default — remove the point, so the delta bridges its good neighbours) or "interpolate" (replace its value with the neighbours\' trend, keeping the timestamp and point count).', required: false },
+      { name: 'maxDelta', type: 'number', description: 'Largest plausible change between two consecutive samples. A point deviating from the local trend by more than this (while the series recovers around it) is a spike. If omitted, an automatic threshold is used.', required: false },
+      { name: 'factor', type: 'number', description: 'Multiplier for the automatic threshold (factor × median absolute step) when "maxDelta" is not given. Default 6.', required: false },
+      { name: 'cleanEdges', type: 'boolean', description: 'Whether to also clean the first and last points (default true). At an edge there is no "recovery" reading to confirm a spike, so the preceding/following trend is extrapolated instead. Set false to leave the latest (and earliest) point untouched — useful when the last sample is the current, not-yet-confirmed value and you would rather wait for the next reading to decide.', required: false },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const raw = asSeries(input, 'TIMESERIES_DESPIKE');
+      if (raw.length < 3) return [...raw];
+
+      const series = [...raw].sort((a, b) => a.date - b.date);
+      const n = series.length;
+      const v = series.map((p) => p.value);
+
+      // Detection scale: explicit maxDelta, else factor × median(|Δ|). The median is robust to the
+      // very spikes we're removing, so a couple of huge steps don't inflate it.
+      let threshold: number;
+      if (params?.maxDelta !== undefined && Number.isFinite(Number(params.maxDelta))) {
+        threshold = Math.abs(Number(params.maxDelta));
+      } else {
+        const factor = params?.factor !== undefined && Number.isFinite(Number(params.factor)) ? Number(params.factor) : 6;
+        const steps: number[] = [];
+        for (let i = 1; i < n; i++) steps.push(Math.abs(v[i] - v[i - 1]));
+        steps.sort((a, b) => a - b);
+        const mid = Math.floor(steps.length / 2);
+        const median = steps.length % 2 ? steps[mid] : (steps[mid - 1] + steps[mid]) / 2;
+        threshold = factor * median;
+      }
+
+      const action = String(params?.action ?? 'drop').trim().toLowerCase() === 'interpolate' ? 'interpolate' : 'drop';
+      const cleanEdges = resolveBooleanFlag(params?.cleanEdges, true);
+
+      // Expected value from the local trend, and how consistent the series is across the point
+      // (the "recovery" test). Interior points interpolate their neighbours; endpoints linearly
+      // extrapolate from the two inner points.
+      const analyze = (i: number): { expected: number; consistency: number } => {
+        if (i > 0 && i < n - 1) {
+          return { expected: (v[i - 1] + v[i + 1]) / 2, consistency: Math.abs(v[i + 1] - v[i - 1]) };
+        }
+        if (i === 0) {
+          return { expected: 2 * v[1] - v[2], consistency: Math.abs(v[2] - v[1]) };
+        }
+        return { expected: 2 * v[n - 2] - v[n - 3], consistency: Math.abs(v[n - 2] - v[n - 3]) };
+      };
+
+      const out: { date: number; value: number }[] = [];
+      for (let i = 0; i < n; i++) {
+        const isEdge = i === 0 || i === n - 1;
+        if (isEdge && !cleanEdges) {
+          out.push(series[i]);
+          continue;
+        }
+        const a = analyze(i);
+        const isSpike = Math.abs(v[i] - a.expected) > threshold && a.consistency <= threshold;
+        if (!isSpike) {
+          out.push(series[i]);
+        } else if (action === 'interpolate') {
+          out.push({ date: series[i].date, value: a.expected });
+        }
+        // action 'drop' → the spike is skipped entirely
+      }
+      return out as any;
     },
   }),
 
