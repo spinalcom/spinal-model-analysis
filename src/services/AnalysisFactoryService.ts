@@ -146,6 +146,8 @@ export default class AnalysisFactoryService {
         logMessage(`[AnalysisFactory] Creating analysis: ${config.analysisName}`);
 
         // ── 1. Create or get context ──
+        const contextExisted =
+            (await this.nodeManager.getContext(config.contextName, graph)) !== undefined;
         const contextNode = await this.nodeManager.createContext(
             config.contextName,
             graph
@@ -164,7 +166,14 @@ export default class AnalysisFactoryService {
         logMessage(`[AnalysisFactory] Analysis node created: ${config.analysisName}`);
 
         // ── 3. Link anchor, build workflows, store triggers ──
-        await this.populateAnalysis(analysisNode, contextNode, config);
+        // validateConfig can't catch everything the build rejects (e.g. an anchor node that
+        // isn't loaded), so undo the partial analysis instead of leaving it in the graph.
+        try {
+            await this.populateAnalysis(analysisNode, contextNode, config);
+        } catch (error) {
+            await this.rollbackCreate(analysisNode, contextExisted ? undefined : contextNode);
+            throw error;
+        }
 
         logMessage(`[AnalysisFactory] Analysis "${config.analysisName}" fully created`);
         return analysisNode;
@@ -204,23 +213,35 @@ export default class AnalysisFactoryService {
         const contextNode = await this.nodeManager.getContextOfAnalytic(analysisNode);
         logMessage(`[AnalysisFactory] Updating analysis: ${analysisNode.getName().get()}`);
 
-        // ── 1. Update scalar properties on the analysis node itself ──
-        analysisNode.info.name.set(config.analysisName);
-        if (analysisNode.info.description) {
-            analysisNode.info.description.set(config.description ?? '');
-        } else {
-            analysisNode.info.add_attr('description', config.description ?? '');
+        // The rebuild wipes the sub-structure before recreating it, so a failing build would
+        // leave a working analysis half-deleted. Snapshot it first so it can be put back.
+        let previous: IAnalysisConfigJSON | undefined;
+        try {
+            previous = await this.snapshotAnalysis(analysisNode);
+        } catch (snapshotError) {
+            // A broken stored definition must still be fixable by a PUT — go ahead, just
+            // without the ability to restore it.
+            console.error(
+                `[AnalysisFactory] Could not snapshot "${analysisNode.getName().get()}" before updating; ` +
+                'a failed update will not be rolled back.',
+                snapshotError
+            );
         }
-        await this.nodeManager.setConcurrencyConfig(analysisNode, config.concurrency);
-        await this.nodeManager.setStatus(analysisNode, config.status);
-        await this.nodeManager.setErrorPolicy(analysisNode, config.errorPolicy);
 
-        // ── 2. Wipe the whole sub-structure (keeping the analysis node) ──
-        await this.nodeManager.resetAnalysisSubNodes(analysisNode);
+        try {
+            // ── 1. Update scalar properties on the analysis node itself ──
+            await this.applyScalarConfig(analysisNode, config);
 
-        // ── 3. Recreate mandatory sub-nodes, then anchor / workflows / triggers ──
-        await this.nodeManager.addMandatorySubNodes(analysisNode, contextNode);
-        await this.populateAnalysis(analysisNode, contextNode, config);
+            // ── 2. Wipe the whole sub-structure (keeping the analysis node) ──
+            await this.nodeManager.resetAnalysisSubNodes(analysisNode);
+
+            // ── 3. Recreate mandatory sub-nodes, then anchor / workflows / triggers ──
+            await this.nodeManager.addMandatorySubNodes(analysisNode, contextNode);
+            await this.populateAnalysis(analysisNode, contextNode, config);
+        } catch (error) {
+            if (previous) await this.restoreSnapshot(analysisNode, contextNode, previous);
+            throw error;
+        }
 
         // ── 4. Bump the revision so the organ re-assesses this analysis ──
         this.nodeManager.setLastUpdate(analysisNode);
@@ -290,6 +311,89 @@ export default class AnalysisFactoryService {
 
         logMessage(`[AnalysisFactory] Analysis "${analysisNode.getName().get()}" patched`);
         return analysisNode;
+    }
+
+    /** Sets name / description / concurrency / status / errorPolicy on the analysis node. */
+    private async applyScalarConfig(
+        analysisNode: SpinalNode<any>,
+        config: IAnalysisConfigJSON
+    ): Promise<void> {
+        analysisNode.info.name.set(config.analysisName);
+        if (analysisNode.info.description) {
+            analysisNode.info.description.set(config.description ?? '');
+        } else {
+            analysisNode.info.add_attr('description', config.description ?? '');
+        }
+        await this.nodeManager.setConcurrencyConfig(analysisNode, config.concurrency);
+        await this.nodeManager.setStatus(analysisNode, config.status);
+        await this.nodeManager.setErrorPolicy(analysisNode, config.errorPolicy);
+    }
+
+    /**
+     * Best-effort undo of a create whose build failed: removes the partial analysis (its
+     * anchor target is detached first, so the linked building node survives), plus the
+     * context when this create made it and it is left empty. Cleanup failures are logged,
+     * not thrown — the build error is the one the caller needs to see.
+     */
+    private async rollbackCreate(
+        analysisNode: SpinalNode<any>,
+        createdContext?: SpinalNode<any>
+    ): Promise<void> {
+        try {
+            await this.nodeManager.deleteAnalysisNode(analysisNode);
+        } catch (cleanupError) {
+            console.error('[AnalysisFactory] Rollback: could not remove the partially created analysis', cleanupError);
+            return;
+        }
+        if (!createdContext) return;
+        try {
+            const remaining = await this.nodeManager.getAnalysisNodesByContextNode(createdContext as any);
+            if (remaining.length === 0) await createdContext.removeFromGraph();
+        } catch (cleanupError) {
+            console.error('[AnalysisFactory] Rollback: could not remove the empty context', cleanupError);
+        }
+    }
+
+    /**
+     * Captures an analysis as a config populateAnalysis can rebuild. getAnalyticDetails
+     * exposes the anchor by server_id, but linkAnchorTarget resolves node ids through
+     * SpinalGraphService — so the anchor is re-read here as a registered node id.
+     */
+    private async snapshotAnalysis(analysisNode: SpinalNode<any>): Promise<IAnalysisConfigJSON> {
+        const snapshot = await this.nodeManager.getAnalyticDetails(analysisNode);
+        const anchorNode = await this.nodeManager.getAnalysisAnchorNodeNode(analysisNode);
+        const targets = await anchorNode.getChildren(ANCHOR_NODE_TO_LINKED_NODE_RELATION);
+        if (targets.length > 0) {
+            SpinalGraphService._addNode(targets[0]);
+            snapshot.anchorNodeId = targets[0].getId().get();
+        } else {
+            delete snapshot.anchorNodeId;
+        }
+        return snapshot;
+    }
+
+    /**
+     * Rebuilds an analysis from a snapshot after a failed update. Best-effort: a failure here
+     * is logged loudly (the analysis may be incomplete) but never masks the update error.
+     */
+    private async restoreSnapshot(
+        analysisNode: SpinalNode<any>,
+        contextNode: SpinalNode<any>,
+        snapshot: IAnalysisConfigJSON
+    ): Promise<void> {
+        try {
+            await this.applyScalarConfig(analysisNode, snapshot);
+            await this.nodeManager.resetAnalysisSubNodes(analysisNode);
+            await this.nodeManager.addMandatorySubNodes(analysisNode, contextNode);
+            await this.populateAnalysis(analysisNode, contextNode, snapshot);
+            logMessage(`[AnalysisFactory] Update failed — restored the previous definition of "${snapshot.analysisName}"`);
+        } catch (restoreError) {
+            console.error(
+                `[AnalysisFactory] Update failed AND restoring the previous definition of "${snapshot.analysisName}" ` +
+                'failed — the analysis may be incomplete.',
+                restoreError
+            );
+        }
     }
 
     /**
@@ -440,6 +544,11 @@ export default class AnalysisFactoryService {
         // Deferred until every top-level node exists, so a sub-block may reference a parent
         // block declared later in the array — the workflow is a DAG, declaration order must
         // not matter (building inline in Phase 1 only saw blocks defined before the FOREACH/IF).
+        // Each build returns the outer refs its subtree reads; at this level they must all be
+        // top-level blocks, and each becomes an ordering dep of its container (applied after
+        // Phase 2, so the container's real inputs keep their slots).
+        const containerDeps = new Map<string, Set<string>>();
+        const unresolvedRefs = new Set<string>();
         for (const blockDef of workflowConfig.blocks) {
             const blockNode = refToNode.get(blockDef.ref);
             if (!blockNode) continue;
@@ -459,7 +568,7 @@ export default class AnalysisFactoryService {
                         ? JSON.stringify(blockDef.concurrency)
                         : undefined,
                 });
-                await this.buildForeachSubWorkflow(
+                const nestedRefs = await this.buildForeachSubWorkflow(
                     blockNode,
                     contextNode,
                     blockDef.subWorkflow,
@@ -467,12 +576,13 @@ export default class AnalysisFactoryService {
                     refToNode,
                     new Set([blockDef.itemRef])
                 );
+                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, unresolvedRefs);
             }
 
             // If this is an IF block with branch workflows, build them
             if (blockDef.algorithmName === 'IF') {
                 if (blockDef.thenWorkflow) {
-                    await this.buildIfSubWorkflow(
+                    const nestedRefs = await this.buildIfSubWorkflow(
                         blockNode,
                         contextNode,
                         blockDef.thenWorkflow,
@@ -480,9 +590,10 @@ export default class AnalysisFactoryService {
                         refToNode,
                         new Set()
                     );
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, unresolvedRefs);
                 }
                 if (blockDef.elseWorkflow) {
-                    await this.buildIfSubWorkflow(
+                    const nestedRefs = await this.buildIfSubWorkflow(
                         blockNode,
                         contextNode,
                         blockDef.elseWorkflow,
@@ -490,8 +601,18 @@ export default class AnalysisFactoryService {
                         refToNode,
                         new Set()
                     );
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, unresolvedRefs);
                 }
             }
+        }
+
+        // Unreachable in practice (sub-blocks only report refs they resolved in an enclosing
+        // scope, and here that scope is this workflow) — kept as a guard against drift.
+        if (unresolvedRefs.size > 0) {
+            throw new Error(
+                `[AnalysisFactory] Sub-workflow blocks reference ${[...unresolvedRefs].map((r) => `"${r}"`).join(', ')} ` +
+                'which do not exist in any enclosing workflow. Check your workflow block refs.'
+            );
         }
 
         // ── Phase 2: Wire dependencies ──
@@ -552,6 +673,9 @@ export default class AnalysisFactoryService {
                 dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
             }
         }
+
+        // ── Phase 2b: Order FOREACH / IF containers after the blocks their sub-workflows read ──
+        await this.applyContainerDeps(containerDeps, refToNode, contextNode);
 
         // ── Phase 3: Wire order-only dependencies (`after`) ──
         this.wireAfter(workflowConfig.blocks, 'workflow', refToNode);
@@ -618,23 +742,24 @@ export default class AnalysisFactoryService {
      *
      * The FOREACH's `itemRef` is the name by which the iteration element is referenced.
      * Sub-blocks can reference it by name in their inputs.
-     * `parentRefToNode` provides access to blocks defined in the parent workflow scope.
+     * `ancestorRefToNode` holds the blocks of every enclosing scope (the nearest scope wins on
+     * a name clash): iterations inherit the whole enclosing context at runtime, so a sub-block
+     * may read any outer block, not just one from the immediate parent.
+     *
+     * @returns the refs this subtree reads from enclosing scopes. The caller wires each one as
+     *          an ordering dependency in the scope that owns it (see routeExternalRefs).
      */
     private async buildForeachSubWorkflow(
         foreachNode: SpinalNode<any>,
         contextNode: SpinalNode<any>,
         subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
         itemRef: string,
-        parentRefToNode?: Map<string, SpinalNode<any>>,
+        ancestorRefToNode?: Map<string, SpinalNode<any>>,
         knownItemRefs: Set<string> = new Set()
-    ): Promise<void> {
+    ): Promise<Set<string>> {
         const refToNode = new Map<string, SpinalNode<any>>();
-        const itemVirtualId = foreachItemVirtualId(itemRef);
-
-        // Track parent refs used by sub-blocks so we can add them as dependencies of the
-        // FOREACH block itself (ensures the topological sort runs those parent blocks first,
-        // and their outputs are present when we copy the parent context into each iteration).
-        const usedParentRefs = new Set<string>();
+        const externalRefs = new Set<string>();
+        const containerDeps = new Map<string, Set<string>>();
 
         // Phase 1: Create sub-blocks
         for (const blockDef of subWorkflowConfig.blocks) {
@@ -650,6 +775,9 @@ export default class AnalysisFactoryService {
             );
             refToNode.set(blockDef.ref, subBlockNode);
         }
+
+        // What a nested sub-workflow can resolve: every enclosing scope, this level shadowing.
+        const scopeRefToNode = new Map([...(ancestorRefToNode ?? []), ...refToNode]);
 
         // Phase 1b: Build nested FOREACH / IF sub-workflows (after all siblings exist, so a
         // nested sub-block may reference a sibling declared later in this sub-workflow).
@@ -671,37 +799,40 @@ export default class AnalysisFactoryService {
                         : undefined,
                 });
                 const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
-                await this.buildForeachSubWorkflow(
+                const nestedRefs = await this.buildForeachSubWorkflow(
                     subBlockNode,
                     contextNode,
                     blockDef.subWorkflow,
                     blockDef.itemRef,
-                    refToNode,
+                    scopeRefToNode,
                     childItemRefs
                 );
+                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
             }
 
             // Recursively build nested IF sub-workflows
             if (blockDef.algorithmName === 'IF') {
                 if (blockDef.thenWorkflow) {
-                    await this.buildIfSubWorkflow(
+                    const nestedRefs = await this.buildIfSubWorkflow(
                         subBlockNode,
                         contextNode,
                         blockDef.thenWorkflow,
                         'then',
-                        refToNode,
+                        scopeRefToNode,
                         knownItemRefs
                     );
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
                 }
                 if (blockDef.elseWorkflow) {
-                    await this.buildIfSubWorkflow(
+                    const nestedRefs = await this.buildIfSubWorkflow(
                         subBlockNode,
                         contextNode,
                         blockDef.elseWorkflow,
                         'else',
-                        refToNode,
+                        scopeRefToNode,
                         knownItemRefs
                     );
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
                 }
             }
         }
@@ -742,19 +873,18 @@ export default class AnalysisFactoryService {
                     continue;
                 }
 
-                // Check parent workflow refs
-                if (parentRefToNode) {
-                    const parentNode = parentRefToNode.get(sourceRef);
-                    if (parentNode) {
-                        finalIds.push(parentNode.getId().get());
-                        usedParentRefs.add(sourceRef);
-                        continue;
-                    }
+                // Enclosing-scope ref: no edge here (it would cross scopes). The value comes from
+                // the inherited context; the owning scope wires the ordering dependency.
+                const ancestorNode = ancestorRefToNode?.get(sourceRef);
+                if (ancestorNode) {
+                    finalIds.push(ancestorNode.getId().get());
+                    externalRefs.add(sourceRef);
+                    continue;
                 }
 
                 throw new Error(
                     `[AnalysisFactory] FOREACH sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                    `which does not exist in the sub-workflow or parent workflow. ` +
+                    `which does not exist in the sub-workflow or any enclosing workflow. ` +
                     `Use "${itemRef}" to reference the current iteration element.`
                 );
             }
@@ -762,8 +892,13 @@ export default class AnalysisFactoryService {
             dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
         }
 
-        // Wire order-only dependencies (`after`) for the sub-blocks.
-        this.wireAfter(subWorkflowConfig.blocks, 'FOREACH', refToNode, parentRefToNode, knownItemRefs);
+        // Phase 2b: order nested containers after the sibling blocks their subtrees read.
+        await this.applyContainerDeps(containerDeps, refToNode, contextNode);
+
+        // Wire order-only dependencies (`after`) for the sub-blocks; outer ones also constrain
+        // the enclosing order.
+        this.wireAfter(subWorkflowConfig.blocks, 'FOREACH', refToNode, ancestorRefToNode, knownItemRefs);
+        this.collectExternalAfterRefs(subWorkflowConfig.blocks, refToNode, ancestorRefToNode, knownItemRefs, externalRefs);
 
         // Set the output block ID on the FOREACH node
         const outputRef = subWorkflowConfig.outputRef;
@@ -778,35 +913,7 @@ export default class AnalysisFactoryService {
             foreachOutputBlockId: outputNode.getId().get(),
         });
 
-        // Ensure parent refs used by sub-blocks are also dependencies of the FOREACH block.
-        // This guarantees the topological sort places those parent blocks before the FOREACH,
-        // so their outputs are available when each iteration inherits the parent context.
-        // Mirrors the IF block. The FOREACH executor only reads inputs[0] as the iteration
-        // collection, so these extra inputs (appended after slot 0) never affect iteration.
-        if (parentRefToNode && usedParentRefs.size > 0) {
-            const foreachInputBlockIds = JSON.parse(
-                foreachNode.info.inputBlockIds?.get() ?? '[]'
-            ) as string[];
-
-            for (const parentRef of usedParentRefs) {
-                const parentNode = parentRefToNode.get(parentRef);
-                if (!parentNode) continue;
-
-                const parentId = parentNode.getId().get();
-                if (!foreachInputBlockIds.includes(parentId)) {
-                    foreachInputBlockIds.push(parentId);
-
-                    // Add graph edge so loadWorkflowDAG can traverse it
-                    await this.blockManager.addDependency(
-                        parentNode,
-                        foreachNode,
-                        contextNode
-                    );
-                }
-            }
-
-            foreachNode.info.inputBlockIds.set(JSON.stringify(foreachInputBlockIds));
-        }
+        return externalRefs;
     }
 
     /**
@@ -815,22 +922,22 @@ export default class AnalysisFactoryService {
      * IF sub-workflows can reference:
      * - Any FOREACH itemRef (resolved to virtual ID — inherited at runtime)
      * - '$node': the implicit work node
-     * - Any ref from the parent workflow (resolved as a virtual input)
+     * - Any block of an enclosing scope (read from the inherited context at runtime)
      * - Other sub-workflow block refs
+     *
+     * @returns the refs this branch reads from enclosing scopes (see buildForeachSubWorkflow).
      */
     private async buildIfSubWorkflow(
         ifNode: SpinalNode<any>,
         contextNode: SpinalNode<any>,
         subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
         branch: 'then' | 'else',
-        parentRefToNode?: Map<string, SpinalNode<any>>,
+        ancestorRefToNode?: Map<string, SpinalNode<any>>,
         knownItemRefs: Set<string> = new Set()
-    ): Promise<void> {
+    ): Promise<Set<string>> {
         const refToNode = new Map<string, SpinalNode<any>>();
-
-        // Track parent refs used by sub-blocks so we can add them as
-        // dependencies of the IF block itself (ensures correct topological order)
-        const usedParentRefs = new Set<string>();
+        const externalRefs = new Set<string>();
+        const containerDeps = new Map<string, Set<string>>();
 
         // Phase 1: Create sub-blocks
         for (const blockDef of subWorkflowConfig.blocks) {
@@ -847,6 +954,9 @@ export default class AnalysisFactoryService {
             );
             refToNode.set(blockDef.ref, subBlockNode);
         }
+
+        // What a nested sub-workflow can resolve: every enclosing scope, this level shadowing.
+        const scopeRefToNode = new Map([...(ancestorRefToNode ?? []), ...refToNode]);
 
         // Phase 1b: Build nested FOREACH / IF sub-workflows (after all siblings exist, so a
         // nested sub-block may reference a sibling declared later in this branch).
@@ -868,41 +978,40 @@ export default class AnalysisFactoryService {
                         : undefined,
                 });
                 const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
-                await this.buildForeachSubWorkflow(
+                const nestedRefs = await this.buildForeachSubWorkflow(
                     subBlockNode,
                     contextNode,
                     blockDef.subWorkflow,
                     blockDef.itemRef,
-                    refToNode,
+                    scopeRefToNode,
                     childItemRefs
                 );
+                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
             }
 
             // Recursively build nested IF sub-workflows
             if (blockDef.algorithmName === 'IF') {
-                // Merge parent refs with local refs so nested IF can resolve both
-                const mergedRefToNode = parentRefToNode
-                    ? new Map([...parentRefToNode, ...refToNode])
-                    : refToNode;
                 if (blockDef.thenWorkflow) {
-                    await this.buildIfSubWorkflow(
+                    const nestedRefs = await this.buildIfSubWorkflow(
                         subBlockNode,
                         contextNode,
                         blockDef.thenWorkflow,
                         'then',
-                        mergedRefToNode,
+                        scopeRefToNode,
                         knownItemRefs
                     );
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
                 }
                 if (blockDef.elseWorkflow) {
-                    await this.buildIfSubWorkflow(
+                    const nestedRefs = await this.buildIfSubWorkflow(
                         subBlockNode,
                         contextNode,
                         blockDef.elseWorkflow,
                         'else',
-                        mergedRefToNode,
+                        scopeRefToNode,
                         knownItemRefs
                     );
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
                 }
             }
         }
@@ -943,19 +1052,18 @@ export default class AnalysisFactoryService {
                     continue;
                 }
 
-                // Check parent workflow refs (IF branches inherit parent context)
-                if (parentRefToNode) {
-                    const parentNode = parentRefToNode.get(sourceRef);
-                    if (parentNode) {
-                        finalIds.push(parentNode.getId().get());
-                        usedParentRefs.add(sourceRef);
-                        continue;
-                    }
+                // Enclosing-scope ref: no edge here (it would cross scopes). The value comes from
+                // the inherited context; the owning scope wires the ordering dependency.
+                const ancestorNode = ancestorRefToNode?.get(sourceRef);
+                if (ancestorNode) {
+                    finalIds.push(ancestorNode.getId().get());
+                    externalRefs.add(sourceRef);
+                    continue;
                 }
 
                 throw new Error(
                     `[AnalysisFactory] IF ${branch} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                    'which does not exist in the sub-workflow or parent workflow.'
+                    'which does not exist in the sub-workflow or any enclosing workflow.'
                 );
             }
 
@@ -963,8 +1071,13 @@ export default class AnalysisFactoryService {
             dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
         }
 
-        // Wire order-only dependencies (`after`) for the branch sub-blocks.
-        this.wireAfter(subWorkflowConfig.blocks, 'IF', refToNode, parentRefToNode, knownItemRefs);
+        // Phase 2b: order nested containers after the sibling blocks their subtrees read.
+        await this.applyContainerDeps(containerDeps, refToNode, contextNode);
+
+        // Wire order-only dependencies (`after`) for the branch sub-blocks; outer ones also
+        // constrain the enclosing order.
+        this.wireAfter(subWorkflowConfig.blocks, 'IF', refToNode, ancestorRefToNode, knownItemRefs);
+        this.collectExternalAfterRefs(subWorkflowConfig.blocks, refToNode, ancestorRefToNode, knownItemRefs, externalRefs);
 
         // Set the output block ID on the IF node
         const outputRef = subWorkflowConfig.outputRef;
@@ -980,31 +1093,94 @@ export default class AnalysisFactoryService {
             [fieldName]: outputNode.getId().get(),
         });
 
-        // Ensure parent refs used by sub-blocks are also dependencies of the IF block.
-        // This guarantees the topological sort places those parent blocks before IF.
-        if (parentRefToNode && usedParentRefs.size > 0) {
-            const ifInputBlockIds = JSON.parse(
-                ifNode.info.inputBlockIds?.get() ?? '[]'
-            ) as string[];
+        return externalRefs;
+    }
 
-            for (const parentRef of usedParentRefs) {
-                const parentNode = parentRefToNode.get(parentRef);
-                if (!parentNode) continue;
-
-                const parentId = parentNode.getId().get();
-                if (!ifInputBlockIds.includes(parentId)) {
-                    ifInputBlockIds.push(parentId);
-
-                    // Add graph edge so loadWorkflowDAG can traverse it
-                    await this.blockManager.addDependency(
-                        parentNode,
-                        ifNode,
-                        contextNode
-                    );
-                }
+    /**
+     * Routes the refs a container's subtree reads from outside its own sub-workflow.
+     *
+     * A ref that is a block of THIS scope becomes an ordering dependency of the container
+     * (recorded in `containerDeps`, applied by applyContainerDeps), so this scope runs that
+     * block first and its output is in the context every iteration / branch inherits. Any
+     * other ref belongs to a scope further out and goes to `passUp`. Dependencies are only
+     * drawn between blocks of the same scope: loadWorkflowDAG pulls every edge target into
+     * the DAG being loaded, so an edge from an outer block to a nested one would leak it.
+     */
+    private routeExternalRefs(
+        containerDef: IBlockConfigJSON,
+        externalRefs: Set<string>,
+        refToNode: Map<string, SpinalNode<any>>,
+        containerDeps: Map<string, Set<string>>,
+        passUp: Set<string>
+    ): void {
+        for (const ref of externalRefs) {
+            if (!refToNode.has(ref)) {
+                passUp.add(ref);
+                continue;
             }
+            if (ref === containerDef.ref) {
+                throw new Error(
+                    `[AnalysisFactory] "${containerDef.ref}" is referenced from inside its own sub-workflow, which is a cycle.`
+                );
+            }
+            // Already a real input of the container → already wired and ordered.
+            if (containerDef.inputs?.includes(ref)) continue;
 
-            ifNode.info.inputBlockIds.set(JSON.stringify(ifInputBlockIds));
+            let deps = containerDeps.get(containerDef.ref);
+            if (!deps) {
+                deps = new Set();
+                containerDeps.set(containerDef.ref, deps);
+            }
+            deps.add(ref);
+        }
+    }
+
+    /**
+     * Appends each container's recorded ordering deps to its inputBlockIds and draws the
+     * matching same-scope edge. Runs after the scope's Phase 2, which (re)sets the container's
+     * real inputs — appending here keeps slot 0 as the FOREACH collection / IF predicate, the
+     * only slot those executors read, and keeps the deps from being overwritten.
+     */
+    private async applyContainerDeps(
+        containerDeps: Map<string, Set<string>>,
+        refToNode: Map<string, SpinalNode<any>>,
+        contextNode: SpinalNode<any>
+    ): Promise<void> {
+        for (const [containerRef, depRefs] of containerDeps) {
+            const containerNode = refToNode.get(containerRef);
+            if (!containerNode) continue;
+
+            const ids = JSON.parse(containerNode.info.inputBlockIds?.get() ?? '[]') as string[];
+            for (const depRef of depRefs) {
+                const depNode = refToNode.get(depRef);
+                if (!depNode) continue;
+
+                const depId = depNode.getId().get();
+                if (ids.includes(depId)) continue;
+                ids.push(depId);
+                await this.blockManager.addEdge(depNode, containerNode, contextNode);
+            }
+            containerNode.info.inputBlockIds.set(JSON.stringify(ids));
+        }
+    }
+
+    /**
+     * Adds to `externalRefs` the `after` refs of these blocks that point to an enclosing
+     * scope (not local, not an itemRef, not '$node') — they constrain the enclosing order too.
+     */
+    private collectExternalAfterRefs(
+        blocks: IBlockConfigJSON[],
+        refToNode: Map<string, SpinalNode<any>>,
+        ancestorRefToNode: Map<string, SpinalNode<any>> | undefined,
+        knownItemRefs: Set<string>,
+        externalRefs: Set<string>
+    ): void {
+        if (!ancestorRefToNode) return;
+        for (const blockDef of blocks) {
+            for (const ref of blockDef.after ?? []) {
+                if (ref === '$node' || knownItemRefs.has(ref) || refToNode.has(ref)) continue;
+                if (ancestorRefToNode.has(ref)) externalRefs.add(ref);
+            }
         }
     }
 

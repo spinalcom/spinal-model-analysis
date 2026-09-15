@@ -75,6 +75,26 @@ export default class AnalysisFactoryService {
      * @returns The same analysis node, updated
      */
     patchAnalysis(analysisNode: SpinalNode<any>, patch: Partial<Pick<IAnalysisConfigJSON, 'analysisName' | 'description' | 'concurrency' | 'status' | 'errorPolicy'>>): Promise<SpinalNode<any>>;
+    /** Sets name / description / concurrency / status / errorPolicy on the analysis node. */
+    private applyScalarConfig;
+    /**
+     * Best-effort undo of a create whose build failed: removes the partial analysis (its
+     * anchor target is detached first, so the linked building node survives), plus the
+     * context when this create made it and it is left empty. Cleanup failures are logged,
+     * not thrown — the build error is the one the caller needs to see.
+     */
+    private rollbackCreate;
+    /**
+     * Captures an analysis as a config populateAnalysis can rebuild. getAnalyticDetails
+     * exposes the anchor by server_id, but linkAnchorTarget resolves node ids through
+     * SpinalGraphService — so the anchor is re-read here as a registered node id.
+     */
+    private snapshotAnalysis;
+    /**
+     * Rebuilds an analysis from a snapshot after a failed update. Best-effort: a failure here
+     * is logged loudly (the analysis may be incomplete) but never masks the update error.
+     */
+    private restoreSnapshot;
     /**
      * Links the anchor target, builds the three workflow DAGs, and stores the
      * trigger configs from a config object onto an analysis node whose mandatory
@@ -119,7 +139,12 @@ export default class AnalysisFactoryService {
      *
      * The FOREACH's `itemRef` is the name by which the iteration element is referenced.
      * Sub-blocks can reference it by name in their inputs.
-     * `parentRefToNode` provides access to blocks defined in the parent workflow scope.
+     * `ancestorRefToNode` holds the blocks of every enclosing scope (the nearest scope wins on
+     * a name clash): iterations inherit the whole enclosing context at runtime, so a sub-block
+     * may read any outer block, not just one from the immediate parent.
+     *
+     * @returns the refs this subtree reads from enclosing scopes. The caller wires each one as
+     *          an ordering dependency in the scope that owns it (see routeExternalRefs).
      */
     private buildForeachSubWorkflow;
     /**
@@ -128,10 +153,35 @@ export default class AnalysisFactoryService {
      * IF sub-workflows can reference:
      * - Any FOREACH itemRef (resolved to virtual ID — inherited at runtime)
      * - '$node': the implicit work node
-     * - Any ref from the parent workflow (resolved as a virtual input)
+     * - Any block of an enclosing scope (read from the inherited context at runtime)
      * - Other sub-workflow block refs
+     *
+     * @returns the refs this branch reads from enclosing scopes (see buildForeachSubWorkflow).
      */
     private buildIfSubWorkflow;
+    /**
+     * Routes the refs a container's subtree reads from outside its own sub-workflow.
+     *
+     * A ref that is a block of THIS scope becomes an ordering dependency of the container
+     * (recorded in `containerDeps`, applied by applyContainerDeps), so this scope runs that
+     * block first and its output is in the context every iteration / branch inherits. Any
+     * other ref belongs to a scope further out and goes to `passUp`. Dependencies are only
+     * drawn between blocks of the same scope: loadWorkflowDAG pulls every edge target into
+     * the DAG being loaded, so an edge from an outer block to a nested one would leak it.
+     */
+    private routeExternalRefs;
+    /**
+     * Appends each container's recorded ordering deps to its inputBlockIds and draws the
+     * matching same-scope edge. Runs after the scope's Phase 2, which (re)sets the container's
+     * real inputs — appending here keeps slot 0 as the FOREACH collection / IF predicate, the
+     * only slot those executors read, and keeps the deps from being overwritten.
+     */
+    private applyContainerDeps;
+    /**
+     * Adds to `externalRefs` the `after` refs of these blocks that point to an enclosing
+     * scope (not local, not an itemRef, not '$node') — they constrain the enclosing order too.
+     */
+    private collectExternalAfterRefs;
     /**
      * Checks if a source ref matches any known FOREACH itemRef.
      * Returns the virtual ID if it matches, otherwise undefined.

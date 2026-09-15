@@ -75,6 +75,13 @@ export default class WorkflowBlockManagerService {
      */
     addDependency(sourceBlock: SpinalNode<any>, dependentBlock: SpinalNode<any>, contextNode: SpinalNode<any>, slotIndex?: number): Promise<void>;
     /**
+     * Adds only the graph edge sourceBlock → dependentBlock, leaving inputBlockIds untouched.
+     * Both blocks must belong to the same workflow scope: loadWorkflowDAG pulls every edge
+     * target into the DAG it is loading, so an edge across scopes would leak a nested block
+     * into an outer DAG.
+     */
+    addEdge(sourceBlock: SpinalNode<any>, dependentBlock: SpinalNode<any>, contextNode: SpinalNode<any>): Promise<void>;
+    /**
      * Adds a data-flow dependency between FOREACH sub-blocks.
      * Same as addDependency but within the context of a FOREACH sub-workflow.
      */

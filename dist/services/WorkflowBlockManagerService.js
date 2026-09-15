@@ -152,8 +152,7 @@ class WorkflowBlockManagerService {
      */
     addDependency(sourceBlock, dependentBlock, contextNode, slotIndex) {
         return __awaiter(this, void 0, void 0, function* () {
-            // Add graph edge: sourceBlock → dependentBlock
-            yield sourceBlock.addChildInContext(dependentBlock, analysisWorkflowBlock_1.PARENT_TO_WORKFLOW_BLOCK_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
+            yield this.addEdge(sourceBlock, dependentBlock, contextNode);
             // Update inputBlockIds on the dependent block
             const currentIds = this.getInputBlockIds(dependentBlock);
             const sourceId = sourceBlock.getId().get();
@@ -168,6 +167,17 @@ class WorkflowBlockManagerService {
                 currentIds.push(sourceId);
             }
             dependentBlock.info.inputBlockIds.set(JSON.stringify(currentIds));
+        });
+    }
+    /**
+     * Adds only the graph edge sourceBlock → dependentBlock, leaving inputBlockIds untouched.
+     * Both blocks must belong to the same workflow scope: loadWorkflowDAG pulls every edge
+     * target into the DAG it is loading, so an edge across scopes would leak a nested block
+     * into an outer DAG.
+     */
+    addEdge(sourceBlock, dependentBlock, contextNode) {
+        return __awaiter(this, void 0, void 0, function* () {
+            yield sourceBlock.addChildInContext(dependentBlock, analysisWorkflowBlock_1.PARENT_TO_WORKFLOW_BLOCK_RELATION, spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, contextNode);
         });
     }
     /**
