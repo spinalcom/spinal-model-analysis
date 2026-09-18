@@ -1,4 +1,5 @@
 import { SpinalNode } from 'spinal-env-viewer-graph-service';
+import { ISubWorkflowSlot } from '../constants/analysisWorkflowBlock';
 import { IWorkflowDAG } from '../interfaces/IWorkflowBlock';
 /**
  * Service for creating, managing, and loading workflow blocks stored as SpinalNodes.
@@ -9,8 +10,8 @@ import { IWorkflowDAG } from '../interfaces/IWorkflowBlock';
  * - Dependent blocks are children of their dependency blocks
  * - Block config is stored in the node's info: algorithmName, parameters (JSON),
  *   inputBlockIds (JSON ordered array), registerAs (optional)
- * - FOREACH blocks have sub-workflow blocks as children via a dedicated relation
- * - IF blocks have then/else sub-workflow blocks via dedicated relations
+ * - Container blocks (FOREACH / FILTER, IF) hold their sub-workflow blocks as children via
+ *   dedicated relations — one per sub-workflow slot (see constants/analysisWorkflowBlock)
  */
 export default class WorkflowBlockManagerService {
     /**
@@ -47,20 +48,26 @@ export default class WorkflowBlockManagerService {
         foreachItemRef?: string;
     }): SpinalNode<any>;
     /**
-     * Creates a sub-block for a FOREACH block using the dedicated FOREACH relation.
-     * Sub-blocks form a mini-DAG inside the FOREACH block.
+     * Creates a sub-block inside a container block's sub-workflow slot (FOREACH / FILTER
+     * iteration body, IF then / else branch). Sub-blocks form a mini-DAG under the container,
+     * hanging off it through the slot's dedicated relation.
      */
+    createSubBlock(containerBlock: SpinalNode<any>, contextNode: SpinalNode<any>, slot: ISubWorkflowSlot, algorithmName: string, parameters?: Record<string, unknown>, options?: {
+        name?: string;
+        registerAs?: string;
+    }): Promise<SpinalNode<any>>;
+    /** Creates a sub-block in a FOREACH / FILTER block's iteration body. */
     createForeachSubBlock(foreachBlock: SpinalNode<any>, contextNode: SpinalNode<any>, algorithmName: string, parameters?: Record<string, unknown>, options?: {
         name?: string;
         registerAs?: string;
     }): Promise<SpinalNode<any>>;
-    /**
-     * Creates a sub-block for an IF block's then or else branch.
-     */
+    /** Creates a sub-block in an IF block's then or else branch. */
     createIfSubBlock(ifBlock: SpinalNode<any>, contextNode: SpinalNode<any>, algorithmName: string, parameters: Record<string, unknown> | undefined, branch: 'then' | 'else', options?: {
         name?: string;
         registerAs?: string;
     }): Promise<SpinalNode<any>>;
+    /** Builds a block SpinalNode from its config (attached to nothing yet). */
+    private instantiateBlock;
     /**
      * Adds a data-flow dependency: sourceBlock feeds into dependentBlock.
      * In graph terms, dependentBlock becomes a child of sourceBlock.
@@ -116,14 +123,16 @@ export default class WorkflowBlockManagerService {
      */
     private collectBlocks;
     /**
-     * Loads the sub-workflow DAG for a FOREACH block.
+     * Loads a container block's sub-workflows onto its in-memory block: the iteration body
+     * of a FOREACH / FILTER, or the then / else branches of an IF. A no-op for other blocks.
      */
-    private loadForeachSubWorkflow;
+    private attachSubWorkflows;
     /**
-     * Loads a sub-workflow DAG for an IF block (then or else branch).
-     * Returns undefined if the branch has no sub-blocks.
+     * Loads one sub-workflow slot of a container block: its root sub-blocks (via the slot's
+     * relation), everything reachable from them, and the designated output block. Returns
+     * undefined when the slot holds no sub-blocks (an IF branch that was not defined).
      */
-    private loadIfSubWorkflow;
+    private loadSubWorkflow;
     /**
      * Converts a block SpinalNode to its in-memory IWorkflowBlock representation.
      */

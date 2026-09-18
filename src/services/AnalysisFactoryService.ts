@@ -17,6 +17,13 @@ import {
     ConcurrencyMode,
 } from '../interfaces/IAnalysisConfigJSON';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
+import {
+    ISubWorkflowSlot,
+    ITERATION_SUB_WORKFLOW_SLOT,
+    IF_THEN_SUB_WORKFLOW_SLOT,
+    IF_ELSE_SUB_WORKFLOW_SLOT,
+    isIterationBlock,
+} from '../constants/analysisWorkflowBlock';
 import { WORK_NODE_RESERVED_ID, foreachItemVirtualId } from './WorkflowExecutionService';
 import { logMessage } from './utils';
 import {
@@ -457,7 +464,7 @@ export default class AnalysisFactoryService {
             await this.nodeManager.getAnalysisAnchorNodeNode(analysisNode);
 
         // Try to find the target node by ID
-        let targetNode = SpinalGraphService.getRealNode(targetNodeId);
+        const targetNode = SpinalGraphService.getRealNode(targetNodeId);
 
         if (!targetNode) {
             throw new Error(
@@ -549,62 +556,15 @@ export default class AnalysisFactoryService {
         // Phase 2, so the container's real inputs keep their slots).
         const containerDeps = new Map<string, Set<string>>();
         const unresolvedRefs = new Set<string>();
-        for (const blockDef of workflowConfig.blocks) {
-            const blockNode = refToNode.get(blockDef.ref);
-            if (!blockNode) continue;
-
-            // If this is a FOREACH block with a sub-workflow, build it
-            if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
-                if (!blockDef.itemRef) {
-                    throw new Error(
-                        `[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef. ` +
-                        'Each FOREACH must declare a named ref for its iteration element.'
-                    );
-                }
-                // Store itemRef + (optional) iteration concurrency on the node
-                this.blockManager.updateBlock(blockNode, {
-                    foreachItemRef: blockDef.itemRef,
-                    foreachConcurrency: blockDef.concurrency
-                        ? JSON.stringify(blockDef.concurrency)
-                        : undefined,
-                });
-                const nestedRefs = await this.buildForeachSubWorkflow(
-                    blockNode,
-                    contextNode,
-                    blockDef.subWorkflow,
-                    blockDef.itemRef,
-                    refToNode,
-                    new Set([blockDef.itemRef])
-                );
-                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, unresolvedRefs);
-            }
-
-            // If this is an IF block with branch workflows, build them
-            if (blockDef.algorithmName === 'IF') {
-                if (blockDef.thenWorkflow) {
-                    const nestedRefs = await this.buildIfSubWorkflow(
-                        blockNode,
-                        contextNode,
-                        blockDef.thenWorkflow,
-                        'then',
-                        refToNode,
-                        new Set()
-                    );
-                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, unresolvedRefs);
-                }
-                if (blockDef.elseWorkflow) {
-                    const nestedRefs = await this.buildIfSubWorkflow(
-                        blockNode,
-                        contextNode,
-                        blockDef.elseWorkflow,
-                        'else',
-                        refToNode,
-                        new Set()
-                    );
-                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, unresolvedRefs);
-                }
-            }
-        }
+        await this.buildNestedContainers(
+            workflowConfig.blocks,
+            refToNode,
+            refToNode,
+            contextNode,
+            new Set(),
+            containerDeps,
+            unresolvedRefs
+        );
 
         // Unreachable in practice (sub-blocks only report refs they resolved in an enclosing
         // scope, and here that scope is this workflow) — kept as a guard against drift.
@@ -688,7 +648,7 @@ export default class AnalysisFactoryService {
      */
     private wireAfter(
         blocks: IBlockConfigJSON[],
-        scope: 'workflow' | 'FOREACH' | 'IF',
+        scope: string,
         refToNode: Map<string, SpinalNode<any>>,
         parentRefToNode?: Map<string, SpinalNode<any>>,
         knownItemRefs?: Set<string>
@@ -713,7 +673,7 @@ export default class AnalysisFactoryService {
     private resolveOrderRef(
         ref: string,
         ownRef: string,
-        scope: 'workflow' | 'FOREACH' | 'IF',
+        scope: string,
         refToNode: Map<string, SpinalNode<any>>,
         parentRefToNode?: Map<string, SpinalNode<any>>,
         knownItemRefs?: Set<string>
@@ -738,202 +698,97 @@ export default class AnalysisFactoryService {
     }
 
     /**
-     * Builds the sub-workflow for a FOREACH block.
+     * Builds the nested sub-workflows of the container blocks (FOREACH / FILTER / IF) among
+     * `blocks`, and routes the outer refs each subtree reads: a ref owned by this scope becomes
+     * an ordering dependency of its container (into `containerDeps`), anything further out
+     * goes to `passUp` for the enclosing scope. Called once per scope, after every block of the
+     * scope exists (so a sub-block may reference a sibling declared later).
      *
-     * The FOREACH's `itemRef` is the name by which the iteration element is referenced.
-     * Sub-blocks can reference it by name in their inputs.
-     * `ancestorRefToNode` holds the blocks of every enclosing scope (the nearest scope wins on
-     * a name clash): iterations inherit the whole enclosing context at runtime, so a sub-block
-     * may read any outer block, not just one from the immediate parent.
-     *
-     * @returns the refs this subtree reads from enclosing scopes. The caller wires each one as
-     *          an ordering dependency in the scope that owns it (see routeExternalRefs).
+     * @param scopeRefToNode - what nested sub-workflows can resolve: every enclosing scope plus
+     *                         this one (this scope shadowing outer names)
      */
-    private async buildForeachSubWorkflow(
-        foreachNode: SpinalNode<any>,
+    private async buildNestedContainers(
+        blocks: IBlockConfigJSON[],
+        refToNode: Map<string, SpinalNode<any>>,
+        scopeRefToNode: Map<string, SpinalNode<any>>,
         contextNode: SpinalNode<any>,
-        subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
-        itemRef: string,
-        ancestorRefToNode?: Map<string, SpinalNode<any>>,
-        knownItemRefs: Set<string> = new Set()
-    ): Promise<Set<string>> {
-        const refToNode = new Map<string, SpinalNode<any>>();
-        const externalRefs = new Set<string>();
-        const containerDeps = new Map<string, Set<string>>();
+        knownItemRefs: Set<string>,
+        containerDeps: Map<string, Set<string>>,
+        passUp: Set<string>
+    ): Promise<void> {
+        for (const blockDef of blocks) {
+            const blockNode = refToNode.get(blockDef.ref);
+            if (!blockNode) continue;
 
-        // Phase 1: Create sub-blocks
-        for (const blockDef of subWorkflowConfig.blocks) {
-            const subBlockNode = await this.blockManager.createForeachSubBlock(
-                foreachNode,
-                contextNode,
-                blockDef.algorithmName,
-                blockDef.parameters ?? {},
-                {
-                    name: blockDef.name ?? blockDef.ref,
-                    registerAs: blockDef.registerAs,
-                }
-            );
-            refToNode.set(blockDef.ref, subBlockNode);
-        }
-
-        // What a nested sub-workflow can resolve: every enclosing scope, this level shadowing.
-        const scopeRefToNode = new Map([...(ancestorRefToNode ?? []), ...refToNode]);
-
-        // Phase 1b: Build nested FOREACH / IF sub-workflows (after all siblings exist, so a
-        // nested sub-block may reference a sibling declared later in this sub-workflow).
-        for (const blockDef of subWorkflowConfig.blocks) {
-            const subBlockNode = refToNode.get(blockDef.ref);
-            if (!subBlockNode) continue;
-
-            // Recursively build nested FOREACH sub-workflows
-            if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
+            if (isIterationBlock(blockDef.algorithmName) && blockDef.subWorkflow) {
                 if (!blockDef.itemRef) {
                     throw new Error(
-                        `[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef.`
+                        `[AnalysisFactory] ${blockDef.algorithmName} block "${blockDef.ref}" is missing itemRef. ` +
+                        `Each ${blockDef.algorithmName} must declare a named ref for its iteration element.`
                     );
                 }
-                this.blockManager.updateBlock(subBlockNode, {
+                // Store itemRef + (optional) iteration concurrency on the node
+                this.blockManager.updateBlock(blockNode, {
                     foreachItemRef: blockDef.itemRef,
                     foreachConcurrency: blockDef.concurrency
                         ? JSON.stringify(blockDef.concurrency)
                         : undefined,
                 });
-                const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
-                const nestedRefs = await this.buildForeachSubWorkflow(
-                    subBlockNode,
+                const nestedRefs = await this.buildSubWorkflow(
+                    blockNode,
                     contextNode,
                     blockDef.subWorkflow,
-                    blockDef.itemRef,
+                    ITERATION_SUB_WORKFLOW_SLOT,
+                    blockDef.algorithmName,
                     scopeRefToNode,
-                    childItemRefs
+                    new Set([...knownItemRefs, blockDef.itemRef])
                 );
-                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
+                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, passUp);
             }
 
-            // Recursively build nested IF sub-workflows
             if (blockDef.algorithmName === 'IF') {
-                if (blockDef.thenWorkflow) {
-                    const nestedRefs = await this.buildIfSubWorkflow(
-                        subBlockNode,
+                const branches: Array<[ISubWorkflowSlot, string, IBlockConfigJSON['thenWorkflow']]> = [
+                    [IF_THEN_SUB_WORKFLOW_SLOT, 'IF then', blockDef.thenWorkflow],
+                    [IF_ELSE_SUB_WORKFLOW_SLOT, 'IF else', blockDef.elseWorkflow],
+                ];
+                for (const [slot, label, branchConfig] of branches) {
+                    if (!branchConfig) continue;
+                    const nestedRefs = await this.buildSubWorkflow(
+                        blockNode,
                         contextNode,
-                        blockDef.thenWorkflow,
-                        'then',
+                        branchConfig,
+                        slot,
+                        label,
                         scopeRefToNode,
                         knownItemRefs
                     );
-                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
-                }
-                if (blockDef.elseWorkflow) {
-                    const nestedRefs = await this.buildIfSubWorkflow(
-                        subBlockNode,
-                        contextNode,
-                        blockDef.elseWorkflow,
-                        'else',
-                        scopeRefToNode,
-                        knownItemRefs
-                    );
-                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
+                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, passUp);
                 }
             }
         }
-
-        // Phase 2: Wire dependencies and build inputBlockIds
-        for (const blockDef of subWorkflowConfig.blocks) {
-            if (!blockDef.inputs || blockDef.inputs.length === 0) continue;
-
-            const dependentNode = refToNode.get(blockDef.ref);
-            if (!dependentNode) continue;
-
-            const finalIds: string[] = [];
-
-            for (const sourceRef of blockDef.inputs) {
-                // '$node' is the implicit work node — pre-seeded at runtime under
-                // WORK_NODE_RESERVED_ID, so it needs no graph edge.
-                if (sourceRef === '$node') {
-                    finalIds.push(WORK_NODE_RESERVED_ID);
-                    continue;
-                }
-
-                // Check if it's the FOREACH item ref (current level or any ancestor)
-                const virtualId = this.resolveItemRef(sourceRef, itemRef, knownItemRefs);
-                if (virtualId) {
-                    finalIds.push(virtualId);
-                    continue;
-                }
-
-                // Check local sub-workflow refs
-                const localNode = refToNode.get(sourceRef);
-                if (localNode) {
-                    await this.blockManager.addSubBlockDependency(
-                        localNode,
-                        dependentNode,
-                        contextNode
-                    );
-                    finalIds.push(localNode.getId().get());
-                    continue;
-                }
-
-                // Enclosing-scope ref: no edge here (it would cross scopes). The value comes from
-                // the inherited context; the owning scope wires the ordering dependency.
-                const ancestorNode = ancestorRefToNode?.get(sourceRef);
-                if (ancestorNode) {
-                    finalIds.push(ancestorNode.getId().get());
-                    externalRefs.add(sourceRef);
-                    continue;
-                }
-
-                throw new Error(
-                    `[AnalysisFactory] FOREACH sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                    `which does not exist in the sub-workflow or any enclosing workflow. ` +
-                    `Use "${itemRef}" to reference the current iteration element.`
-                );
-            }
-
-            dependentNode.info.inputBlockIds.set(JSON.stringify(finalIds));
-        }
-
-        // Phase 2b: order nested containers after the sibling blocks their subtrees read.
-        await this.applyContainerDeps(containerDeps, refToNode, contextNode);
-
-        // Wire order-only dependencies (`after`) for the sub-blocks; outer ones also constrain
-        // the enclosing order.
-        this.wireAfter(subWorkflowConfig.blocks, 'FOREACH', refToNode, ancestorRefToNode, knownItemRefs);
-        this.collectExternalAfterRefs(subWorkflowConfig.blocks, refToNode, ancestorRefToNode, knownItemRefs, externalRefs);
-
-        // Set the output block ID on the FOREACH node
-        const outputRef = subWorkflowConfig.outputRef;
-        const outputNode = refToNode.get(outputRef);
-        if (!outputNode) {
-            throw new Error(
-                `[AnalysisFactory] FOREACH outputRef "${outputRef}" does not match any sub-block ref`
-            );
-        }
-
-        this.blockManager.updateBlock(foreachNode, {
-            foreachOutputBlockId: outputNode.getId().get(),
-        });
-
-        return externalRefs;
     }
 
     /**
-     * Builds a sub-workflow for an IF block (then or else branch).
+     * Builds one sub-workflow of a container block — the iteration body of a FOREACH / FILTER
+     * or a branch of an IF — into the given slot.
      *
-     * IF sub-workflows can reference:
-     * - Any FOREACH itemRef (resolved to virtual ID — inherited at runtime)
-     * - '$node': the implicit work node
-     * - Any block of an enclosing scope (read from the inherited context at runtime)
-     * - Other sub-workflow block refs
+     * Sub-blocks can reference: '$node', any known itemRef (the element of this or any
+     * enclosing FOREACH / FILTER, resolved to a virtual id), sibling sub-blocks, and any block
+     * of an enclosing scope (`ancestorRefToNode`, nearest scope winning on a name clash) —
+     * sub-workflows inherit the whole enclosing context at runtime.
      *
-     * @returns the refs this branch reads from enclosing scopes (see buildForeachSubWorkflow).
+     * @param label - how the container reads in error messages ("FOREACH", "IF then", …)
+     * @returns the refs this subtree reads from enclosing scopes. The caller wires each one as
+     *          an ordering dependency in the scope that owns it (see routeExternalRefs).
      */
-    private async buildIfSubWorkflow(
-        ifNode: SpinalNode<any>,
+    private async buildSubWorkflow(
+        containerNode: SpinalNode<any>,
         contextNode: SpinalNode<any>,
         subWorkflowConfig: { blocks: IBlockConfigJSON[]; outputRef: string },
-        branch: 'then' | 'else',
-        ancestorRefToNode?: Map<string, SpinalNode<any>>,
-        knownItemRefs: Set<string> = new Set()
+        slot: ISubWorkflowSlot,
+        label: string,
+        ancestorRefToNode: Map<string, SpinalNode<any>>,
+        knownItemRefs: Set<string>
     ): Promise<Set<string>> {
         const refToNode = new Map<string, SpinalNode<any>>();
         const externalRefs = new Set<string>();
@@ -941,12 +796,12 @@ export default class AnalysisFactoryService {
 
         // Phase 1: Create sub-blocks
         for (const blockDef of subWorkflowConfig.blocks) {
-            const subBlockNode = await this.blockManager.createIfSubBlock(
-                ifNode,
+            const subBlockNode = await this.blockManager.createSubBlock(
+                containerNode,
                 contextNode,
+                slot,
                 blockDef.algorithmName,
                 blockDef.parameters ?? {},
-                branch,
                 {
                     name: blockDef.name ?? blockDef.ref,
                     registerAs: blockDef.registerAs,
@@ -955,66 +810,18 @@ export default class AnalysisFactoryService {
             refToNode.set(blockDef.ref, subBlockNode);
         }
 
-        // What a nested sub-workflow can resolve: every enclosing scope, this level shadowing.
-        const scopeRefToNode = new Map([...(ancestorRefToNode ?? []), ...refToNode]);
-
-        // Phase 1b: Build nested FOREACH / IF sub-workflows (after all siblings exist, so a
-        // nested sub-block may reference a sibling declared later in this branch).
-        for (const blockDef of subWorkflowConfig.blocks) {
-            const subBlockNode = refToNode.get(blockDef.ref);
-            if (!subBlockNode) continue;
-
-            // Recursively build nested FOREACH sub-workflows
-            if (blockDef.algorithmName === 'FOREACH' && blockDef.subWorkflow) {
-                if (!blockDef.itemRef) {
-                    throw new Error(
-                        `[AnalysisFactory] FOREACH block "${blockDef.ref}" is missing itemRef.`
-                    );
-                }
-                this.blockManager.updateBlock(subBlockNode, {
-                    foreachItemRef: blockDef.itemRef,
-                    foreachConcurrency: blockDef.concurrency
-                        ? JSON.stringify(blockDef.concurrency)
-                        : undefined,
-                });
-                const childItemRefs = new Set([...knownItemRefs, blockDef.itemRef]);
-                const nestedRefs = await this.buildForeachSubWorkflow(
-                    subBlockNode,
-                    contextNode,
-                    blockDef.subWorkflow,
-                    blockDef.itemRef,
-                    scopeRefToNode,
-                    childItemRefs
-                );
-                this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
-            }
-
-            // Recursively build nested IF sub-workflows
-            if (blockDef.algorithmName === 'IF') {
-                if (blockDef.thenWorkflow) {
-                    const nestedRefs = await this.buildIfSubWorkflow(
-                        subBlockNode,
-                        contextNode,
-                        blockDef.thenWorkflow,
-                        'then',
-                        scopeRefToNode,
-                        knownItemRefs
-                    );
-                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
-                }
-                if (blockDef.elseWorkflow) {
-                    const nestedRefs = await this.buildIfSubWorkflow(
-                        subBlockNode,
-                        contextNode,
-                        blockDef.elseWorkflow,
-                        'else',
-                        scopeRefToNode,
-                        knownItemRefs
-                    );
-                    this.routeExternalRefs(blockDef, nestedRefs, refToNode, containerDeps, externalRefs);
-                }
-            }
-        }
+        // Phase 1b: Build nested containers (after all siblings exist, so a nested sub-block
+        // may reference a sibling declared later in this sub-workflow).
+        const scopeRefToNode = new Map([...ancestorRefToNode, ...refToNode]);
+        await this.buildNestedContainers(
+            subWorkflowConfig.blocks,
+            refToNode,
+            scopeRefToNode,
+            contextNode,
+            knownItemRefs,
+            containerDeps,
+            externalRefs
+        );
 
         // Phase 2: Wire dependencies and build inputBlockIds
         for (const blockDef of subWorkflowConfig.blocks) {
@@ -1033,14 +840,14 @@ export default class AnalysisFactoryService {
                     continue;
                 }
 
-                // Check if it's a FOREACH item ref (any ancestor level)
+                // The element of this or any enclosing FOREACH / FILTER
                 const virtualId = this.resolveItemRef(sourceRef, undefined, knownItemRefs);
                 if (virtualId) {
                     finalIds.push(virtualId);
                     continue;
                 }
 
-                // Check local sub-workflow refs first
+                // Sibling sub-block
                 const localNode = refToNode.get(sourceRef);
                 if (localNode) {
                     await this.blockManager.addSubBlockDependency(
@@ -1054,16 +861,19 @@ export default class AnalysisFactoryService {
 
                 // Enclosing-scope ref: no edge here (it would cross scopes). The value comes from
                 // the inherited context; the owning scope wires the ordering dependency.
-                const ancestorNode = ancestorRefToNode?.get(sourceRef);
+                const ancestorNode = ancestorRefToNode.get(sourceRef);
                 if (ancestorNode) {
                     finalIds.push(ancestorNode.getId().get());
                     externalRefs.add(sourceRef);
                     continue;
                 }
 
+                const itemHint = knownItemRefs.size > 0
+                    ? ` Use ${[...knownItemRefs].map((r) => `"${r}"`).join(' / ')} to reference an iteration element.`
+                    : '';
                 throw new Error(
-                    `[AnalysisFactory] IF ${branch} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
-                    'which does not exist in the sub-workflow or any enclosing workflow.'
+                    `[AnalysisFactory] ${label} sub-block "${blockDef.ref}" references input "${sourceRef}" ` +
+                    `which does not exist in the sub-workflow or any enclosing workflow.${itemHint}`
                 );
             }
 
@@ -1074,23 +884,20 @@ export default class AnalysisFactoryService {
         // Phase 2b: order nested containers after the sibling blocks their subtrees read.
         await this.applyContainerDeps(containerDeps, refToNode, contextNode);
 
-        // Wire order-only dependencies (`after`) for the branch sub-blocks; outer ones also
-        // constrain the enclosing order.
-        this.wireAfter(subWorkflowConfig.blocks, 'IF', refToNode, ancestorRefToNode, knownItemRefs);
+        // Order-only dependencies (`after`); outer ones also constrain the enclosing order.
+        this.wireAfter(subWorkflowConfig.blocks, label, refToNode, ancestorRefToNode, knownItemRefs);
         this.collectExternalAfterRefs(subWorkflowConfig.blocks, refToNode, ancestorRefToNode, knownItemRefs, externalRefs);
 
-        // Set the output block ID on the IF node
+        // Record the sub-workflow's output block on the container
         const outputRef = subWorkflowConfig.outputRef;
         const outputNode = refToNode.get(outputRef);
         if (!outputNode) {
             throw new Error(
-                `[AnalysisFactory] IF ${branch} outputRef "${outputRef}" does not match any sub-block ref`
+                `[AnalysisFactory] ${label} outputRef "${outputRef}" does not match any sub-block ref`
             );
         }
-
-        const fieldName = branch === 'then' ? 'ifThenOutputBlockId' : 'ifElseOutputBlockId';
-        this.blockManager.updateBlock(ifNode, {
-            [fieldName]: outputNode.getId().get(),
+        this.blockManager.updateBlock(containerNode, {
+            [slot.outputField]: outputNode.getId().get(),
         });
 
         return externalRefs;
@@ -1243,7 +1050,7 @@ export default class AnalysisFactoryService {
             }
             refs.add(block.ref);
 
-            if (block.algorithmName === 'FOREACH' && block.itemRef) {
+            if (isIterationBlock(block.algorithmName) && block.itemRef) {
                 knownItemRefs.add(block.itemRef);
             }
         }
@@ -1306,13 +1113,13 @@ export default class AnalysisFactoryService {
             }
         }
 
-        // FOREACH validation
-        if (block.algorithmName === 'FOREACH') {
+        // FOREACH / FILTER validation
+        if (isIterationBlock(block.algorithmName)) {
             if (!block.itemRef) {
-                errors.push(`${path}: FOREACH block must have "itemRef"`);
+                errors.push(`${path}: ${block.algorithmName} block must have "itemRef"`);
             }
             if (!block.subWorkflow) {
-                errors.push(`${path}: FOREACH block must have "subWorkflow"`);
+                errors.push(`${path}: ${block.algorithmName} block must have "subWorkflow"`);
             } else {
                 if (block.itemRef && availableRefs.has(block.itemRef)) {
                     errors.push(`${path}: itemRef "${block.itemRef}" conflicts with an existing block ref`);
@@ -1396,7 +1203,7 @@ export default class AnalysisFactoryService {
             }
             localRefs.add(block.ref);
 
-            if (block.algorithmName === 'FOREACH' && block.itemRef) {
+            if (isIterationBlock(block.algorithmName) && block.itemRef) {
                 knownItemRefs.add(block.itemRef);
             }
         }

@@ -49,13 +49,15 @@ export const FLOW_CONTROL_ALGORITHMS: AlgorithmDefinition[] = [
   createAlgorithm({
     name: 'IF',
     description:
-      'Conditional branching block. Takes a boolean predicate as inputs[0] and an optional ' +
-      'payload as inputs[1]. Executes thenWorkflow if true, elseWorkflow if false. ' +
-      'The payload is injected as $item in the chosen branch. ' +
-      'Handled by the DAG executor — this run() is never called directly.',
+      'Conditional branching block. Takes a boolean predicate as inputs[0] and runs ' +
+      'thenWorkflow if true, elseWorkflow if false; the chosen branch\'s "outputRef" result ' +
+      'becomes the block\'s output (undefined when the matching branch is not defined). ' +
+      'Branches inherit the surrounding context: they can read any block computed before ' +
+      'the IF and any enclosing FOREACH / FILTER element by ref — there is no separate ' +
+      'payload mechanism. Handled by the DAG executor — this run() is never called directly.',
     inputs: [
       { name: 'predicate', types: ['boolean'], description: 'Boolean deciding which branch runs (then/else).', required: true },
-      { name: 'payload', types: ['any'], description: 'Optional value injected as $item into the chosen branch.', required: false },
+      { name: 'payload', types: ['any'], description: 'Reserved — currently ignored by the executor. Branches read the surrounding context by ref instead.', required: false },
     ],
     outputType: 'any',
     parameters: [],

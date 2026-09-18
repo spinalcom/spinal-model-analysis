@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { isIterationBlock } from '../constants/analysisWorkflowBlock';
 import {
   SpinalGraphService,
   SpinalNode,
@@ -35,12 +36,8 @@ import { ANALYSIS_NODE_TO_OUTPUT_NODE_RELATION, OUTPUT_NODE_NAME, OUTPUT_NODE_TY
 import { ANALYSIS_NODE_TO_TRIGGER_NODE_RELATION, TRIGGER_NODE_NAME, TRIGGER_NODE_TYPE, TRIGGER_CATEGORY, TRIGGER_ATTR_CONFIGS } from '../constants/analysisTrigger'
 import { ANALYSIS_NODE_TO_WORKNODE_RESOLVER_RELATION, WORKNODE_RESOLVER_NODE_NAME, WORKNODE_RESOLVER_NODE_TYPE } from '../constants/analysisWorknodeResolver'
 
-import AttributeService, {
-  attributeService,
-} from 'spinal-env-viewer-plugin-documentation-service';
-import { SpinalAttribute } from 'spinal-models-documentation';
+import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
 
-import { parseValue } from './utils';
 import { VERSION } from '../version';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { WORK_NODE_RESERVED_ID, FOREACH_ITEM_PREFIX, FOREACH_ITEM_SUFFIX } from './WorkflowExecutionService';
@@ -566,11 +563,11 @@ export default class AnalyticNodeManagerService {
       config.parameters = block.parameters;
     }
 
-    // For IF / FOREACH, only include the "real" input (predicate / iteration collection at
-    // slot 0). Extra inputBlockIds are synthetic deps appended for topological ordering by
-    // buildIfSubWorkflow / buildForeachSubWorkflow — emitting them as declared inputs would
-    // re-wire (and double-wire → "Cannot add a child twice") those edges on re-import.
-    if (block.algorithmName === 'IF' || block.algorithmName === 'FOREACH') {
+    // For a container (IF / FOREACH / FILTER), only include the "real" input (predicate /
+    // iteration collection at slot 0). Extra inputBlockIds are synthetic ordering deps the
+    // factory appends (applyContainerDeps) — emitting them as declared inputs would re-wire
+    // (and double-wire → "Cannot add a child twice") those edges on re-import.
+    if (block.algorithmName === 'IF' || isIterationBlock(block.algorithmName)) {
       const realCount = this.getRealInputCount(block);
       const realIds = block.inputBlockIds.slice(0, realCount);
       if (realIds.length > 0) {
@@ -677,13 +674,13 @@ export default class AnalyticNodeManagerService {
   }
 
   /**
-   * Determines how many "real" (declared) inputs an IF or FOREACH block has, excluding the
-   * synthetic parent-ref dependencies appended by buildIfSubWorkflow / buildForeachSubWorkflow
-   * to force topological ordering.
+   * Determines how many "real" (declared) inputs a container block (IF / FOREACH / FILTER) has,
+   * excluding the synthetic outer-ref dependencies the factory appends to force topological
+   * ordering (see applyContainerDeps).
    *
-   * Both carry exactly one real input at slot 0 — the IF's boolean predicate, or the FOREACH's
-   * iteration collection. Everything after it is synthetic ordering, and must NOT be emitted as
-   * a declared input: doing so re-wires (and double-wires) those edges on re-import.
+   * All carry exactly one real input at slot 0 — the IF's boolean predicate, or the iteration
+   * collection. Everything after it is synthetic ordering, and must NOT be emitted as a
+   * declared input: doing so re-wires (and double-wires) those edges on re-import.
    */
   private getRealInputCount(block: IWorkflowBlock): number {
     return Math.min(1, block.inputBlockIds.length);

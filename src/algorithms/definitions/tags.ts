@@ -119,6 +119,7 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   FETCH_INPUT_REGISTER: ['register', 'read', 'io'],
   ELEMENT: ['register', 'node', 'element'],
   FOREACH: ['register', 'flow-control', 'iteration', 'loop'],
+  FILTER: ['register', 'flow-control', 'iteration', 'filter', 'predicate', 'where'],
 
   // ── string ──
   FORMAT_STRING: ['string', 'template', 'format'],

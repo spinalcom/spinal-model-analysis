@@ -294,10 +294,10 @@ export const FR: LocaleTranslations = {
   },
   IF: {
     label: 'Si / Sinon',
-    description: 'Bloc de branchement conditionnel. Prend un prédicat booléen en inputs[0] et une charge utile optionnelle en inputs[1]. Exécute thenWorkflow si vrai, elseWorkflow si faux. La charge utile est injectée comme $item dans la branche choisie. Géré par l\'exécuteur du DAG — ce run() n\'est jamais appelé directement.',
+    description: 'Bloc de branchement conditionnel. Prend un prédicat booléen en inputs[0] et exécute thenWorkflow si vrai, elseWorkflow si faux ; le résultat « outputRef » de la branche choisie devient la sortie du bloc (undefined si la branche correspondante n\'est pas définie). Les branches héritent du contexte environnant : elles peuvent lire par référence tout bloc calculé avant le IF et l\'élément de tout FOREACH / FILTER englobant — il n\'y a pas de mécanisme de charge utile séparé. Géré par l\'exécuteur du DAG — ce run() n\'est jamais appelé directement.',
     inputs: {
       predicate: 'Booléen décidant quelle branche s\'exécute (then/else).',
-      payload: 'Valeur optionnelle injectée comme $item dans la branche choisie.',
+      payload: 'Réservé — actuellement ignoré par l\'exécuteur. Les branches lisent le contexte environnant par référence.',
     },
   },
   LOG: {
@@ -352,8 +352,13 @@ export const FR: LocaleTranslations = {
   },
   FOREACH: {
     label: 'Pour chaque',
-    description: 'Bloc d\'ordre supérieur qui prend un tableau en entrée et exécute un sous-workflow sur chaque élément. Les résultats sont rassemblés dans un tableau de sortie. Le sous-workflow doit contenir un bloc ELEMENT comme source d\'élément. Géré par l\'exécuteur du DAG — ce run() n\'est jamais appelé directement.',
+    description: 'Bloc d\'ordre supérieur qui prend un tableau en entrée et exécute son sous-workflow une fois par élément, l\'élément courant étant accessible aux sous-blocs sous le nom « itemRef » du bloc. Le résultat « outputRef » de chaque élément est rassemblé dans le tableau de sortie (même longueur et même ordre que l\'entrée). Les itérations s\'exécutent une à la fois sauf si la « concurrency » du bloc opte pour BOUNDED / FULL. Géré par l\'exécuteur du DAG — ce run() n\'est jamais appelé directement.',
     inputs: { items: 'Le tableau à parcourir.' },
+  },
+  FILTER: {
+    label: 'Filtrer',
+    description: 'Conserve les éléments d\'un tableau en entrée pour lesquels un sous-workflow prédicat renvoie vrai. Comme FOREACH, le sous-workflow s\'exécute une fois par élément (accessible sous le nom « itemRef » du bloc), mais son bloc « outputRef » doit produire un booléen : la sortie est le sous-ensemble des éléments d\'ENTRÉE — pas les résultats du prédicat — dans l\'ordre d\'entrée. N\'importe quel test peut servir de prédicat (comparaison sur une valeur lue, vérification d\'attribut…), ce que l\'expression régulière de FILTER_NODE ne peut pas exprimer. Supporte la même « concurrency » que FOREACH. Géré par l\'exécuteur du DAG — ce run() n\'est jamais appelé directement.',
+    inputs: { items: 'Le tableau à filtrer.' },
   },
 
   // ── boolean ──

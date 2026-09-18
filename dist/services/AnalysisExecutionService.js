@@ -92,6 +92,8 @@ class AnalysisExecutionService {
             const execution = {
                 referenceTime: (_a = metadata === null || metadata === void 0 ? void 0 : metadata.referenceTime) !== null && _a !== void 0 ? _a : Date.now(),
                 trigger: metadata === null || metadata === void 0 ? void 0 : metadata.trigger,
+                // Same failure semantics as a full run — a COV-triggered run must honor 'stop' too.
+                errorPolicy: yield this.nodeManager.getErrorPolicy(analysisNode),
             };
             (0, utils_1.logMessage)(`[AnalysisExecution] Starting single-work-node analysis: ${analysisName} ` +
                 `on "${workNode.getName().get()}"`);
@@ -276,10 +278,10 @@ class AnalysisExecutionService {
      * If multiple leaves exist, returns the last one in the blocks array.
      */
     findLeafBlock(blocks) {
-        // Collect all block IDs that are depended on (appear in other blocks' inputBlockIds)
+        // Collect all block IDs some other block depends on (as a data input or an `after`)
         const dependedOnIds = new Set();
         for (const block of blocks) {
-            for (const depId of block.inputBlockIds) {
+            for (const depId of [...block.inputBlockIds, ...block.orderBlockIds]) {
                 dependedOnIds.add(depId);
             }
         }

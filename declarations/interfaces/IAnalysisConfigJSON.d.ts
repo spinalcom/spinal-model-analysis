@@ -186,7 +186,7 @@ export interface IBlockConfigJSON {
      */
     after?: string[];
     /**
-     * For FOREACH blocks only.
+     * For FOREACH / FILTER blocks only.
      * The name by which the current iteration element is referenced inside the sub-workflow.
      * Sub-blocks use this name in their `inputs` array to access the element.
      * In nested FOREACH, each level defines its own itemRef, and inner sub-workflows
@@ -196,7 +196,7 @@ export interface IBlockConfigJSON {
      */
     itemRef?: string;
     /**
-     * For FOREACH blocks only: how the iteration elements are dispatched.
+     * For FOREACH / FILTER blocks only: how the iteration elements are dispatched.
      * Independent of the analysis-level `concurrency` (which spreads across work nodes).
      * Defaults to `SEQUENTIAL` (one element at a time — the historical behavior) when omitted,
      * so a FOREACH only runs in parallel when it explicitly opts in. Use `BOUNDED` (with a
@@ -212,8 +212,10 @@ export interface IBlockConfigJSON {
     /** Optional display name (defaults to algorithmName) */
     name?: string;
     /**
-     * For FOREACH blocks: defines the sub-workflow to execute per element.
+     * For FOREACH / FILTER blocks: defines the sub-workflow to execute per element.
      * Sub-blocks can reference the iteration element using the `itemRef` name.
+     * For FILTER, the `outputRef` block must produce the boolean predicate that decides
+     * whether the element is kept.
      */
     subWorkflow?: {
         blocks: IBlockConfigJSON[];

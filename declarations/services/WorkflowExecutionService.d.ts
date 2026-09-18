@@ -106,14 +106,25 @@ export default class WorkflowExecutionService {
      */
     private executeFetchInputRegister;
     /**
-     * Handles FOREACH: iterates over an array input, executing the sub-workflow
-     * for each element. Collects results into an output array.
+     * Handles FOREACH and FILTER: runs the sub-workflow once per element of the array input,
+     * each time with the element injected under the virtual ID derived from foreachItemRef.
+     * Ancestor item refs are propagated into the sub-context so nested sub-workflows can read
+     * any enclosing element.
      *
-     * The current iteration element is injected under the virtual ID derived from
-     * the block's foreachItemRef. Parent FOREACH item refs are propagated into
-     * the sub-context so nested sub-workflows can access any ancestor's element.
+     * - FOREACH collects each iteration's designated output into an array (index-aligned with
+     *   the input).
+     * - FILTER reads each iteration's output as a boolean predicate and outputs the subset of
+     *   input elements for which it was `true`, in input order. A predicate that never got a
+     *   value (its block failed under the `continue` policy — already recorded in the
+     *   failures sink) drops the element; any other non-boolean is a wiring error.
      */
-    private executeForeach;
+    private executeIteration;
+    /**
+     * A child execution context for a sub-workflow: same work node and execution metadata,
+     * a copy of the registers and block outputs (so the child reads everything computed so
+     * far without leaking its own outputs upward), and the shared failures sink.
+     */
+    private createSubContext;
     /**
      * Handles IF: conditional branching with sub-workflows.
      *

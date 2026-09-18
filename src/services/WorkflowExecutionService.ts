@@ -8,6 +8,7 @@ import {
     ExecutionMetadata,
 } from '../algorithms/definitions/core';
 import { runWithConcurrency, normalizeForeachConcurrency } from './concurrency';
+import { isIterationBlock } from '../constants/analysisWorkflowBlock';
 
 /**
  * Reserved block ID that is always pre-seeded in blockOutputs with the context work node.
@@ -217,9 +218,9 @@ export default class WorkflowExecutionService {
                 return;
             }
 
-            // ── FOREACH (higher-order iteration) ──
-            if (block.algorithmName === 'FOREACH' && block.subWorkflow) {
-                await this.executeForeach(block, inputs, context);
+            // ── FOREACH / FILTER (iterate a sub-workflow over an array) ──
+            if (isIterationBlock(block.algorithmName) && block.subWorkflow) {
+                await this.executeIteration(block, inputs, context);
                 return;
             }
 
@@ -272,29 +273,35 @@ export default class WorkflowExecutionService {
     }
 
     /**
-     * Handles FOREACH: iterates over an array input, executing the sub-workflow
-     * for each element. Collects results into an output array.
+     * Handles FOREACH and FILTER: runs the sub-workflow once per element of the array input,
+     * each time with the element injected under the virtual ID derived from foreachItemRef.
+     * Ancestor item refs are propagated into the sub-context so nested sub-workflows can read
+     * any enclosing element.
      *
-     * The current iteration element is injected under the virtual ID derived from
-     * the block's foreachItemRef. Parent FOREACH item refs are propagated into
-     * the sub-context so nested sub-workflows can access any ancestor's element.
+     * - FOREACH collects each iteration's designated output into an array (index-aligned with
+     *   the input).
+     * - FILTER reads each iteration's output as a boolean predicate and outputs the subset of
+     *   input elements for which it was `true`, in input order. A predicate that never got a
+     *   value (its block failed under the `continue` policy — already recorded in the
+     *   failures sink) drops the element; any other non-boolean is a wiring error.
      */
-    private async executeForeach(
+    private async executeIteration(
         block: IWorkflowBlock,
         inputs: unknown[],
         context: WorkflowExecutionContext
     ): Promise<void> {
+        const kind = block.algorithmName;
         if (!block.subWorkflow) {
-            throw new Error(`FOREACH block "${block.name}" has no subWorkflow defined`);
+            throw new Error(`${kind} block "${block.name}" has no subWorkflow defined`);
         }
         if (!block.foreachItemRef) {
-            throw new Error(`FOREACH block "${block.name}" is missing foreachItemRef`);
+            throw new Error(`${kind} block "${block.name}" is missing foreachItemRef`);
         }
 
         const inputArray = inputs[0];
         if (!Array.isArray(inputArray)) {
             throw new Error(
-                `FOREACH block "${block.name}" expects an array as its first input, ` +
+                `${kind} block "${block.name}" expects an array as its first input, ` +
                 `got ${typeof inputArray}`
             );
         }
@@ -305,30 +312,49 @@ export default class WorkflowExecutionService {
 
         // Dispatch the iterations per the block's concurrency (default SEQUENTIAL). Each
         // iteration runs in its own sub-context — a COPY of the parent block outputs plus the
-        // current element — so a sub-block can read blocks computed before the FOREACH (parent
-        // refs) and any ancestor FOREACH item (the same inheritance IF branches get), while
-        // iterations stay isolated from each other and from the parent. Results come back in
-        // input order regardless of mode; the FOREACH's own output is set on the parent below.
+        // current element — so a sub-block can read blocks computed before this block (outer
+        // refs) and any ancestor item (the same inheritance IF branches get), while iterations
+        // stay isolated from each other and from the parent. Results come back in input order
+        // regardless of mode.
         const results = await runWithConcurrency(inputArray, concurrency, async (element) => {
-            const subContext: WorkflowExecutionContext = {
-                workNode: context.workNode,
-                inputRegisters: new Map(context.inputRegisters),
-                blockOutputs: new Map(context.blockOutputs),
-                execution: context.execution,
-                failures: context.failures,
-            };
-
-            // Inject the current element under its named virtual ID
+            const subContext = this.createSubContext(context);
             subContext.blockOutputs.set(itemVirtualId, element);
-
-            // Execute sub-workflow DAG
             await this.executeDAG({ blocks: subWorkflow.blocks }, subContext);
-
-            // Return the designated output for this element
             return subContext.blockOutputs.get(subWorkflow.outputBlockId);
         });
 
+        if (kind === 'FILTER') {
+            const kept: unknown[] = [];
+            results.forEach((predicate, index) => {
+                if (predicate === true) {
+                    kept.push(inputArray[index]);
+                } else if (predicate !== false && predicate !== undefined) {
+                    throw new Error(
+                        `FILTER block "${block.name}" expects its sub-workflow output to be a boolean ` +
+                        `predicate, got ${describeValue(predicate)} for element ${index}`
+                    );
+                }
+            });
+            context.blockOutputs.set(block.id, kept);
+            return;
+        }
+
         context.blockOutputs.set(block.id, results);
+    }
+
+    /**
+     * A child execution context for a sub-workflow: same work node and execution metadata,
+     * a copy of the registers and block outputs (so the child reads everything computed so
+     * far without leaking its own outputs upward), and the shared failures sink.
+     */
+    private createSubContext(context: WorkflowExecutionContext): WorkflowExecutionContext {
+        return {
+            workNode: context.workNode,
+            inputRegisters: new Map(context.inputRegisters),
+            blockOutputs: new Map(context.blockOutputs),
+            execution: context.execution,
+            failures: context.failures,
+        };
     }
 
     /**
@@ -365,15 +391,8 @@ export default class WorkflowExecutionService {
             return;
         }
 
-        // Create sub-context inheriting parent block outputs
-        // (IF branches run once and often need surrounding context)
-        const subContext: WorkflowExecutionContext = {
-            workNode: context.workNode,
-            inputRegisters: new Map(context.inputRegisters),
-            blockOutputs: new Map(context.blockOutputs),
-            execution: context.execution,
-            failures: context.failures,
-        };
+        // Branches run once but usually need the surrounding context
+        const subContext = this.createSubContext(context);
 
         // Execute the branch sub-workflow
         await this.executeDAG(

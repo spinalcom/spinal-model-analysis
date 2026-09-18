@@ -53,7 +53,7 @@ export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
         inputs: [],
         outputType: 'number',
         parameters: [],
-        run: async (_input, _params, context): AlgorithmRunResult => {
+        run: async (): AlgorithmRunResult => {
             return Date.now();
         },
     }),
@@ -163,9 +163,11 @@ export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'FOREACH',
         description:
-            'Higher-order block that takes an array input and executes a sub-workflow ' +
-            'on each element. Results are collected into an output array. ' +
-            'The sub-workflow must contain an ELEMENT block as the element source. ' +
+            'Higher-order block that takes an array input and runs its sub-workflow once per ' +
+            'element, with the current element available to sub-blocks under the block\'s ' +
+            '"itemRef" name. The sub-workflow\'s "outputRef" result for each element is collected ' +
+            'into the output array (same length and order as the input). Iterations run one at a ' +
+            'time unless the block\'s "concurrency" opts into BOUNDED / FULL. ' +
             'Handled by the DAG executor — this run() is never called directly.',
         inputs: [
             { name: 'items', types: ['any[]'], description: 'The array to iterate over.', required: true },
@@ -175,6 +177,27 @@ export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
         run: async (): AlgorithmRunResult => {
             throw new Error(
                 'FOREACH is handled by the DAG executor, not called directly'
+            );
+        },
+    }),
+    createAlgorithm({
+        name: 'FILTER',
+        description:
+            'Keeps the elements of an array input for which a predicate sub-workflow returns true. ' +
+            'Like FOREACH, the sub-workflow runs once per element (available under the block\'s ' +
+            '"itemRef" name), but its "outputRef" block must produce a boolean: the output is the ' +
+            'subset of INPUT elements — not the predicate results — in input order. Any test can ' +
+            'be the predicate (a comparison on a fetched value, an attribute check, …), which is ' +
+            'what FILTER_NODE\'s property regex cannot express. Supports the same "concurrency" as ' +
+            'FOREACH. Handled by the DAG executor — this run() is never called directly.',
+        inputs: [
+            { name: 'items', types: ['any[]'], description: 'The array to filter.', required: true },
+        ],
+        outputType: 'any[]',
+        parameters: [],
+        run: async (): AlgorithmRunResult => {
+            throw new Error(
+                'FILTER is handled by the DAG executor, not called directly'
             );
         },
     }),

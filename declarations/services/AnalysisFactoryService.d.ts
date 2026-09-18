@@ -135,30 +135,30 @@ export default class AnalysisFactoryService {
      */
     private resolveOrderRef;
     /**
-     * Builds the sub-workflow for a FOREACH block.
+     * Builds the nested sub-workflows of the container blocks (FOREACH / FILTER / IF) among
+     * `blocks`, and routes the outer refs each subtree reads: a ref owned by this scope becomes
+     * an ordering dependency of its container (into `containerDeps`), anything further out
+     * goes to `passUp` for the enclosing scope. Called once per scope, after every block of the
+     * scope exists (so a sub-block may reference a sibling declared later).
      *
-     * The FOREACH's `itemRef` is the name by which the iteration element is referenced.
-     * Sub-blocks can reference it by name in their inputs.
-     * `ancestorRefToNode` holds the blocks of every enclosing scope (the nearest scope wins on
-     * a name clash): iterations inherit the whole enclosing context at runtime, so a sub-block
-     * may read any outer block, not just one from the immediate parent.
+     * @param scopeRefToNode - what nested sub-workflows can resolve: every enclosing scope plus
+     *                         this one (this scope shadowing outer names)
+     */
+    private buildNestedContainers;
+    /**
+     * Builds one sub-workflow of a container block — the iteration body of a FOREACH / FILTER
+     * or a branch of an IF — into the given slot.
      *
+     * Sub-blocks can reference: '$node', any known itemRef (the element of this or any
+     * enclosing FOREACH / FILTER, resolved to a virtual id), sibling sub-blocks, and any block
+     * of an enclosing scope (`ancestorRefToNode`, nearest scope winning on a name clash) —
+     * sub-workflows inherit the whole enclosing context at runtime.
+     *
+     * @param label - how the container reads in error messages ("FOREACH", "IF then", …)
      * @returns the refs this subtree reads from enclosing scopes. The caller wires each one as
      *          an ordering dependency in the scope that owns it (see routeExternalRefs).
      */
-    private buildForeachSubWorkflow;
-    /**
-     * Builds a sub-workflow for an IF block (then or else branch).
-     *
-     * IF sub-workflows can reference:
-     * - Any FOREACH itemRef (resolved to virtual ID — inherited at runtime)
-     * - '$node': the implicit work node
-     * - Any block of an enclosing scope (read from the inherited context at runtime)
-     * - Other sub-workflow block refs
-     *
-     * @returns the refs this branch reads from enclosing scopes (see buildForeachSubWorkflow).
-     */
-    private buildIfSubWorkflow;
+    private buildSubWorkflow;
     /**
      * Routes the refs a container's subtree reads from outside its own sub-workflow.
      *

@@ -69,6 +69,7 @@ exports.EN = {
     FETCH_INPUT_REGISTER: { label: 'Fetch Input Register' },
     ELEMENT: { label: 'Element' },
     FOREACH: { label: 'For Each' },
+    FILTER: { label: 'Filter' },
     // ── boolean ──
     GREATER_THAN: { label: 'Greater Than' },
     LESS_THAN: { label: 'Less Than' },

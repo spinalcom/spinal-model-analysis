@@ -9,8 +9,11 @@ import {
     WORKFLOW_BLOCK_NODE_TYPE,
     PARENT_TO_WORKFLOW_BLOCK_RELATION,
     FOREACH_TO_SUB_BLOCK_RELATION,
-    IF_THEN_TO_SUB_BLOCK_RELATION,
-    IF_ELSE_TO_SUB_BLOCK_RELATION,
+    ISubWorkflowSlot,
+    ITERATION_SUB_WORKFLOW_SLOT,
+    IF_THEN_SUB_WORKFLOW_SLOT,
+    IF_ELSE_SUB_WORKFLOW_SLOT,
+    isIterationBlock,
 } from '../constants/analysisWorkflowBlock';
 
 import { IWorkflowBlock, IWorkflowDAG } from '../interfaces/IWorkflowBlock';
@@ -24,8 +27,8 @@ import { IWorkflowBlock, IWorkflowDAG } from '../interfaces/IWorkflowBlock';
  * - Dependent blocks are children of their dependency blocks
  * - Block config is stored in the node's info: algorithmName, parameters (JSON),
  *   inputBlockIds (JSON ordered array), registerAs (optional)
- * - FOREACH blocks have sub-workflow blocks as children via a dedicated relation
- * - IF blocks have then/else sub-workflow blocks via dedicated relations
+ * - Container blocks (FOREACH / FILTER, IF) hold their sub-workflow blocks as children via
+ *   dedicated relations — one per sub-workflow slot (see constants/analysisWorkflowBlock)
  */
 export default class WorkflowBlockManagerService {
     // ─────────────────────────────────────────────────────
@@ -87,39 +90,18 @@ export default class WorkflowBlockManagerService {
             foreachItemRef?: string;
         }
     ): SpinalNode<any> {
-        const blockInfo: any = {
-            name: options?.name ?? algorithmName,
-            type: WORKFLOW_BLOCK_NODE_TYPE,
-            algorithmName,
-            parameters: JSON.stringify(parameters),
-            inputBlockIds: JSON.stringify([]),
-            orderBlockIds: JSON.stringify([]),
-        };
-
-        if (options?.registerAs) {
-            blockInfo.registerAs = options.registerAs;
-        }
-        if (options?.foreachOutputBlockId) {
-            blockInfo.foreachOutputBlockId = options.foreachOutputBlockId;
-        }
-        if (options?.foreachItemRef) {
-            blockInfo.foreachItemRef = options.foreachItemRef;
-        }
-
-        const blockNodeId = SpinalGraphService.createNode(blockInfo);
-        const blockNode = SpinalGraphService.getRealNode(blockNodeId);
-        if (!blockNode) throw new Error('Failed to create block node');
-
-        return blockNode;
+        return this.instantiateBlock(algorithmName, parameters, options, 'block');
     }
 
     /**
-     * Creates a sub-block for a FOREACH block using the dedicated FOREACH relation.
-     * Sub-blocks form a mini-DAG inside the FOREACH block.
+     * Creates a sub-block inside a container block's sub-workflow slot (FOREACH / FILTER
+     * iteration body, IF then / else branch). Sub-blocks form a mini-DAG under the container,
+     * hanging off it through the slot's dedicated relation.
      */
-    public async createForeachSubBlock(
-        foreachBlock: SpinalNode<any>,
+    public async createSubBlock(
+        containerBlock: SpinalNode<any>,
         contextNode: SpinalNode<any>,
+        slot: ISubWorkflowSlot,
         algorithmName: string,
         parameters: Record<string, unknown> = {},
         options?: {
@@ -127,26 +109,11 @@ export default class WorkflowBlockManagerService {
             registerAs?: string;
         }
     ): Promise<SpinalNode<any>> {
-        const blockInfo: any = {
-            name: options?.name ?? algorithmName,
-            type: WORKFLOW_BLOCK_NODE_TYPE,
-            algorithmName,
-            parameters: JSON.stringify(parameters),
-            inputBlockIds: JSON.stringify([]),
-            orderBlockIds: JSON.stringify([]),
-        };
+        const blockNode = this.instantiateBlock(algorithmName, parameters, options, 'sub-block');
 
-        if (options?.registerAs) {
-            blockInfo.registerAs = options.registerAs;
-        }
-
-        const blockNodeId = SpinalGraphService.createNode(blockInfo);
-        const blockNode = SpinalGraphService.getRealNode(blockNodeId);
-        if (!blockNode) throw new Error('Failed to create FOREACH sub-block node');
-
-        await foreachBlock.addChildInContext(
+        await containerBlock.addChildInContext(
             blockNode,
-            FOREACH_TO_SUB_BLOCK_RELATION,
+            slot.relation,
             SPINAL_RELATION_PTR_LST_TYPE,
             contextNode
         );
@@ -154,20 +121,42 @@ export default class WorkflowBlockManagerService {
         return blockNode;
     }
 
-    /**
-     * Creates a sub-block for an IF block's then or else branch.
-     */
-    public async createIfSubBlock(
+    /** Creates a sub-block in a FOREACH / FILTER block's iteration body. */
+    public createForeachSubBlock(
+        foreachBlock: SpinalNode<any>,
+        contextNode: SpinalNode<any>,
+        algorithmName: string,
+        parameters: Record<string, unknown> = {},
+        options?: { name?: string; registerAs?: string }
+    ): Promise<SpinalNode<any>> {
+        return this.createSubBlock(foreachBlock, contextNode, ITERATION_SUB_WORKFLOW_SLOT, algorithmName, parameters, options);
+    }
+
+    /** Creates a sub-block in an IF block's then or else branch. */
+    public createIfSubBlock(
         ifBlock: SpinalNode<any>,
         contextNode: SpinalNode<any>,
         algorithmName: string,
         parameters: Record<string, unknown> = {},
         branch: 'then' | 'else',
-        options?: {
+        options?: { name?: string; registerAs?: string }
+    ): Promise<SpinalNode<any>> {
+        const slot = branch === 'then' ? IF_THEN_SUB_WORKFLOW_SLOT : IF_ELSE_SUB_WORKFLOW_SLOT;
+        return this.createSubBlock(ifBlock, contextNode, slot, algorithmName, parameters, options);
+    }
+
+    /** Builds a block SpinalNode from its config (attached to nothing yet). */
+    private instantiateBlock(
+        algorithmName: string,
+        parameters: Record<string, unknown>,
+        options: {
             name?: string;
             registerAs?: string;
-        }
-    ): Promise<SpinalNode<any>> {
+            foreachOutputBlockId?: string;
+            foreachItemRef?: string;
+        } | undefined,
+        kind: string
+    ): SpinalNode<any> {
         const blockInfo: any = {
             name: options?.name ?? algorithmName,
             type: WORKFLOW_BLOCK_NODE_TYPE,
@@ -176,26 +165,13 @@ export default class WorkflowBlockManagerService {
             inputBlockIds: JSON.stringify([]),
             orderBlockIds: JSON.stringify([]),
         };
-
-        if (options?.registerAs) {
-            blockInfo.registerAs = options.registerAs;
-        }
+        if (options?.registerAs) blockInfo.registerAs = options.registerAs;
+        if (options?.foreachOutputBlockId) blockInfo.foreachOutputBlockId = options.foreachOutputBlockId;
+        if (options?.foreachItemRef) blockInfo.foreachItemRef = options.foreachItemRef;
 
         const blockNodeId = SpinalGraphService.createNode(blockInfo);
         const blockNode = SpinalGraphService.getRealNode(blockNodeId);
-        if (!blockNode) throw new Error(`Failed to create IF ${branch} sub-block node`);
-
-        const relation = branch === 'then'
-            ? IF_THEN_TO_SUB_BLOCK_RELATION
-            : IF_ELSE_TO_SUB_BLOCK_RELATION;
-
-        await ifBlock.addChildInContext(
-            blockNode,
-            relation,
-            SPINAL_RELATION_PTR_LST_TYPE,
-            contextNode
-        );
-
+        if (!blockNode) throw new Error(`Failed to create ${kind} node`);
         return blockNode;
     }
 
@@ -386,17 +362,7 @@ export default class WorkflowBlockManagerService {
 
             const block = this.blockNodeToMemory(childNode);
             visited.set(childId, block);
-
-            // If FOREACH, load its sub-workflow
-            if (block.algorithmName === 'FOREACH') {
-                block.subWorkflow = await this.loadForeachSubWorkflow(childNode);
-            }
-
-            // If IF, load then/else sub-workflows
-            if (block.algorithmName === 'IF') {
-                block.thenWorkflow = await this.loadIfSubWorkflow(childNode, 'then');
-                block.elseWorkflow = await this.loadIfSubWorkflow(childNode, 'else');
-            }
+            await this.attachSubWorkflows(block, childNode);
 
             // Recurse to find downstream dependent blocks
             await this.collectBlocks(childNode, visited);
@@ -404,106 +370,64 @@ export default class WorkflowBlockManagerService {
     }
 
     /**
-     * Loads the sub-workflow DAG for a FOREACH block.
+     * Loads a container block's sub-workflows onto its in-memory block: the iteration body
+     * of a FOREACH / FILTER, or the then / else branches of an IF. A no-op for other blocks.
      */
-    private async loadForeachSubWorkflow(
-        foreachNode: SpinalNode<any>
-    ): Promise<{ blocks: IWorkflowBlock[]; outputBlockId: string }> {
-        const subVisited = new Map<string, IWorkflowBlock>();
-
-        // Get direct sub-blocks of the FOREACH node
-        const subRoots = await foreachNode.getChildren(
-            FOREACH_TO_SUB_BLOCK_RELATION
-        );
-
-        for (const subRoot of subRoots) {
-            const subId = subRoot.getId().get();
-            if (subVisited.has(subId)) continue;
-
-            const block = this.blockNodeToMemory(subRoot);
-            subVisited.set(subId, block);
-
-            // Check if this sub-root is itself a FOREACH or IF block
-            if (block.algorithmName === 'FOREACH') {
-                block.subWorkflow = await this.loadForeachSubWorkflow(subRoot);
+    private async attachSubWorkflows(
+        block: IWorkflowBlock,
+        blockNode: SpinalNode<any>
+    ): Promise<void> {
+        if (isIterationBlock(block.algorithmName)) {
+            const sub = await this.loadSubWorkflow(blockNode, ITERATION_SUB_WORKFLOW_SLOT);
+            if (!sub) {
+                throw new Error(
+                    `${block.algorithmName} block "${block.name}" has no sub-workflow blocks`
+                );
             }
-            if (block.algorithmName === 'IF') {
-                block.thenWorkflow = await this.loadIfSubWorkflow(subRoot, 'then');
-                block.elseWorkflow = await this.loadIfSubWorkflow(subRoot, 'else');
-            }
-
-            // Recurse into sub-block dependents (they use the normal block relation)
-            await this.collectBlocks(subRoot, subVisited);
+            block.subWorkflow = sub;
         }
-
-        // Get the designated output block ID
-        const outputBlockId = foreachNode.info.foreachOutputBlockId
-            ? foreachNode.info.foreachOutputBlockId.get()
-            : '';
-
-        if (!outputBlockId) {
-            throw new Error(
-                `FOREACH block "${foreachNode.getName().get()}" is missing foreachOutputBlockId`
-            );
+        if (block.algorithmName === 'IF') {
+            block.thenWorkflow = await this.loadSubWorkflow(blockNode, IF_THEN_SUB_WORKFLOW_SLOT);
+            block.elseWorkflow = await this.loadSubWorkflow(blockNode, IF_ELSE_SUB_WORKFLOW_SLOT);
         }
-
-        return {
-            blocks: [...subVisited.values()],
-            outputBlockId,
-        };
     }
 
     /**
-     * Loads a sub-workflow DAG for an IF block (then or else branch).
-     * Returns undefined if the branch has no sub-blocks.
+     * Loads one sub-workflow slot of a container block: its root sub-blocks (via the slot's
+     * relation), everything reachable from them, and the designated output block. Returns
+     * undefined when the slot holds no sub-blocks (an IF branch that was not defined).
      */
-    private async loadIfSubWorkflow(
-        ifNode: SpinalNode<any>,
-        branch: 'then' | 'else'
+    private async loadSubWorkflow(
+        containerNode: SpinalNode<any>,
+        slot: ISubWorkflowSlot
     ): Promise<{ blocks: IWorkflowBlock[]; outputBlockId: string } | undefined> {
-        const relation = branch === 'then'
-            ? IF_THEN_TO_SUB_BLOCK_RELATION
-            : IF_ELSE_TO_SUB_BLOCK_RELATION;
-
-        const subVisited = new Map<string, IWorkflowBlock>();
-
-        const subRoots = await ifNode.getChildren(relation);
+        const subRoots = await containerNode.getChildren(slot.relation);
         if (subRoots.length === 0) return undefined;
 
+        const subVisited = new Map<string, IWorkflowBlock>();
         for (const subRoot of subRoots) {
             const subId = subRoot.getId().get();
             if (subVisited.has(subId)) continue;
 
             const block = this.blockNodeToMemory(subRoot);
             subVisited.set(subId, block);
+            await this.attachSubWorkflows(block, subRoot);
 
-            // Check if this sub-root is itself a FOREACH or IF block
-            if (block.algorithmName === 'FOREACH') {
-                block.subWorkflow = await this.loadForeachSubWorkflow(subRoot);
-            }
-            if (block.algorithmName === 'IF') {
-                block.thenWorkflow = await this.loadIfSubWorkflow(subRoot, 'then');
-                block.elseWorkflow = await this.loadIfSubWorkflow(subRoot, 'else');
-            }
-
+            // Sub-block dependents use the normal block relation
             await this.collectBlocks(subRoot, subVisited);
         }
 
-        const fieldName = branch === 'then' ? 'ifThenOutputBlockId' : 'ifElseOutputBlockId';
-        const outputBlockId = ifNode.info[fieldName]
-            ? ifNode.info[fieldName].get()
+        const outputBlockId: string = containerNode.info[slot.outputField]
+            ? containerNode.info[slot.outputField].get()
             : '';
-
         if (!outputBlockId) {
             throw new Error(
-                `IF block "${ifNode.getName().get()}" is missing ${fieldName}`
+                `${containerNode.info.algorithmName?.get() ?? 'Container'} block ` +
+                `"${containerNode.getName().get()}" is missing ${slot.outputField}`
             );
         }
 
-        return {
-            blocks: [...subVisited.values()],
-            outputBlockId,
-        };
+        return { blocks: [...subVisited.values()], outputBlockId };
     }
 
     /**

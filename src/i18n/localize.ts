@@ -55,7 +55,7 @@ export function getLocaleTranslations(locale?: string): LocaleTranslations {
  * `en` bundle only carries display labels — descriptions/inputs/parameters stay
  * canonical in the definitions and are used as-is.
  */
-export function localizeAlgorithm(def: AlgorithmDefinition, locale: string = 'en'): LocalizedAlgorithm {
+export function localizeAlgorithm(def: AlgorithmDefinition, locale = 'en'): LocalizedAlgorithm {
   const t = getLocaleTranslations(locale)[def.name];
   return {
     name: def.name,

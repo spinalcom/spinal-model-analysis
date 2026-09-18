@@ -618,7 +618,7 @@ export const EXCEL_ALGORITHMS: AlgorithmDefinition[] = [
       'the same workbook.',
     inputs: [
       { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
-      { name: 'values', types: ['array', 'string'], description: 'A 1D or 2D array (or JSON string) of values to write from the anchor.', required: true },
+      { name: 'values', types: ['any[]', 'string'], description: 'A 1D or 2D array (or JSON string) of values to write from the anchor.', required: true },
     ],
     outputType: 'ExcelWorkbook',
     parameters: [

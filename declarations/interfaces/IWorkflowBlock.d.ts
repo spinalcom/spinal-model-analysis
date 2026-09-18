@@ -40,18 +40,18 @@ export interface IWorkflowBlock {
      */
     registerAs?: string;
     /**
-     * For FOREACH / MAP blocks only.
+     * For FOREACH / FILTER blocks only.
      * The name by which the current iteration element is referenced in the sub-workflow.
      * At runtime, the element is injected under a virtual ID derived from this name.
      */
     foreachItemRef?: string;
     /**
-     * For FOREACH / MAP blocks only.
+     * For FOREACH / FILTER blocks only.
      * Defines the sub-workflow DAG to execute for each element of the input array.
      */
     subWorkflow?: ISubWorkflow;
     /**
-     * For FOREACH blocks only.
+     * For FOREACH / FILTER blocks only.
      * How iteration elements are dispatched (SEQUENTIAL / BOUNDED / FULL). Absent → SEQUENTIAL.
      * Independent of the analysis-level work-node concurrency.
      */
@@ -69,7 +69,7 @@ export interface IWorkflowBlock {
     elseWorkflow?: ISubWorkflow;
 }
 /**
- * A sub-workflow embedded inside a FOREACH or IF block.
+ * A sub-workflow embedded inside a FOREACH / FILTER or IF block.
  *
  * For FOREACH: at runtime, the current iteration element is injected under
  * a virtual ID derived from the FOREACH's foreachItemRef. Sub-workflow blocks

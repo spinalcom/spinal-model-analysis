@@ -10,6 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 /* eslint-disable @typescript-eslint/no-explicit-any */
+const analysisWorkflowBlock_1 = require("../constants/analysisWorkflowBlock");
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
 const analysisNode_1 = require("../constants/analysisNode");
 const analysisContext_1 = require("../constants/analysisContext");
@@ -497,11 +498,11 @@ class AnalyticNodeManagerService {
         if (Object.keys(block.parameters).length > 0) {
             config.parameters = block.parameters;
         }
-        // For IF / FOREACH, only include the "real" input (predicate / iteration collection at
-        // slot 0). Extra inputBlockIds are synthetic deps appended for topological ordering by
-        // buildIfSubWorkflow / buildForeachSubWorkflow — emitting them as declared inputs would
-        // re-wire (and double-wire → "Cannot add a child twice") those edges on re-import.
-        if (block.algorithmName === 'IF' || block.algorithmName === 'FOREACH') {
+        // For a container (IF / FOREACH / FILTER), only include the "real" input (predicate /
+        // iteration collection at slot 0). Extra inputBlockIds are synthetic ordering deps the
+        // factory appends (applyContainerDeps) — emitting them as declared inputs would re-wire
+        // (and double-wire → "Cannot add a child twice") those edges on re-import.
+        if (block.algorithmName === 'IF' || (0, analysisWorkflowBlock_1.isIterationBlock)(block.algorithmName)) {
             const realCount = this.getRealInputCount(block);
             const realIds = block.inputBlockIds.slice(0, realCount);
             if (realIds.length > 0) {
@@ -597,13 +598,13 @@ class AnalyticNodeManagerService {
         return result;
     }
     /**
-     * Determines how many "real" (declared) inputs an IF or FOREACH block has, excluding the
-     * synthetic parent-ref dependencies appended by buildIfSubWorkflow / buildForeachSubWorkflow
-     * to force topological ordering.
+     * Determines how many "real" (declared) inputs a container block (IF / FOREACH / FILTER) has,
+     * excluding the synthetic outer-ref dependencies the factory appends to force topological
+     * ordering (see applyContainerDeps).
      *
-     * Both carry exactly one real input at slot 0 — the IF's boolean predicate, or the FOREACH's
-     * iteration collection. Everything after it is synthetic ordering, and must NOT be emitted as
-     * a declared input: doing so re-wires (and double-wires) those edges on re-import.
+     * All carry exactly one real input at slot 0 — the IF's boolean predicate, or the iteration
+     * collection. Everything after it is synthetic ordering, and must NOT be emitted as a
+     * declared input: doing so re-wires (and double-wires) those edges on re-import.
      */
     getRealInputCount(block) {
         return Math.min(1, block.inputBlockIds.length);
