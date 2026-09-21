@@ -351,5 +351,35 @@ exports.LIST_ALGORITHMS = [
             return JSON.stringify([...new Set(arr)]);
         }),
     }),
+    (0, core_1.createAlgorithm)({
+        name: 'COUNT',
+        description: 'Returns how many elements the input holds: the length of an array of any values (e.g. the ' +
+            'nodes from GET_NODE_CHILDREN or FILTER_NODE) or of a JSON array string, 0 for null / ' +
+            'undefined, 1 for any other single value; with several inputs wired, the number of inputs. ' +
+            'Pair with GREATER_THAN for predicates like "has at least one child". Unlike LIST_LENGTH, ' +
+            'it does not need a JSON string.',
+        inputs: [
+            { name: 'values', types: ['any[]', 'any'], description: 'The array (or value) to count.', required: true, variadic: true },
+        ],
+        outputType: 'number',
+        parameters: [],
+        run: (input) => __awaiter(void 0, void 0, void 0, function* () {
+            if (input === null || input === undefined)
+                return 0;
+            if (Array.isArray(input))
+                return input.length;
+            if (typeof input === 'string' && input.trim().startsWith('[')) {
+                try {
+                    const parsed = JSON.parse(input);
+                    if (Array.isArray(parsed))
+                        return parsed.length;
+                }
+                catch (_d) {
+                    /* not JSON — a plain string is one value */
+                }
+            }
+            return 1;
+        }),
+    }),
 ];
 //# sourceMappingURL=list.algorithms.js.map

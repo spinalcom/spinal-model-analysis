@@ -1,0 +1,37 @@
+{
+  "contextName": "Contexte d'analyses",
+  "analysisName": "Telecommande Light",
+  "description": "",
+  "anchorNodeId": "__ANCHOR__",
+  "triggers": [{ "type": "COV", "id": "Trigger1", "inputRegister": "_COMMAND_LIGHT" }],
+  "worknodeResolver": { "blocks": [
+    { "ref": "A1", "algorithmName": "GET_NODE_CHILDREN", "inputs": ["$node"], "parameters": { "regex": "groupHasgeographicRoom" } }
+  ]},
+  "inputWorkflow": { "blocks": [
+    { "ref": "Profil CP", "algorithmName": "GET_NODE_CHILD", "inputs": ["$node"], "parameters": { "regex": "hasControlPoints", "filterProperty": "name", "regexFilter": "Command" } },
+    { "ref": "_COMMAND_LIGHT", "algorithmName": "SET_INPUT_REGISTER", "inputs": ["EP COMMAND_LIGHT CurrentValue Model"], "registerAs": "_COMMAND_LIGHT" },
+    { "ref": "EP COMMAND_LIGHT", "algorithmName": "GET_NODE_CHILD", "inputs": ["Profil CP"], "parameters": { "regex": "hasBmsEndpoint", "filterProperty": "name", "regexFilter": "COMMAND_LIGHT" } },
+    { "ref": "_COMMAND_LIGHT Value", "algorithmName": "SET_INPUT_REGISTER", "inputs": ["EP COMMAND_LIGHT CurrentValue"], "registerAs": "_COMMAND_LIGHT Value" },
+    { "ref": "EP COMMAND_LIGHT CurrentValue Model", "algorithmName": "ENDPOINT_NODE_CURRENT_VALUE_MODEL", "inputs": ["EP COMMAND_LIGHT"] },
+    { "ref": "EP COMMAND_LIGHT CurrentValue", "algorithmName": "ENDPOINT_NODE_CURRENT_VALUE", "inputs": ["EP COMMAND_LIGHT"] }
+  ]},
+  "executionWorkflow": { "blocks": [
+    { "ref": "_COMMAND_LIGHT Value", "algorithmName": "FETCH_INPUT_REGISTER", "parameters": { "registerName": "_COMMAND_LIGHT Value" } },
+    { "ref": "Foreach Luminaire", "algorithmName": "FOREACH", "inputs": ["Luminaires BimObjects"], "itemRef": "Foreach Luminaire_item",
+      "subWorkflow": { "outputRef": "Foreach LightCmd", "blocks": [
+        { "ref": "Foreach LightCmd", "algorithmName": "FOREACH", "inputs": ["LightCmd endpoints"], "itemRef": "Foreach LightCmd_item",
+          "subWorkflow": { "outputRef": "Update controlValue attribute", "blocks": [
+            { "ref": "Update controlValue attribute", "algorithmName": "SET_ATTRIBUTE", "inputs": ["Light command multiplied by 100"],
+              "parameters": { "categoryName": "default", "label": "controlValue", "createIfNotExist": "false", "updateDirectModificationDate": "true" } }
+          ]}},
+        { "ref": "BimObject Endpoints", "algorithmName": "GET_NODE_CHILDREN", "inputs": ["Foreach Luminaire_item"], "parameters": { "regex": "hasBmsEndpoint" } },
+        { "ref": "LightCmd endpoints", "algorithmName": "FILTER_NODE", "inputs": ["BimObject Endpoints"], "parameters": { "filterProperty": "name", "regexFilter": "^LightCmd.*" } }
+      ]}},
+    { "ref": "Room BimObjects", "algorithmName": "GET_NODE_CHILDREN", "inputs": ["$node"], "parameters": { "regex": "hasBimObject" } },
+    { "ref": "Luminaires BimObjects", "algorithmName": "FILTER_NODE", "inputs": ["Room BimObjects"], "parameters": { "filterProperty": "name", "regexFilter": "^Luminaires.*" } },
+    { "ref": "Light command multiplied by 100", "algorithmName": "MULTIPLY_PARAM", "inputs": ["_COMMAND_LIGHT Value"], "parameters": { "value": 100 } }
+  ]},
+  "status": "Inactive",
+  "errorPolicy": "continue",
+  "concurrency": { "mode": "BOUNDED", "limit": 10 }
+}

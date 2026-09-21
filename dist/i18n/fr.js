@@ -139,6 +139,12 @@ exports.FR = {
         description: 'Renvoie l\'identifiant d\'un nœud.',
         inputs: { node: 'Le nœud dont on veut l\'identifiant serveur.' },
     },
+    GET_NODE_INFO: {
+        label: 'Info du nœud',
+        description: 'Lit un champ de l\'info d\'un nœud : « name » (par défaut), « type », « id », « server_id » ou toute autre clé d\'info. Renvoie la valeur simple (chaîne / nombre / booléen), ou null si la clé est absente. Première étape habituelle d\'un prédicat sur un nœud — par ex. GET_NODE_INFO « type » → EQUALS_PARAM « geographicRoom », ou GET_NODE_INFO « name » → MATCHES_REGEX « ^Bureau ».',
+        inputs: { node: 'Le nœud à lire.' },
+        parameters: { property: 'Clé d\'info à lire (par défaut « name »).' },
+    },
     SET_NODE_INFO: {
         label: 'Définir une info du nœud',
         description: 'Définit une propriété de l\'info d\'un nœud à une valeur d\'entrée dynamique. Prend 2 entrées : [nœud, valeur]. La clé de la propriété vient du paramètre « property ». Crée la propriété si elle n\'existe pas, sinon la met à jour en place (ex. renommer un nœud en définissant « name »). Ces propriétés d\'info sont celles sur lesquelles FILTER_NODE / FIND_NODE filtrent. Renvoie le nœud pour le chaînage. La propriété « id » est protégée et ne peut pas être modifiée.',
@@ -171,22 +177,24 @@ exports.FR = {
     },
     GET_NODE_CHILD: {
         label: 'Trouver un enfant',
-        description: 'Raccourci de GET_NODE_CHILDREN + FIND_NODE : renvoie le premier enfant du nœud dont une propriété correspond à une regex. « regex » limite les relations parcourues ; « filterProperty » (par défaut « name ») et « regexFilter » sélectionnent l\'enfant. Lève une erreur si aucun ne correspond.',
+        description: 'Raccourci de GET_NODE_CHILDREN + FIND_NODE : renvoie le premier enfant du nœud dont une propriété correspond à une regex. « regex » limite les relations parcourues ; « filterProperty » (par défaut « name ») et « regexFilter » sélectionnent l\'enfant. Lève une erreur si aucun ne correspond, sauf si « ifNotFound » vaut « null ».',
         inputs: { node: 'Le nœud dont on parcourt les enfants.' },
         parameters: {
             regex: 'Regex optionnelle sur le nom de la relation pour limiter les enfants parcourus.',
             filterProperty: 'Propriété du nœud sur laquelle filtrer (par défaut « name »).',
             regexFilter: 'Regex que la valeur de la propriété doit satisfaire pour sélectionner l\'enfant.',
+            ifNotFound: 'Que faire si rien ne correspond : « error » (par défaut — le bloc échoue) ou « null » (renvoie null, pour qu\'EXISTS — par ex. dans un FILTER — puisse tester si quelque chose a été trouvé).',
         },
     },
     GET_NODE_PARENT: {
         label: 'Trouver un parent',
-        description: 'Raccourci de GET_NODE_PARENTS + FIND_NODE : renvoie le premier parent du nœud dont une propriété correspond à une regex. « regex » limite les relations parcourues ; « filterProperty » (par défaut « name ») et « regexFilter » sélectionnent le parent. Lève une erreur si aucun ne correspond.',
+        description: 'Raccourci de GET_NODE_PARENTS + FIND_NODE : renvoie le premier parent du nœud dont une propriété correspond à une regex. « regex » limite les relations parcourues ; « filterProperty » (par défaut « name ») et « regexFilter » sélectionnent le parent. Lève une erreur si aucun ne correspond, sauf si « ifNotFound » vaut « null ».',
         inputs: { node: 'Le nœud dont on parcourt les parents.' },
         parameters: {
             regex: 'Regex optionnelle sur le nom de la relation pour limiter les parents parcourus.',
             filterProperty: 'Propriété du nœud sur laquelle filtrer (par défaut « name »).',
             regexFilter: 'Regex que la valeur de la propriété doit satisfaire pour sélectionner le parent.',
+            ifNotFound: 'Que faire si rien ne correspond : « error » (par défaut — le bloc échoue) ou « null » (renvoie null, pour qu\'EXISTS — par ex. dans un FILTER — puisse tester si quelque chose a été trouvé).',
         },
     },
     FILTER_NODE: {
@@ -200,11 +208,12 @@ exports.FR = {
     },
     FIND_NODE: {
         label: 'Trouver un nœud',
-        description: 'Renvoie le premier nœud correspondant aux critères donnés (comme FILTER_NODE mais renvoie un seul nœud).',
+        description: 'Renvoie le premier nœud correspondant aux critères donnés (comme FILTER_NODE mais renvoie un seul nœud). Échoue si aucun ne correspond, sauf si « ifNotFound » vaut « null ».',
         inputs: { nodes: 'Un nœud ou une liste de nœuds à parcourir.' },
         parameters: {
             filterProperty: 'Nom de la propriété d\'info (doit exister dans l\'info du nœud).',
             regexFilter: 'Motif regex de filtrage.',
+            ifNotFound: 'Que faire si rien ne correspond : « error » (par défaut — le bloc échoue) ou « null » (renvoie null, pour qu\'EXISTS — par ex. dans un FILTER — puisse tester si quelque chose a été trouvé).',
         },
     },
     ENDPOINT_NODE_CURRENT_VALUE: {
@@ -400,6 +409,35 @@ exports.FR = {
         description: 'NON logique : inverse un booléen en entrée.',
         inputs: { value: 'Le booléen à inverser.' },
     },
+    EXISTS: {
+        label: 'Existe',
+        description: 'Renvoie vrai lorsque l\'entrée contient une valeur : faux pour null / undefined, un tableau vide ou une chaîne vide, vrai pour tout le reste (y compris 0 et false). Le prédicat « a-t-on trouvé quelque chose ? » — à associer à une recherche configurée pour renvoyer null au lieu d\'échouer (GET_NODE_PARENT / GET_NODE_CHILD / FIND_NODE avec « ifNotFound » à « null »), par ex. dans un FILTER pour ne garder que les pièces dont un groupe parent s\'appelle « Bureaux ».',
+        inputs: { value: 'La valeur à tester.' },
+    },
+    EQUALS: {
+        label: 'Égal',
+        description: 'Renvoie vrai si ses deux entrées sont égales. Les nombres et chaînes numériques se comparent numériquement (5 égale « 5 »), les nœuds par identifiant, tout le reste comme du texte — activez « ignoreCase » pour ignorer la casse ; null / undefined ne sont égaux qu\'entre eux. Pour comparer à une valeur fixe, utilisez EQUALS_PARAM.',
+        inputs: { a: 'Première valeur.', b: 'Seconde valeur.' },
+        parameters: { ignoreCase: 'Comparer le texte sans tenir compte de la casse (par défaut false).' },
+    },
+    EQUALS_PARAM: {
+        label: 'Égal à (valeur)',
+        description: 'Renvoie vrai si l\'entrée est égale au paramètre « expected », selon les règles de EQUALS (numérique si les deux sont des nombres, nœuds par identifiant, sinon texte ; « ignoreCase » optionnel). Le prédicat habituel après GET_NODE_INFO — par ex. type égal à « geographicRoom ».',
+        inputs: { value: 'La valeur à comparer.' },
+        parameters: {
+            expected: 'La valeur de référence.',
+            ignoreCase: 'Comparer le texte sans tenir compte de la casse (par défaut false).',
+        },
+    },
+    MATCHES_REGEX: {
+        label: 'Correspond à une regex',
+        description: 'Renvoie vrai si le texte en entrée correspond à l\'expression régulière « pattern » (« flags » optionnels, par ex. « i » pour ignorer la casse). Les nombres et booléens sont testés comme du texte ; null / undefined ne correspondent jamais. Pour un nœud, lisez d\'abord le champ à tester avec GET_NODE_INFO.',
+        inputs: { text: 'Le texte à tester.' },
+        parameters: {
+            pattern: 'L\'expression régulière, par ex. « ^Bureau ».',
+            flags: 'Options de regex optionnelles, par ex. « i ».',
+        },
+    },
     // ── conversion ──
     PARSE_NUMBER: {
         label: 'Convertir en nombre',
@@ -515,6 +553,11 @@ exports.FR = {
         label: 'Taille de la liste',
         description: 'Renvoie la taille d\'un tableau JSON.',
         inputs: { list: 'Le tableau JSON (chaîne JSON) sur lequel opérer.' },
+    },
+    COUNT: {
+        label: 'Compter',
+        description: 'Renvoie le nombre d\'éléments de l\'entrée : la taille d\'un tableau de valeurs quelconques (par ex. les nœuds issus de GET_NODE_CHILDREN ou FILTER_NODE) ou d\'une chaîne JSON de tableau, 0 pour null / undefined, 1 pour toute autre valeur simple ; avec plusieurs entrées câblées, le nombre d\'entrées. À associer à GREATER_THAN pour des prédicats comme « a au moins un enfant ». Contrairement à LIST_LENGTH, ne nécessite pas de chaîne JSON.',
+        inputs: { values: 'Le tableau (ou la valeur) à compter.' },
     },
     LIST_INCLUDES: {
         label: 'La liste contient',

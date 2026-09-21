@@ -9,7 +9,8 @@
     "build": "rm -fr dist declarations && tsc",
     "rm-spinal-deps": "rm -fr node_modules/spinal-*",
     "docs": "typedoc --out ./docs/code ./src",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "pretest": "npm run build",
+    "test": "node --test test/*.test.js"
   },
   "repository": {
     "type": "git",

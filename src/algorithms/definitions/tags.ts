@@ -21,6 +21,10 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   AND: ['boolean', 'logic'],
   OR: ['boolean', 'logic'],
   NOT: ['boolean', 'logic'],
+  EXISTS: ['boolean', 'predicate', 'null', 'empty', 'filter'],
+  EQUALS: ['boolean', 'comparison', 'predicate', 'equality'],
+  EQUALS_PARAM: ['boolean', 'comparison', 'predicate', 'equality'],
+  MATCHES_REGEX: ['boolean', 'string', 'regex', 'predicate', 'match', 'filter'],
 
   // ── conversion ──
   PARSE_NUMBER: ['conversion', 'number', 'cast'],
@@ -45,6 +49,7 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   LIST_CONCAT: ['list', 'json'],
   LIST_GET: ['list', 'json', 'read', 'access'],
   LIST_LENGTH: ['list', 'json', 'aggregation'],
+  COUNT: ['list', 'array', 'aggregation', 'length', 'predicate'],
   LIST_INCLUDES: ['list', 'json', 'search'],
   LIST_INDEX_OF: ['list', 'json', 'search'],
   LIST_SLICE: ['list', 'json'],
@@ -57,6 +62,7 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   MERGE_NODES: ['node', 'graph', 'list', 'merge', 'aggregation'],
   GET_CONTEXT: ['node', 'graph', 'context'],
   GET_NODE_SERVER_ID: ['node', 'graph', 'read'],
+  GET_NODE_INFO: ['node', 'graph', 'read', 'info', 'name', 'type', 'predicate'],
   SET_NODE_INFO: ['node', 'graph', 'write', 'info', 'mutation'],
   SET_NODE_INFO_PARAM: ['node', 'graph', 'write', 'info', 'mutation'],
   GET_NODE_CHILDREN: ['node', 'graph', 'traversal', 'children'],

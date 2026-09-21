@@ -33,6 +33,22 @@ const findNodeByProperty = (nodes, propName, regex) => nodes.find((node) => {
     const value = infoProp.get();
     return typeof value === 'string' && regex.test(value);
 });
+/** The "ifNotFound" parameter of the lookups: fail the block (default) or return null. */
+const NOT_FOUND_PARAM = {
+    name: 'ifNotFound',
+    type: 'string',
+    description: 'What to do when nothing matches: "error" (default — the block fails) or "null" (return null, so ' +
+        'EXISTS — e.g. inside a FILTER — can test whether something was found).',
+    required: false,
+};
+const resolveNotFoundPolicy = (raw, blockName) => {
+    if (raw === undefined || raw === null || raw === '')
+        return 'error';
+    const policy = String(raw).trim().toLowerCase();
+    if (policy === 'error' || policy === 'null')
+        return policy;
+    throw new Error(`${blockName}: "ifNotFound" must be "error" or "null", got ${JSON.stringify(raw)}`);
+};
 /**
  * Info keys that must not be overwritten: `id` is the node's identity and the key
  * SpinalGraphService indexes nodes by — changing it would desync the registry and
@@ -243,10 +259,40 @@ exports.NODE_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'GET_NODE_INFO',
+        description: 'Reads one field of a node\'s info: "name" (default), "type", "id", "server_id" or any other ' +
+            'info key. Returns the plain value (string / number / boolean), or null when the key is absent. ' +
+            'The usual first step of a predicate on a node — e.g. GET_NODE_INFO "type" → EQUALS_PARAM ' +
+            '"geographicRoom", or GET_NODE_INFO "name" → MATCHES_REGEX "^Bureau".',
+        inputs: [
+            { name: 'node', types: ['SpinalNode'], description: 'The node to read.', required: true },
+        ],
+        outputType: 'any',
+        parameters: [
+            { name: 'property', type: 'string', description: 'Info key to read (default "name").', required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            var _a, _b;
+            if (!isSpinalNode(input))
+                throw new Error('GET_NODE_INFO expects a SpinalNode input');
+            const property = typeof (params === null || params === void 0 ? void 0 : params.property) === 'string' && params.property.trim() !== ''
+                ? params.property.trim()
+                : 'name';
+            if (property === 'server_id')
+                return ((_a = input._server_id) !== null && _a !== void 0 ? _a : null);
+            const raw = (_b = input.info) === null || _b === void 0 ? void 0 : _b[property];
+            if (raw === undefined || raw === null)
+                return null;
+            const value = typeof (raw === null || raw === void 0 ? void 0 : raw.get) === 'function' ? raw.get() : raw;
+            return (value === undefined ? null : value);
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'GET_NODE_CHILD',
         description: 'Shortcut for GET_NODE_CHILDREN + FIND_NODE: returns the first child of the input node whose ' +
             'property matches a regex. The optional "regex" limits which relations are traversed; ' +
-            '"filterProperty" (default "name") and "regexFilter" select the child. Throws if none matches.',
+            '"filterProperty" (default "name") and "regexFilter" select the child. Fails if none matches, ' +
+            'unless "ifNotFound" is "null".',
         inputs: [
             { name: 'node', types: ['SpinalNode'], description: 'The node whose children to search.', required: true },
         ],
@@ -255,6 +301,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'regex', type: 'string', description: 'Optional regex on the relation name to limit which children are traversed.', required: false },
             { name: 'filterProperty', type: 'string', description: 'Info property to match on (default "name").', required: false },
             { name: 'regexFilter', type: 'string', description: 'Regex the property value must match to select the child.', required: true },
+            NOT_FOUND_PARAM,
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!isSpinalNode(input))
@@ -271,6 +318,8 @@ exports.NODE_ALGORITHMS = [
             const children = yield input.getChildren(relationRegex);
             const found = findNodeByProperty(children, propName, regexFilter);
             if (!found) {
+                if (resolveNotFoundPolicy(params === null || params === void 0 ? void 0 : params.ifNotFound, 'GET_NODE_CHILD') === 'null')
+                    return null;
                 throw new Error(`GET_NODE_CHILD: no child found with ${propName} =~ /${rawRegexFilter}/`);
             }
             return found;
@@ -280,7 +329,8 @@ exports.NODE_ALGORITHMS = [
         name: 'GET_NODE_PARENT',
         description: 'Shortcut for GET_NODE_PARENTS + FIND_NODE: returns the first parent of the input node whose ' +
             'property matches a regex. The optional "regex" limits which relations are traversed; ' +
-            '"filterProperty" (default "name") and "regexFilter" select the parent. Throws if none matches.',
+            '"filterProperty" (default "name") and "regexFilter" select the parent. Fails if none matches, ' +
+            'unless "ifNotFound" is "null".',
         inputs: [
             { name: 'node', types: ['SpinalNode'], description: 'The node whose parents to search.', required: true },
         ],
@@ -289,6 +339,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'regex', type: 'string', description: 'Optional regex on the relation name to limit which parents are traversed.', required: false },
             { name: 'filterProperty', type: 'string', description: 'Info property to match on (default "name").', required: false },
             { name: 'regexFilter', type: 'string', description: 'Regex the property value must match to select the parent.', required: true },
+            NOT_FOUND_PARAM,
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!isSpinalNode(input))
@@ -305,6 +356,8 @@ exports.NODE_ALGORITHMS = [
             const parents = yield input.getParents(relationRegex);
             const found = findNodeByProperty(parents, propName, regexFilter);
             if (!found) {
+                if (resolveNotFoundPolicy(params === null || params === void 0 ? void 0 : params.ifNotFound, 'GET_NODE_PARENT') === 'null')
+                    return null;
                 throw new Error(`GET_NODE_PARENT: no parent found with ${propName} =~ /${rawRegexFilter}/`);
             }
             return found;
@@ -351,7 +404,8 @@ exports.NODE_ALGORITHMS = [
     }),
     (0, core_1.createAlgorithm)({
         name: 'FIND_NODE',
-        description: 'Returns the first node matching the specified criteria (like FILTER_NODE but returns a single node).',
+        description: 'Returns the first node matching the specified criteria (like FILTER_NODE but returns a single ' +
+            'node). Fails if none matches, unless "ifNotFound" is "null".',
         inputs: [
             { name: 'nodes', types: ['SpinalNode', 'SpinalNode[]'], description: 'A node or list of nodes to search.', required: true },
         ],
@@ -359,6 +413,7 @@ exports.NODE_ALGORITHMS = [
         parameters: [
             { name: 'filterProperty', type: 'string', description: 'Name of the info property (must be in the info of the node)', required: true },
             { name: 'regexFilter', type: 'string', description: 'Regex pattern to filter by', required: true },
+            NOT_FOUND_PARAM,
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const nodes = isSpinalNode(input)
@@ -385,8 +440,11 @@ exports.NODE_ALGORITHMS = [
                 const info = infoProp.get();
                 return typeof info === 'string' && regexFilter.test(info);
             });
-            if (!found)
+            if (!found) {
+                if (resolveNotFoundPolicy(params === null || params === void 0 ? void 0 : params.ifNotFound, 'FIND_NODE') === 'null')
+                    return null;
                 throw new Error(`No node found matching ${propName} =~ /${rawRegexFilter}/`);
+            }
             return found;
         }),
     }),
@@ -399,10 +457,10 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a;
+            var _c;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
-            const nodeElement = yield ((_a = input.element) === null || _a === void 0 ? void 0 : _a.load());
+            const nodeElement = yield ((_c = input.element) === null || _c === void 0 ? void 0 : _c.load());
             if (!nodeElement)
                 throw new Error('Node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -422,10 +480,10 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
-            var _b;
+            var _d;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
-            const nodeElement = yield ((_b = input.element) === null || _b === void 0 ? void 0 : _b.load());
+            const nodeElement = yield ((_d = input.element) === null || _d === void 0 ? void 0 : _d.load());
             if (!nodeElement)
                 throw new Error('Node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -447,7 +505,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _c;
+            var _e;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
             }
@@ -456,7 +514,7 @@ exports.NODE_ALGORITHMS = [
             if (!isSpinalNode(node)) {
                 throw new Error('SET_ENDPOINT_VALUE: first input must be a SpinalNode');
             }
-            const nodeElement = yield ((_c = node.element) === null || _c === void 0 ? void 0 : _c.load());
+            const nodeElement = yield ((_e = node.element) === null || _e === void 0 ? void 0 : _e.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE: node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -483,7 +541,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _d;
+            var _f;
             if (!isSpinalNode(input)) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM expects a SpinalNode input');
             }
@@ -491,7 +549,7 @@ exports.NODE_ALGORITHMS = [
             if (value === undefined) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM requires a "value" parameter');
             }
-            const nodeElement = yield ((_d = input.element) === null || _d === void 0 ? void 0 : _d.load());
+            const nodeElement = yield ((_f = input.element) === null || _f === void 0 ? void 0 : _f.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE_PARAM: node has no element to load');
             const currentValue = nodeElement.currentValue;

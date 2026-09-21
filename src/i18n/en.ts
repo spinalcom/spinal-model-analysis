@@ -34,6 +34,7 @@ export const EN: LocaleTranslations = {
   MERGE_NODES: { label: 'Merge Nodes' },
   GET_CONTEXT: { label: 'Get Context' },
   GET_NODE_SERVER_ID: { label: 'Node Server ID' },
+  GET_NODE_INFO: { label: 'Node Info' },
   SET_NODE_INFO: { label: 'Set Node Info' },
   SET_NODE_INFO_PARAM: { label: 'Set Node Info (constant)' },
   GET_NODE_CHILDREN: { label: 'Node Children' },
@@ -83,6 +84,10 @@ export const EN: LocaleTranslations = {
   AND: { label: 'And' },
   OR: { label: 'Or' },
   NOT: { label: 'Not' },
+  EXISTS: { label: 'Exists' },
+  EQUALS: { label: 'Equals' },
+  EQUALS_PARAM: { label: 'Equals (value)' },
+  MATCHES_REGEX: { label: 'Matches Regex' },
 
   // ── conversion ──
   PARSE_NUMBER: { label: 'Parse Number' },
@@ -109,6 +114,7 @@ export const EN: LocaleTranslations = {
   LIST_CONCAT: { label: 'List Concat' },
   LIST_GET: { label: 'List Get' },
   LIST_LENGTH: { label: 'List Length' },
+  COUNT: { label: 'Count' },
   LIST_INCLUDES: { label: 'List Includes' },
   LIST_INDEX_OF: { label: 'List Index Of' },
   LIST_SLICE: { label: 'List Slice' },
