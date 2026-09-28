@@ -5,6 +5,16 @@ const UPDATE_DIRECT_MODIFICATION_DATE_FR =
   'Si vrai, met aussi à jour node.info.directModificationDate avec l\'heure courante lors ' +
   'de la modification, afin que le BOS puisse détecter la modification directe (par défaut : faux).';
 
+/** Descriptions françaises partagées des paramètres de lien de CREATE_NODE / LINK_NODES. */
+const RELATION_NAME_FR = 'Nom de la relation du parent vers l\'enfant, par ex. « hasCustomNode » (correspondance exacte).';
+const RELATION_TYPE_FR =
+  'PtrLst, LstPtr ou Ref. Laissez vide pour reprendre le type que le parent utilise déjà pour cette relation (sinon PtrLst).';
+const CONTEXT_NAME_FR =
+  'Contexte dans lequel enregistrer le lien (par ex. « Spatial »), pour que l\'enfant apparaisse dans ' +
+  'l\'arborescence de ce contexte dans le BOS. Laissez vide pour un lien simple, hors de tout contexte. Le ' +
+  'parent doit être ce contexte ou lui appartenir. Un enfant déjà lié se voit ajouter le contexte sur son lien ' +
+  'existant.';
+
 /**
  * French translations for algorithm metadata, keyed by the stable algorithm name.
  *
@@ -242,6 +252,35 @@ export const FR: LocaleTranslations = {
     parameters: {
       value: 'La valeur à affecter (chaîne, nombre ou booléen).',
       updateDirectModificationDate: UPDATE_DIRECT_MODIFICATION_DATE_FR,
+    },
+  },
+  CREATE_NODE: {
+    label: 'Créer un nœud',
+    description: 'Crée un nœud et le lie sous un nœud parent — un nœud qui n\'est lié à rien dans le graphe n\'est jamais sauvegardé, la création l\'attache donc toujours. Indiquez son « name » (ou câblez un nom dynamique, par ex. depuis FORMAT_STRING), son « type », et la relation « relationName » du parent vers lui. Les analytiques se ré-exécutent à chaque déclenchement : par défaut, un enfant de même nom et de même type déjà présent sous cette relation est réutilisé au lieu de créer un doublon (voir « ifExists »). Renseignez « contextName » pour enregistrer le lien dans un contexte, afin que le nœud apparaisse dans l\'arborescence de ce contexte dans le BOS ; laissez-le vide pour un lien simple. Renvoie le nœud — nouveau ou réutilisé — pour enchaîner (SET_NODE_INFO_PARAM, SET_ATTRIBUTE_PARAM, LINK_NODES, …).',
+    inputs: {
+      parent: 'Le nœud sous lequel le nouveau nœud est lié.',
+      name: 'Nom dynamique optionnel ; lorsqu\'il est câblé, il remplace le paramètre « name ».',
+    },
+    parameters: {
+      name: 'Nom du nœud (sauf si l\'entrée de nom est câblée).',
+      type: 'Type du nœud, par ex. « geographicRoomGroup » ou un type personnalisé.',
+      relationName: RELATION_NAME_FR,
+      relationType: RELATION_TYPE_FR,
+      contextName: CONTEXT_NAME_FR,
+      ifExists: 'Si un enfant de même nom et de même type existe déjà sous la relation : « reuse » (par défaut — le renvoyer), « error » (échouer) ou « allow » (en créer un autre malgré tout).',
+    },
+  },
+  LINK_NODES: {
+    label: 'Lier des nœuds',
+    description: 'Lie un nœud enfant — ou chaque nœud d\'une liste — sous un nœud parent via la relation « relationName » (par ex. placer dans un groupe les pièces retenues par un FILTER). Idempotent : un enfant déjà lié par cette relation n\'est pas lié à nouveau, ré-exécuter l\'analytique n\'échoue donc jamais et ne crée pas de doublon. Renseignez « contextName » pour enregistrer les liens dans un contexte, afin que les enfants apparaissent dans son arborescence dans le BOS ; laissez-le vide pour des liens simples. Refuse de lier un nœud à lui-même, ou sous son propre enfant via la même relation (un cycle). Prend 2 entrées : [parent, enfant(s)] ; renvoie l\'entrée enfant inchangée, pour enchaîner.',
+    inputs: {
+      parent: 'Le nœud sous lequel lier.',
+      child: 'Le nœud, ou la liste de nœuds, à lier sous le parent.',
+    },
+    parameters: {
+      relationName: RELATION_NAME_FR,
+      relationType: RELATION_TYPE_FR,
+      contextName: CONTEXT_NAME_FR,
     },
   },
 

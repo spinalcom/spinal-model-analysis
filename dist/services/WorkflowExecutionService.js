@@ -325,6 +325,7 @@ class WorkflowExecutionService {
             const algContext = {
                 selfNode: context.workNode,
                 execution: context.execution,
+                inputCount: inputs.length,
             };
             let output;
             try {

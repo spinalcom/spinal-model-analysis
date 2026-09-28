@@ -55,6 +55,13 @@ export interface ExecutionMetadata {
 export interface AlgorithmRunContext {
   selfNode?: SpinalNode<any>;
   execution?: ExecutionMetadata;
+  /**
+   * How many inputs are wired to the block. One wired input that holds an array and several
+   * wired inputs both reach run() as an array; a multi-input algorithm that must tell them
+   * apart (e.g. LINK_NODES: [parent, child] vs a lone node list) reads this. Set by the DAG
+   * executor; absent when run() is called directly.
+   */
+  inputCount?: number;
 }
 
 export type AlgorithmInputs = IAlgorithmInput[];

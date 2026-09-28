@@ -1,11 +1,20 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { SpinalNode, SpinalGraphService } from 'spinal-env-viewer-graph-service';
+import {
+  SpinalNode,
+  SpinalGraphService,
+  SpinalContext,
+  SPINAL_RELATION_PTR_LST_TYPE,
+  SPINAL_RELATION_LST_PTR_TYPE,
+  SPINAL_RELATION_TYPE,
+} from 'spinal-env-viewer-graph-service';
 import {
   AlgorithmDefinition,
+  AlgorithmParams,
   AlgorithmRunResult,
   createAlgorithm,
 } from './core';
 import { parseValue, resolveBooleanFlag, touchDirectModificationDate } from '../../services/utils';
+import { withKeyLock } from '../../services/concurrency';
 
 /** Shared description for the updateDirectModificationDate parameter of the endpoint setters. */
 const UPDATE_DIRECT_MODIFICATION_DATE_DESC =
@@ -52,6 +61,152 @@ const resolveNotFoundPolicy = (raw: unknown, blockName: string): 'error' | 'null
   const policy = String(raw).trim().toLowerCase();
   if (policy === 'error' || policy === 'null') return policy;
   throw new Error(`${blockName}: "ifNotFound" must be "error" or "null", got ${JSON.stringify(raw)}`);
+};
+
+// ── Graph writes (CREATE_NODE / LINK_NODES) ──────────────────────────────────
+
+/** The relation types a link can use, as the graph library names them. */
+const RELATION_TYPES: string[] = [SPINAL_RELATION_PTR_LST_TYPE, SPINAL_RELATION_LST_PTR_TYPE, SPINAL_RELATION_TYPE];
+
+const RELATION_NAME_PARAM = {
+  name: 'relationName',
+  type: 'string',
+  description: 'Name of the relation from the parent to the child, e.g. "hasCustomNode" (matched exactly).',
+  required: true,
+};
+
+const RELATION_TYPE_PARAM = {
+  name: 'relationType',
+  type: 'string',
+  description: 'PtrLst, LstPtr or Ref. Leave empty to use the type the parent already has for this relation (else PtrLst).',
+  required: false,
+};
+
+const CONTEXT_NAME_PARAM = {
+  name: 'contextName',
+  type: 'string',
+  description:
+    'Context to register the link in (e.g. "Spatial"), so the child shows in that context\'s tree in the BOS. ' +
+    'Leave empty for a plain link outside any context. The parent must be that context or belong to it. ' +
+    'A child that is already linked gets the context added to its existing link.',
+  required: false,
+};
+
+const nodeLabel = (node: SpinalNode<any>): string => `"${node.getName().get()}"`;
+
+const requireRelationName = (params: AlgorithmParams | undefined, blockName: string): string => {
+  const relationName = typeof params?.relationName === 'string' ? params.relationName.trim() : '';
+  if (!relationName) {
+    throw new Error(`${blockName} requires a non-empty "relationName" parameter (e.g. "hasCustomNode")`);
+  }
+  return relationName;
+};
+
+/**
+ * The relation type to link with. By default the type the parent already uses for this relation
+ * name, else PtrLst. An explicit type must not contradict an existing relation of the same name:
+ * that would silently start a second, parallel relation instead of adding to the existing one.
+ */
+const resolveRelationType = (
+  parent: SpinalNode<any>,
+  relationName: string,
+  raw: unknown,
+  blockName: string
+): string => {
+  const existing = RELATION_TYPES.filter((type) => parent.hasRelation(relationName, type));
+  if (raw === undefined || raw === null || String(raw).trim() === '') {
+    return existing[0] ?? SPINAL_RELATION_PTR_LST_TYPE;
+  }
+  const requested = RELATION_TYPES.find((type) => type.toLowerCase() === String(raw).trim().toLowerCase());
+  if (!requested) {
+    throw new Error(`${blockName}: "relationType" must be one of ${RELATION_TYPES.join(', ')}, got ${JSON.stringify(raw)}`);
+  }
+  if (existing.length > 0 && !existing.includes(requested)) {
+    throw new Error(
+      `${blockName}: relation "${relationName}" already exists on ${nodeLabel(parent)} as ${existing.join(' / ')} — ` +
+      `use that "relationType" (or leave it empty) instead of ${requested}`
+    );
+  }
+  return requested;
+};
+
+const contextLabel = (contextId: string): string => {
+  const context = SpinalGraphService.getRealNode(contextId);
+  return context ? nodeLabel(context) : contextId;
+};
+
+/**
+ * The context to register a link in — the caller's choice, as in the graph library itself (addChild
+ * vs addChildInContext): no "contextName" → a plain link outside any context; a name → the link is
+ * registered in that context, so the child shows in its tree in the BOS. That tree is walked from
+ * the context through links registered in it, so the parent must be the context or belong to it —
+ * otherwise the child would be saved but never shown there.
+ */
+const resolveLinkContext = (
+  parent: SpinalNode<any>,
+  raw: unknown,
+  blockName: string
+): SpinalContext<any> | undefined => {
+  const contextName = typeof raw === 'string' ? raw.trim() : '';
+  if (!contextName) return undefined;
+
+  const context = SpinalGraphService.getContext(contextName);
+  if (!context) throw new Error(`${blockName}: no context named "${contextName}" is loaded`);
+  const contextId = context.getId().get();
+  const parentContextIds: string[] = parent.getContextIds();
+  if (parent.getId().get() !== contextId && !parentContextIds.includes(contextId)) {
+    throw new Error(
+      `${blockName}: ${nodeLabel(parent)} does not belong to context "${contextName}", so the link would not ` +
+      `be visible in it. Its contexts: ${parentContextIds.map(contextLabel).join(', ') || 'none'}`
+    );
+  }
+  return context;
+};
+
+/**
+ * Registers an EXISTING link in `context`. A context tree shows a child only when both the relation
+ * holding it and the child carry the context id; setting both makes a context chosen after the link
+ * was first made (e.g. on a later run) apply to it too. addContextId is idempotent on both.
+ */
+const ensureLinkInContext = (
+  parent: SpinalNode<any>,
+  child: SpinalNode<any>,
+  relationName: string,
+  context: SpinalContext<any>
+): void => {
+  const contextId = context.getId().get();
+  const childId = child.getId().get();
+  child.addContextId(contextId);
+  for (const type of RELATION_TYPES) {
+    if (!parent.hasRelation(relationName, type)) continue;
+    // Same relation object addChildInContext tags; not part of SpinalNode's public typings.
+    const relation = (parent as any)._getRelation(relationName, type);
+    if (relation.getChildrenIds().includes(childId)) relation.addContextId(contextId);
+  }
+};
+
+/** Whether `childId` is already a child of `parent` through `relationName` (any relation type). */
+const isLinked = async (parent: SpinalNode<any>, childId: string, relationName: string): Promise<boolean> =>
+  (await parent.getChildren(relationName)).some((node) => node.getId().get() === childId);
+
+/** Links `child` under `parent`, inside `context` when there is one (see resolveLinkContext). */
+const addLink = async (
+  parent: SpinalNode<any>,
+  child: SpinalNode<any>,
+  relationName: string,
+  relationType: string,
+  context: SpinalContext<any> | undefined
+): Promise<void> => {
+  if (context) await parent.addChildInContext(child, relationName, relationType, context);
+  else await parent.addChild(child, relationName, relationType);
+};
+
+/** The "ifExists" parameter of CREATE_NODE. */
+const resolveIfExists = (raw: unknown): 'reuse' | 'error' | 'allow' => {
+  if (raw === undefined || raw === null || raw === '') return 'reuse';
+  const policy = String(raw).trim().toLowerCase();
+  if (policy === 'reuse' || policy === 'error' || policy === 'allow') return policy;
+  throw new Error(`CREATE_NODE: "ifExists" must be "reuse", "error" or "allow", got ${JSON.stringify(raw)}`);
 };
 
 /**
@@ -567,6 +722,151 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
         touchDirectModificationDate(input);
       }
       return value as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'CREATE_NODE',
+    description:
+      'Creates a node and links it under a parent node — a node that is not linked into the graph is ' +
+      'never saved, so creation always attaches it. Give its "name" (or wire a dynamic name, e.g. from ' +
+      'FORMAT_STRING), its "type", and the "relationName" from the parent to it. Analytics run again on ' +
+      'every trigger, so by default a child with the same name and type already under that relation is ' +
+      'reused instead of creating a duplicate (see "ifExists"). Set "contextName" to register the link in a ' +
+      'context, so the node shows in that context\'s tree in the BOS; leave it empty for a plain link. Returns ' +
+      'the node — new or reused — for chaining (SET_NODE_INFO_PARAM, SET_ATTRIBUTE_PARAM, LINK_NODES, …).',
+    inputs: [
+      { name: 'parent', types: ['SpinalNode'], description: 'The node the new node is linked under.', required: true },
+      { name: 'name', types: ['string', 'number'], description: 'Optional dynamic name; when wired, it overrides the "name" parameter.', required: false },
+    ],
+    outputType: 'SpinalNode',
+    parameters: [
+      { name: 'name', type: 'string', description: 'Name of the node (unless the name input is wired).', required: false },
+      { name: 'type', type: 'string', description: 'Type of the node, e.g. "geographicRoomGroup" or a custom type.', required: true },
+      RELATION_NAME_PARAM,
+      RELATION_TYPE_PARAM,
+      CONTEXT_NAME_PARAM,
+      {
+        name: 'ifExists',
+        type: 'string',
+        description:
+          'When a child with the same name and type already exists under the relation: "reuse" (default — ' +
+          'return it), "error" (fail), or "allow" (create another one anyway).',
+        required: false,
+      },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      // One wired input → the parent itself; with the name input wired too → [parent, name]. A name
+      // is never a node, which is what tells the two apart from a list of nodes wired as the parent.
+      const [parentInput, dynamicName]: unknown[] =
+        Array.isArray(input) && input.length === 2 && isSpinalNode(input[0]) && !isSpinalNode(input[1])
+          ? (input as unknown[])
+          : [input];
+      if (isNodeArray(parentInput)) {
+        throw new Error('CREATE_NODE expects ONE parent node, got a list — wrap it in a FOREACH to create one node per parent');
+      }
+      if (!isSpinalNode(parentInput)) throw new Error('CREATE_NODE expects a SpinalNode parent');
+      const parent: SpinalNode<any> = parentInput;
+
+      const name = [dynamicName, params?.name]
+        .map((value) => (typeof value === 'string' || typeof value === 'number' ? String(value).trim() : ''))
+        .find((value) => value.length > 0);
+      if (!name) throw new Error('CREATE_NODE needs a name: set the "name" parameter or wire the name input');
+      const type = typeof params?.type === 'string' ? params.type.trim() : '';
+      if (!type) throw new Error('CREATE_NODE requires a non-empty "type" parameter');
+      const ifExists = resolveIfExists(params?.ifExists);
+
+      // Everything that can fail is resolved before anything is created.
+      const relationName = requireRelationName(params, 'CREATE_NODE');
+      const relationType = resolveRelationType(parent, relationName, params?.relationType, 'CREATE_NODE');
+      const context = resolveLinkContext(parent, params?.contextName, 'CREATE_NODE');
+
+      const create = async (): Promise<SpinalNode<any>> => {
+        const node = SpinalGraphService.getRealNode(SpinalGraphService.createNode({ name, type }, undefined));
+        await addLink(parent, node, relationName, relationType, context);
+        return node;
+      };
+      if (ifExists === 'allow') return create();
+
+      // Get-or-create, serialized per (parent, relation, type, name) so parallel FOREACH
+      // iterations cannot both miss the lookup and create the node twice.
+      return withKeyLock(`create|${parent.getId().get()}|${relationName}|${type}|${name}`, async () => {
+        const existing = (await parent.getChildren(relationName))
+          .find((child) => child.getName().get() === name && child.getType().get() === type);
+        if (!existing) return create();
+        if (ifExists === 'error') {
+          throw new Error(`CREATE_NODE: ${nodeLabel(parent)} already has a "${type}" named "${name}" under "${relationName}"`);
+        }
+        if (context) ensureLinkInContext(parent, existing, relationName, context);
+        return existing;
+      });
+    },
+  }),
+
+  createAlgorithm({
+    name: 'LINK_NODES',
+    description:
+      'Links a child node — or every node of a list — under a parent node through the "relationName" ' +
+      'relation (e.g. put the rooms kept by a FILTER into a group). Idempotent: a child already linked ' +
+      'under that relation is not linked again, so re-running the analytic never fails or duplicates. Set ' +
+      '"contextName" to register the links in a context, so the children show in its tree in the BOS; leave ' +
+      'it empty for plain links. Refuses to link a node to itself, or under its own child through the same ' +
+      'relation (a cycle). Takes 2 inputs: [parent, child(ren)]; returns the child input unchanged, for chaining.',
+    inputs: [
+      { name: 'parent', types: ['SpinalNode'], description: 'The node to link under.', required: true },
+      { name: 'child', types: ['SpinalNode', 'SpinalNode[]'], description: 'The node, or list of nodes, to link under the parent.', required: true },
+    ],
+    outputType: 'any',
+    parameters: [RELATION_NAME_PARAM, RELATION_TYPE_PARAM, CONTEXT_NAME_PARAM],
+    run: async (input, params, context): AlgorithmRunResult => {
+      // A lone list of two nodes wired as the parent would look exactly like [parent, child];
+      // the executor's wired-input count tells them apart.
+      const wired = context?.inputCount;
+      if ((wired !== undefined && wired !== 2) || !Array.isArray(input) || input.length !== 2) {
+        throw new Error('LINK_NODES expects 2 inputs: [parent, child(ren)] — wire both the parent and the child');
+      }
+      const [parentInput, childInput] = input as unknown[];
+      if (!isSpinalNode(parentInput)) throw new Error('LINK_NODES expects a SpinalNode parent');
+      const parent: SpinalNode<any> = parentInput;
+      const children: SpinalNode<any>[] = isSpinalNode(childInput)
+        ? [childInput]
+        : isNodeArray(childInput)
+          ? childInput
+          : (() => {
+            throw new Error('LINK_NODES expects a SpinalNode or a list of SpinalNodes as the child');
+          })();
+
+      const relationName = requireRelationName(params, 'LINK_NODES');
+      const parentId = parent.getId().get();
+
+      // Structural errors first — they are the real problem whatever the relation / context settings.
+      for (const child of children) {
+        if (child.getId().get() === parentId) throw new Error(`LINK_NODES: cannot link ${nodeLabel(parent)} to itself`);
+        if (await isLinked(child, parentId, relationName)) {
+          throw new Error(
+            `LINK_NODES: ${nodeLabel(child)} is already the parent of ${nodeLabel(parent)} through ` +
+            `"${relationName}" — linking it the other way would create a cycle`
+          );
+        }
+      }
+
+      const relationType = resolveRelationType(parent, relationName, params?.relationType, 'LINK_NODES');
+      const linkContext = resolveLinkContext(parent, params?.contextName, 'LINK_NODES');
+
+      for (const child of children) {
+        const childId = child.getId().get();
+        // Check-then-link, serialized per (parent, relation, child). Unserialized, parallel links of
+        // the same child all pass the library's own duplicate check (the id is only recorded after an
+        // await) and the relation silently ends up holding the child several times.
+        await withKeyLock(`link|${parentId}|${relationName}|${childId}`, async () => {
+          if (await isLinked(parent, childId, relationName)) {
+            if (linkContext) ensureLinkInContext(parent, child, relationName, linkContext);
+            return;
+          }
+          await addLink(parent, child, relationName, relationType, linkContext);
+        });
+      }
+      return childInput as any;
     },
   }),
 ];

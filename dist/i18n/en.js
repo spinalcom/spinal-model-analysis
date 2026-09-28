@@ -47,6 +47,8 @@ exports.EN = {
     ENDPOINT_NODE_CURRENT_VALUE_MODEL: { label: 'Endpoint Current Value (Model)' },
     SET_ENDPOINT_VALUE: { label: 'Set Endpoint Value' },
     SET_ENDPOINT_VALUE_PARAM: { label: 'Set Endpoint Value (constant)' },
+    CREATE_NODE: { label: 'Create Node' },
+    LINK_NODES: { label: 'Link Nodes' },
     // ── node attributes ──
     GET_ATTRIBUTE: { label: 'Get Attribute' },
     SET_ATTRIBUTE: { label: 'Set Attribute' },

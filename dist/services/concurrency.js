@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.normalizeForeachConcurrency = exports.runWithConcurrency = void 0;
+exports.normalizeForeachConcurrency = exports.withKeyLock = exports.runWithConcurrency = void 0;
 const analysisNode_1 = require("../constants/analysisNode");
 /**
  * Shared concurrency primitives, used both for dispatching an analysis across its work
@@ -58,6 +58,36 @@ function runWithConcurrency(items, concurrency, task) {
     });
 }
 exports.runWithConcurrency = runWithConcurrency;
+/** Tail of the queue of tasks per key (see withKeyLock). */
+const keyedTails = new Map();
+/**
+ * Runs `task` once every earlier task with the same `key` has settled (in this process), so
+ * tasks sharing a key never interleave. Needed wherever a check-then-write must be atomic while
+ * FOREACH iterations run in parallel — e.g. get-or-create a node: two iterations could otherwise
+ * both see "missing" and both create it. Tasks with different keys still run concurrently.
+ */
+function withKeyLock(key, task) {
+    var _a;
+    return __awaiter(this, void 0, void 0, function* () {
+        const previous = (_a = keyedTails.get(key)) !== null && _a !== void 0 ? _a : Promise.resolve();
+        let release;
+        const mine = new Promise((resolve) => {
+            release = resolve;
+        });
+        const tail = previous.then(() => mine);
+        keyedTails.set(key, tail);
+        yield previous;
+        try {
+            return yield task();
+        }
+        finally {
+            release();
+            if (keyedTails.get(key) === tail)
+                keyedTails.delete(key);
+        }
+    });
+}
+exports.withKeyLock = withKeyLock;
 /**
  * Normalizes a FOREACH block's (possibly absent / partial) concurrency config into a
  * complete `{ mode, limit }`. Unlike the analysis-level default (BOUNDED), a FOREACH with

@@ -75,6 +75,8 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   ENDPOINT_NODE_CURRENT_VALUE_MODEL: ['node', 'endpoint', 'read', 'model', 'cov'],
   SET_ENDPOINT_VALUE: ['node', 'endpoint', 'write', 'io', 'value'],
   SET_ENDPOINT_VALUE_PARAM: ['node', 'endpoint', 'write', 'io', 'value'],
+  CREATE_NODE: ['node', 'graph', 'write', 'create', 'relation', 'mutation'],
+  LINK_NODES: ['node', 'graph', 'write', 'relation', 'link', 'mutation'],
 
   // ── node.attributes ──
   GET_ATTRIBUTE: ['node', 'attribute', 'read'],

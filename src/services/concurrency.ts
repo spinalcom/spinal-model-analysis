@@ -55,6 +55,32 @@ export async function runWithConcurrency<T, R>(
   return results;
 }
 
+/** Tail of the queue of tasks per key (see withKeyLock). */
+const keyedTails = new Map<string, Promise<void>>();
+
+/**
+ * Runs `task` once every earlier task with the same `key` has settled (in this process), so
+ * tasks sharing a key never interleave. Needed wherever a check-then-write must be atomic while
+ * FOREACH iterations run in parallel — e.g. get-or-create a node: two iterations could otherwise
+ * both see "missing" and both create it. Tasks with different keys still run concurrently.
+ */
+export async function withKeyLock<T>(key: string, task: () => Promise<T>): Promise<T> {
+  const previous = keyedTails.get(key) ?? Promise.resolve();
+  let release!: () => void;
+  const mine = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const tail = previous.then(() => mine);
+  keyedTails.set(key, tail);
+  await previous;
+  try {
+    return await task();
+  } finally {
+    release();
+    if (keyedTails.get(key) === tail) keyedTails.delete(key);
+  }
+}
+
 /**
  * Normalizes a FOREACH block's (possibly absent / partial) concurrency config into a
  * complete `{ mode, limit }`. Unlike the analysis-level default (BOUNDED), a FOREACH with

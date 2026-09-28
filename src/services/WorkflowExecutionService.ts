@@ -432,6 +432,7 @@ export default class WorkflowExecutionService {
         const algContext: AlgorithmRunContext = {
             selfNode: context.workNode,
             execution: context.execution,
+            inputCount: inputs.length,
         };
 
         let output: unknown;

@@ -18,6 +18,13 @@ import { IConcurrencyConfig } from '../interfaces/IAnalysisConfigJSON';
  */
 export declare function runWithConcurrency<T, R>(items: T[], concurrency: Required<IConcurrencyConfig>, task: (item: T, index: number) => Promise<R>): Promise<R[]>;
 /**
+ * Runs `task` once every earlier task with the same `key` has settled (in this process), so
+ * tasks sharing a key never interleave. Needed wherever a check-then-write must be atomic while
+ * FOREACH iterations run in parallel — e.g. get-or-create a node: two iterations could otherwise
+ * both see "missing" and both create it. Tasks with different keys still run concurrently.
+ */
+export declare function withKeyLock<T>(key: string, task: () => Promise<T>): Promise<T>;
+/**
  * Normalizes a FOREACH block's (possibly absent / partial) concurrency config into a
  * complete `{ mode, limit }`. Unlike the analysis-level default (BOUNDED), a FOREACH with
  * no config runs **SEQUENTIAL** — preserving the historical one-at-a-time behavior, so a
