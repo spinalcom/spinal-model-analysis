@@ -808,6 +808,23 @@ exports.FR = {
         inputs: { ticket: 'Le nœud ticket à faire avancer (le type doit être « SpinalSystemServiceTicketTypeTicket »).' },
         parameters: { contextName: 'Nom du contexte de tickets (alias workflow) auquel appartient le ticket.' },
     },
+    // ── mail ──
+    SEND_MAIL: {
+        label: 'Envoyer un mail',
+        description: 'Envoie un e-mail depuis le compte mail de l\'organe — l\'adresse no-reply de l\'entreprise, configurée sur l\'organe, jamais dans l\'analytique. Câblez d\'abord le ou les destinataires (une adresse, une liste séparée par « , » ou « ; », ou une liste d\'adresses — par ex. lue sur un ticket), puis les valeurs à insérer : {0} dans « subject » ou « body » est remplacé par la deuxième entrée câblée, {1} par la troisième, etc. Avec « format » html, le corps est envoyé en HTML et les valeurs insérées sont échappées. Exécuter une analytique depuis le constructeur envoie de vrais mails : activez « dryRun » pour construire le mail sans l\'envoyer. Renvoie { sent, to, subject, messageId }.',
+        inputs: {
+            to: 'Adresse(s) du destinataire : une adresse, une liste séparée par « , » ou « ; », ou une liste d\'adresses.',
+            values: 'Valeurs des emplacements {0}, {1}, … du sujet et du corps, dans l\'ordre de câblage (après le destinataire).',
+        },
+        parameters: {
+            subject: 'Modèle du sujet, par ex. « Ticket {0} : nouvelle étape ».',
+            body: 'Modèle du corps, par ex. « Votre ticket {0} est passé à l\'étape {1}. »',
+            format: '« text » (par défaut) ou « html ».',
+            cc: 'Adresse(s) en copie, optionnelles, séparées par « , » ou « ; ».',
+            bcc: 'Adresse(s) en copie cachée, optionnelles, séparées par « , » ou « ; ».',
+            dryRun: 'Construire le mail sans l\'envoyer (par défaut false) — renvoie ce qui aurait été envoyé.',
+        },
+    },
     // ── excel ──
     LOAD_EXCEL: {
         label: 'Charger un Excel',

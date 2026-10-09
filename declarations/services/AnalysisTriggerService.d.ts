@@ -30,6 +30,19 @@ export interface ICOVBindingResult {
     /** Resolved model value to bind on */
     model: unknown;
 }
+/** A work node (or one of its COV triggers) that could not be bound, and why. */
+export interface ICOVBindingSkip {
+    workNode: SpinalNode<any>;
+    triggerId?: string;
+    /** The register of the trigger that could not be bound; absent when the whole input workflow failed. */
+    inputRegister?: string;
+    reason: string;
+}
+/** What resolveCOVBindings found: the models to bind, and the work nodes it had to skip. */
+export interface ICOVBindingResolution {
+    bindings: ICOVBindingResult[];
+    skipped: ICOVBindingSkip[];
+}
 /**
  * Service responsible for managing trigger configurations on analysis nodes.
  *
@@ -60,16 +73,31 @@ export default class AnalysisTriggerService {
      */
     hasTriggerType(analysisNode: SpinalNode<any>, type: TRIGGER_TYPE): Promise<boolean>;
     /**
-     * Resolves the input register models for COV binding.
-     *
-     * This runs the full pipeline up to (and including) the input workflow
-     * for each work node, then returns the populated input registers.
-     * The orchestrator can then .bind() on the returned model values.
+     * Resolves the input register models for COV binding, for every current work node, and
+     * logs the work nodes it had to skip. Kept for callers that bind once; an organ that keeps
+     * its binds in sync with new work nodes uses resolveCOVWorkNodes + resolveCOVBindings.
      *
      * @param analysisNode - The analysis node
-     * @returns Array of COV binding results (one per work node)
+     * @returns Array of COV binding results (one per work node and COV trigger)
      */
     resolveInputRegistersForBinding(analysisNode: SpinalNode<any>): Promise<ICOVBindingResult[]>;
+    /**
+     * The analysis's CURRENT work nodes: its anchor target run through the worknode resolver.
+     * Cheap compared to resolveCOVBindings (no input workflow), so an organ can call it on every
+     * sync to notice work nodes that appeared or disappeared since it bound them — e.g. tickets
+     * created after the organ started.
+     */
+    resolveCOVWorkNodes(analysisNode: SpinalNode<any>): Promise<SpinalNode<any>[]>;
+    /**
+     * Runs the input workflow on work nodes to get the models their COV triggers bind on: one
+     * binding per (work node, COV trigger). A work node whose input workflow fails, or that does
+     * not produce a trigger's register, is reported in `skipped` (not thrown) — the others still
+     * bind. Nothing is logged: the caller decides how to report skips.
+     *
+     * @param workNodes - Only these work nodes (e.g. the new ones since the last pass); default:
+     *                    all current work nodes (resolveCOVWorkNodes).
+     */
+    resolveCOVBindings(analysisNode: SpinalNode<any>, workNodes?: SpinalNode<any>[]): Promise<ICOVBindingResolution>;
     private resolveWorkNodes;
     private executeInputWorkflow;
     private findLeafBlock;

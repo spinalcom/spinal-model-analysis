@@ -29,6 +29,7 @@ import { HTTP_ALGORITHMS } from './definitions/http.algorithms';
 import { STRING_ALGORITHMS } from './definitions/string.algorithms';
 import { TICKET_ALGORITHMS } from './definitions/ticket.algorithms';
 import { EXCEL_ALGORITHMS } from './definitions/excel.algorithms';
+import { MAIL_ALGORITHMS } from './definitions/mail.algorithms';
 
 export {
   NUMBER_ALGORITHMS,
@@ -45,6 +46,7 @@ export {
   STRING_ALGORITHMS,
   TICKET_ALGORITHMS,
   EXCEL_ALGORITHMS,
+  MAIL_ALGORITHMS,
 };
 
 export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
@@ -62,6 +64,7 @@ export const ALGORITHM_DEFINITIONS: AlgorithmDefinition[] = [
   ...STRING_ALGORITHMS,
   ...TICKET_ALGORITHMS,
   ...EXCEL_ALGORITHMS,
+  ...MAIL_ALGORITHMS,
 ];
 
 export const ALGORITHM_REGISTRY = new AlgorithmRegistry(

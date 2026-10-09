@@ -108,6 +108,8 @@ export type {
 export type {
   IResolvedTrigger,
   ICOVBindingResult,
+  ICOVBindingSkip,
+  ICOVBindingResolution,
 } from './services/AnalysisTriggerService';
 export { TRIGGER_TYPE } from './constants/analysisTrigger';
 
@@ -141,7 +143,8 @@ export {
   TIMESERIES_ALGORITHMS,
   HTTP_ALGORITHMS,
   TICKET_ALGORITHMS,
-  EXCEL_ALGORITHMS
+  EXCEL_ALGORITHMS,
+  MAIL_ALGORITHMS,
 } from './algorithms/algorithms';
 
 export {
@@ -166,6 +169,11 @@ export { ALGORITHM_TAGS } from './algorithms/definitions/tags';
 // the file-backed Excel blocks need. Lets clients/organs report Excel availability without a
 // branch fork (LOAD_EXCEL / SAVE_EXCEL_TO_NODE self-guard at runtime when it returns false).
 export { docServiceSupportsFileApi } from './algorithms/definitions/excel.algorithms';
+
+// Mail (SEND_MAIL): the SMTP account comes from the organ's environment; setMailSender lets an
+// organ deliver another way, or a test capture the mails.
+export { setMailSender } from './services/mailer';
+export type { MailMessage, MailSendResult, MailSender } from './services/mailer';
 
 // Algorithm metadata localization (i18n)
 export {

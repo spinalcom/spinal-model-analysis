@@ -43,6 +43,21 @@ export interface ICOVBindingResult {
     model: unknown;
 }
 
+/** A work node (or one of its COV triggers) that could not be bound, and why. */
+export interface ICOVBindingSkip {
+    workNode: SpinalNode<any>;
+    triggerId?: string;
+    /** The register of the trigger that could not be bound; absent when the whole input workflow failed. */
+    inputRegister?: string;
+    reason: string;
+}
+
+/** What resolveCOVBindings found: the models to bind, and the work nodes it had to skip. */
+export interface ICOVBindingResolution {
+    bindings: ICOVBindingResult[];
+    skipped: ICOVBindingSkip[];
+}
+
 /**
  * Service responsible for managing trigger configurations on analysis nodes.
  *
@@ -123,37 +138,56 @@ export default class AnalysisTriggerService {
     // ─────────────────────────────────────────────────────
 
     /**
-     * Resolves the input register models for COV binding.
-     *
-     * This runs the full pipeline up to (and including) the input workflow
-     * for each work node, then returns the populated input registers.
-     * The orchestrator can then .bind() on the returned model values.
+     * Resolves the input register models for COV binding, for every current work node, and
+     * logs the work nodes it had to skip. Kept for callers that bind once; an organ that keeps
+     * its binds in sync with new work nodes uses resolveCOVWorkNodes + resolveCOVBindings.
      *
      * @param analysisNode - The analysis node
-     * @returns Array of COV binding results (one per work node)
+     * @returns Array of COV binding results (one per work node and COV trigger)
      */
     public async resolveInputRegistersForBinding(
         analysisNode: SpinalNode<any>
     ): Promise<ICOVBindingResult[]> {
-        const triggers = await this.getTriggerConfig(analysisNode);
-        const covTriggers = triggers.filter((t) => t.type === TRIGGER_TYPE.COV);
-        if (covTriggers.length === 0) {
-            return [];
+        const { bindings, skipped } = await this.resolveCOVBindings(analysisNode);
+        for (const skip of skipped) {
+            console.warn(`[AnalysisTrigger] Skipping work node "${skip.workNode.getName().get()}" for COV binding — ${skip.reason}`);
         }
+        return bindings;
+    }
 
-        // Step 1: Resolve anchor target
+    /**
+     * The analysis's CURRENT work nodes: its anchor target run through the worknode resolver.
+     * Cheap compared to resolveCOVBindings (no input workflow), so an organ can call it on every
+     * sync to notice work nodes that appeared or disappeared since it bound them — e.g. tickets
+     * created after the organ started.
+     */
+    public async resolveCOVWorkNodes(analysisNode: SpinalNode<any>): Promise<SpinalNode<any>[]> {
         const anchorNode = await this.nodeManager.getAnalysisAnchorNodeNode(analysisNode);
         const targets = await anchorNode.getChildren(ANCHOR_NODE_TO_LINKED_NODE_RELATION);
         if (targets.length === 0) {
             throw new Error(`Analysis "${analysisNode.getName().get()}" anchor has no linked target node`);
         }
-        const targetNode = targets[0];
+        return this.resolveWorkNodes(analysisNode, targets[0]);
+    }
 
-        // Step 2: Resolve work nodes
-        const workNodes = await this.resolveWorkNodes(analysisNode, targetNode);
+    /**
+     * Runs the input workflow on work nodes to get the models their COV triggers bind on: one
+     * binding per (work node, COV trigger). A work node whose input workflow fails, or that does
+     * not produce a trigger's register, is reported in `skipped` (not thrown) — the others still
+     * bind. Nothing is logged: the caller decides how to report skips.
+     *
+     * @param workNodes - Only these work nodes (e.g. the new ones since the last pass); default:
+     *                    all current work nodes (resolveCOVWorkNodes).
+     */
+    public async resolveCOVBindings(
+        analysisNode: SpinalNode<any>,
+        workNodes?: SpinalNode<any>[]
+    ): Promise<ICOVBindingResolution> {
+        const triggers = await this.getTriggerConfig(analysisNode);
+        const covTriggers = triggers.filter((t) => t.type === TRIGGER_TYPE.COV);
+        if (covTriggers.length === 0) return { bindings: [], skipped: [] };
 
-        // Validate trigger configs up front. A missing inputRegister is a config
-        // error (not work-node specific), so it should fail loudly rather than be skipped.
+        // A missing inputRegister is a config error, not work-node specific: fail loudly.
         for (const trigger of covTriggers) {
             if (!trigger.inputRegister) {
                 throw new Error(
@@ -162,36 +196,34 @@ export default class AnalysisTriggerService {
             }
         }
 
-        // Step 3: For each work node, run input workflow to get register models.
-        // Work nodes that don't have the structure the input workflow expects are
-        // skipped (no COV binding) rather than aborting the whole resolution — this
-        // mirrors how AnalysisExecutionService tolerates per-work-node failures.
-        const results: ICOVBindingResult[] = [];
-        for (const workNode of workNodes) {
+        const nodes = workNodes ?? (await this.resolveCOVWorkNodes(analysisNode));
+        const bindings: ICOVBindingResult[] = [];
+        const skipped: ICOVBindingSkip[] = [];
+        for (const workNode of nodes) {
             let inputRegisters: Map<string, unknown>;
             try {
                 inputRegisters = await this.executeInputWorkflow(analysisNode, workNode);
             } catch (error: any) {
-                const msg = error instanceof Error ? error.message : String(error);
-                console.warn(
-                    `[AnalysisTrigger] Skipping work node "${workNode.getName().get()}" for COV ` +
-                    `binding — input workflow failed: ${msg}`
-                );
+                const message = error instanceof Error ? error.message : String(error);
+                skipped.push({ workNode, reason: `input workflow failed: ${message}` });
                 continue;
             }
 
             for (const trigger of covTriggers) {
                 const register = trigger.inputRegister!;
                 if (!inputRegisters.has(register)) {
-                    console.warn(
-                        `[AnalysisTrigger] Skipping work node "${workNode.getName().get()}" for COV ` +
-                        `trigger${trigger.id ? ` "${trigger.id}"` : ''} — input register "${register}" ` +
-                        `was not produced. Available: [${[...inputRegisters.keys()].join(', ')}]`
-                    );
+                    skipped.push({
+                        workNode,
+                        triggerId: trigger.id,
+                        inputRegister: register,
+                        reason:
+                            `input register "${register}" was not produced` +
+                            `${trigger.id ? ` (trigger "${trigger.id}")` : ''}. ` +
+                            `Available: [${[...inputRegisters.keys()].join(', ')}]`,
+                    });
                     continue;
                 }
-
-                results.push({
+                bindings.push({
                     workNode,
                     triggerId: trigger.id,
                     inputRegister: register,
@@ -200,8 +232,7 @@ export default class AnalysisTriggerService {
                 });
             }
         }
-
-        return results;
+        return { bindings, skipped };
     }
 
     // ─────────────────────────────────────────────────────
@@ -223,7 +254,10 @@ export default class AnalysisTriggerService {
             workNode: targetNode,
             inputRegisters: new Map(),
             blockOutputs: new Map(),
-            execution: this.getDefaultExecutionMetadata(),
+            // The resolver decides WHAT gets bound — fail fast, like AnalysisExecutionService. Under
+            // 'continue' a failing resolver left no output, and the fallback below bound the anchor
+            // target instead of the real work nodes.
+            execution: { ...this.getDefaultExecutionMetadata(), errorPolicy: 'stop' },
         };
 
         await this.executor.executeDAG(dag, context);
@@ -262,7 +296,7 @@ export default class AnalysisTriggerService {
     private findLeafBlock(blocks: any[]): any {
         const dependedOnIds = new Set<string>();
         for (const block of blocks) {
-            for (const depId of block.inputBlockIds) {
+            for (const depId of [...block.inputBlockIds, ...(block.orderBlockIds ?? [])]) {
                 dependedOnIds.add(depId);
             }
         }

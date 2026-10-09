@@ -139,6 +139,8 @@ exports.EN = {
     CREATE_TICKET: { label: 'Create Ticket' },
     GET_TICKETS_FROM_NODE: { label: 'Get Node Tickets' },
     MOVE_TICKET_TO_NEXT_STEP: { label: 'Move Ticket to Next Step' },
+    // ── mail ──
+    SEND_MAIL: { label: 'Send Mail' },
     // ── excel ──
     LOAD_EXCEL: { label: 'Load Excel' },
     GET_EXCEL_VARIABLES: { label: 'Get Excel Variables' },

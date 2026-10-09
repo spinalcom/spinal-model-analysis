@@ -137,6 +137,9 @@ export const ALGORITHM_TAGS: Record<string, readonly string[]> = {
   GET_TICKETS_FROM_NODE: ['ticket', 'read', 'node'],
   MOVE_TICKET_TO_NEXT_STEP: ['ticket', 'write', 'workflow', 'step'],
 
+  // ── mail ──
+  SEND_MAIL: ['mail', 'email', 'notification', 'smtp', 'write', 'io'],
+
   // ── excel ──
   LOAD_EXCEL: ['excel', 'xlsx', 'document', 'file', 'report', 'template', 'read', 'io'],
   GET_EXCEL_VARIABLES: ['excel', 'xlsx', 'report', 'template', 'read'],
