@@ -39,6 +39,7 @@ exports.EN = {
     SET_NODE_INFO_PARAM: { label: 'Set Node Info (constant)' },
     GET_NODE_CHILDREN: { label: 'Node Children' },
     GET_NODE_PARENTS: { label: 'Node Parents' },
+    FIND_IN_CONTEXT: { label: 'Find in Context' },
     GET_NODE_CHILD: { label: 'Find Child Node' },
     GET_NODE_PARENT: { label: 'Find Parent Node' },
     FILTER_NODE: { label: 'Filter Nodes' },

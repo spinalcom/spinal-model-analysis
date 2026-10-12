@@ -32,7 +32,8 @@ export interface MailSendResult {
 export type MailSender = (message: MailMessage) => Promise<MailSendResult>;
 /**
  * Replaces the SMTP transport — for tests, or an organ that delivers mail another way. Call it
- * with no argument to go back to SMTP. Either way the per-minute counter starts fresh.
+ * with no argument to go back to SMTP, rebuilt from the current environment. Either way the
+ * per-minute counter starts fresh.
  */
 export declare function setMailSender(sender?: MailSender): void;
 /** Sends a mail from the organ's account (see the header for the configuration). */

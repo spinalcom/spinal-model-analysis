@@ -33,6 +33,26 @@ const isNodeArray = (value: unknown): value is SpinalNode<any>[] => {
   return Array.isArray(value) && value.every((item) => isSpinalNode(item));
 };
 
+/** A node, or a list of nodes, as a list. */
+const asNodeList = (input: unknown, blockName: string): SpinalNode<any>[] => {
+  if (isSpinalNode(input)) return [input];
+  if (isNodeArray(input)) return input;
+  throw new Error(`${blockName} expects a SpinalNode or a list of SpinalNodes`);
+};
+
+/** Concatenates node lists, keeping the first occurrence of each node (by id). */
+const mergeUnique = (lists: SpinalNode<any>[][]): SpinalNode<any>[] => {
+  const seen = new Set<string>();
+  const merged: SpinalNode<any>[] = [];
+  for (const node of lists.flat()) {
+    const id = node.getId().get();
+    if (seen.has(id)) continue;
+    seen.add(id);
+    merged.push(node);
+  }
+  return merged;
+};
+
 /** Returns the first node whose info[propName] is a string matching the regex (like FIND_NODE). */
 const findNodeByProperty = (
   nodes: SpinalNode<any>[],
@@ -385,9 +405,11 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
   }),
   createAlgorithm({
     name: 'GET_NODE_CHILDREN',
-    description: 'Returns the children of a SpinalNode.',
+    description:
+      'Returns the children of a node — or of every node of a list, merged without duplicates. The optional ' +
+      '"regex" limits which relations are followed (e.g. the tickets of several steps).',
     inputs: [
-      { name: 'node', types: ['SpinalNode'], description: 'The node whose children to return.', required: true },
+      { name: 'node', types: ['SpinalNode', 'SpinalNode[]'], description: 'The node, or list of nodes, whose children to return.', required: true },
     ],
     outputType: 'SpinalNode[]',
     parameters: [
@@ -395,25 +417,91 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
 
     ],
     run: async (input, params): AlgorithmRunResult => {
-      if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
+      const nodes = asNodeList(input, 'GET_NODE_CHILDREN');
       const regex = params?.regex ? new RegExp(String(params.regex)) : undefined;
-      return await input.getChildren(regex);
+      return mergeUnique(await Promise.all(nodes.map((node) => node.getChildren(regex))));
     },
   }),
   createAlgorithm({
     name: 'GET_NODE_PARENTS',
-    description: 'Returns the parents of a SpinalNode.',
+    description:
+      'Returns the parents of a node — or of every node of a list, merged without duplicates. The optional ' +
+      '"regex" limits which relations are followed.',
     inputs: [
-      { name: 'node', types: ['SpinalNode'], description: 'The node whose parents to return.', required: true },
+      { name: 'node', types: ['SpinalNode', 'SpinalNode[]'], description: 'The node, or list of nodes, whose parents to return.', required: true },
     ],
     outputType: 'SpinalNode[]',
     parameters: [
       { name: 'regex', type: 'string', description: 'Regex pattern to relation used to get parent nodes', required: false }
     ],
     run: async (input, params): AlgorithmRunResult => {
-      if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
+      const nodes = asNodeList(input, 'GET_NODE_PARENTS');
       const regex = params?.regex ? new RegExp(String(params.regex)) : undefined;
-      return await input.getParents(regex);
+      return mergeUnique(await Promise.all(nodes.map((node) => node.getParents(regex))));
+    },
+  }),
+  createAlgorithm({
+    name: 'FIND_IN_CONTEXT',
+    description:
+      'Finds every node of a given "type" — and/or whose property matches "regexFilter" — under a start node, ' +
+      'at any depth, following only the relations registered in a context (like SpinalNode.findInContext). ' +
+      'E.g. all the tickets of a ticket context, the steps of a process, the rooms of a building in the ' +
+      'spatial context. The start node itself is not returned; with a list of start nodes the results are ' +
+      'merged without duplicates. Leave "contextName" empty when the start node is the context itself.',
+    inputs: [
+      { name: 'start', types: ['SpinalNode', 'SpinalNode[]'], description: 'Where to search from: the context itself, or a node (or list of nodes) of the context.', required: true },
+    ],
+    outputType: 'SpinalNode[]',
+    parameters: [
+      { name: 'type', type: 'string', description: 'Node type to find, matched exactly (e.g. "SpinalSystemServiceTicketTypeTicket").', required: false },
+      { name: 'filterProperty', type: 'string', description: 'Info property tested by "regexFilter" (default "name").', required: false },
+      { name: 'regexFilter', type: 'string', description: 'Regex the property must match, e.g. "^(?!Terminées$)" for every name except "Terminées".', required: false },
+      { name: 'contextName', type: 'string', description: 'Context to search in. Leave empty when the start node is the context itself.', required: false },
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const starts = asNodeList(input, 'FIND_IN_CONTEXT');
+      const type = typeof params?.type === 'string' ? params.type.trim() : '';
+      const rawRegex = typeof params?.regexFilter === 'string' ? params.regexFilter : '';
+      if (!type && !rawRegex) {
+        throw new Error('FIND_IN_CONTEXT needs a "type" and/or a "regexFilter" (it would otherwise return every node under the start)');
+      }
+      let regex: RegExp | undefined;
+      try {
+        regex = rawRegex ? new RegExp(rawRegex) : undefined;
+      } catch (error) {
+        throw new Error(`FIND_IN_CONTEXT: invalid "regexFilter" /${rawRegex}/: ${error instanceof Error ? error.message : String(error)}`);
+      }
+      const propName = typeof params?.filterProperty === 'string' && params.filterProperty.trim() !== ''
+        ? params.filterProperty.trim()
+        : 'name';
+      const contextName = typeof params?.contextName === 'string' ? params.contextName.trim() : '';
+      const namedContext = contextName ? SpinalGraphService.getContext(contextName) : undefined;
+      if (contextName && !namedContext) throw new Error(`FIND_IN_CONTEXT: no context named "${contextName}" is loaded`);
+
+      const matches = (node: SpinalNode<any>): boolean => {
+        if (type && node.getType().get() !== type) return false;
+        if (!regex) return true;
+        const value: unknown = node.info[propName]?.get?.();
+        return typeof value === 'string' && regex.test(value);
+      };
+
+      const found = await Promise.all(starts.map(async (start) => {
+        let context: SpinalContext<any>;
+        if (namedContext) {
+          const contextId = namedContext.getId().get();
+          if (start.getId().get() !== contextId && !start.getContextIds().includes(contextId)) {
+            throw new Error(`FIND_IN_CONTEXT: ${nodeLabel(start)} does not belong to context "${contextName}"`);
+          }
+          context = namedContext;
+        } else if (start instanceof SpinalContext) {
+          context = start;
+        } else {
+          throw new Error(`FIND_IN_CONTEXT: ${nodeLabel(start)} is not a context — set "contextName" to the context to search in`);
+        }
+        const startId = start.getId().get();
+        return start.findInContext(context, (node: SpinalNode<any>) => node.getId().get() !== startId && matches(node));
+      }));
+      return mergeUnique(found);
     },
   }),
   createAlgorithm({

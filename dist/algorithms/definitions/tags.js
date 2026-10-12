@@ -65,6 +65,7 @@ exports.ALGORITHM_TAGS = {
     SET_NODE_INFO_PARAM: ['node', 'graph', 'write', 'info', 'mutation'],
     GET_NODE_CHILDREN: ['node', 'graph', 'traversal', 'children'],
     GET_NODE_PARENTS: ['node', 'graph', 'traversal', 'parents'],
+    FIND_IN_CONTEXT: ['node', 'graph', 'traversal', 'context', 'search', 'type', 'filter'],
     GET_NODE_CHILD: ['node', 'graph', 'traversal', 'children', 'search'],
     GET_NODE_PARENT: ['node', 'graph', 'traversal', 'parents', 'search'],
     FILTER_NODE: ['node', 'graph', 'filter', 'search'],

@@ -47,10 +47,12 @@ let recentSends: number[] = [];
 
 /**
  * Replaces the SMTP transport — for tests, or an organ that delivers mail another way. Call it
- * with no argument to go back to SMTP. Either way the per-minute counter starts fresh.
+ * with no argument to go back to SMTP, rebuilt from the current environment. Either way the
+ * per-minute counter starts fresh.
  */
 export function setMailSender(sender?: MailSender): void {
   customSender = sender;
+  smtpSenderPromise = null;
   recentSends = [];
 }
 
@@ -98,7 +100,13 @@ async function getSmtpSender(): Promise<MailSender> {
         throw new Error('Mail: could not load SpinalMailer from "spinal-service-mailer" (unexpected module shape)');
       }
       const mailer = new SpinalMailer(config);
-      return (message) => mailer.send(message);
+      return async (message) => {
+        try {
+          return await mailer.send(message);
+        } catch (error) {
+          throw explainSmtpRefusal(error, config.host, Boolean(config.auth));
+        }
+      };
     })();
     // A failed setup (missing config or package) is not cached: it is retried on the next mail.
     pending.catch(() => {
@@ -107,6 +115,30 @@ async function getSmtpSender(): Promise<MailSender> {
     smtpSenderPromise = pending;
   }
   return smtpSenderPromise;
+}
+
+/**
+ * The two refusals a misconfigured account gets, rewritten with the fix. Raw SMTP replies (e.g.
+ * "530-5.7.0 Authentication Required") don't say that the cause is the organ's configuration.
+ */
+function explainSmtpRefusal(error: unknown, host: string, hasLogin: boolean): unknown {
+  const reply = error instanceof Error ? error.message : String(error);
+  const code = (error as { responseCode?: number })?.responseCode;
+  if (!hasLogin && (code === 530 || /authentication required/i.test(reply))) {
+    return new Error(
+      `Mail: ${host} requires a login and none is configured. Either set SMTP_EMAIL and SMTP_PASS (an account ` +
+      `of that server), or use an IP-authenticated relay that accepts this organ's IP — for the company ` +
+      `no-reply on Google Workspace: SMTP_HOST=smtp-relay.gmail.com. Server reply: ${reply}`
+    );
+  }
+  if (/relay denied|invalid credentials for relay/i.test(reply)) {
+    return new Error(
+      `Mail: ${host} refused to relay for this organ — its public IP is not allowed, or MAIL_FROM is not an ` +
+      `address of the allowed domains. On Google Workspace: Admin console → Apps → Google Workspace → Gmail → ` +
+      `Routing → SMTP relay service. Server reply: ${reply}`
+    );
+  }
+  return error;
 }
 
 /** Counts a send against MAIL_MAX_PER_MINUTE (sliding minute); throws when the cap is reached. */

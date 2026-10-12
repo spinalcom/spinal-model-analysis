@@ -172,15 +172,26 @@ exports.FR = {
     },
     GET_NODE_CHILDREN: {
         label: 'Enfants du nœud',
-        description: 'Renvoie les enfants d\'un nœud.',
-        inputs: { node: 'Le nœud dont on veut les enfants.' },
+        description: 'Renvoie les enfants d\'un nœud — ou de chaque nœud d\'une liste, fusionnés sans doublon. « regex » limite les relations suivies (par ex. les tickets de plusieurs étapes).',
+        inputs: { node: 'Le nœud, ou la liste de nœuds, dont on veut les enfants.' },
         parameters: { regex: 'Motif regex sur le nom de la relation pour filtrer les enfants.' },
     },
     GET_NODE_PARENTS: {
         label: 'Parents du nœud',
-        description: 'Renvoie les parents d\'un nœud.',
-        inputs: { node: 'Le nœud dont on veut les parents.' },
+        description: 'Renvoie les parents d\'un nœud — ou de chaque nœud d\'une liste, fusionnés sans doublon. « regex » limite les relations suivies.',
+        inputs: { node: 'Le nœud, ou la liste de nœuds, dont on veut les parents.' },
         parameters: { regex: 'Motif regex sur le nom de la relation pour filtrer les parents.' },
+    },
+    FIND_IN_CONTEXT: {
+        label: 'Chercher dans un contexte',
+        description: 'Trouve tous les nœuds d\'un « type » donné — et/ou dont une propriété correspond à « regexFilter » — sous un nœud de départ, à toute profondeur, en ne suivant que les relations enregistrées dans un contexte (comme SpinalNode.findInContext). Par ex. tous les tickets d\'un contexte de tickets, les étapes d\'un processus, les pièces d\'un bâtiment dans le contexte spatial. Le nœud de départ lui-même n\'est pas renvoyé ; avec une liste de nœuds de départ, les résultats sont fusionnés sans doublon. Laissez « contextName » vide lorsque le nœud de départ est le contexte lui-même.',
+        inputs: { start: 'Point de départ de la recherche : le contexte lui-même, ou un nœud (ou une liste de nœuds) du contexte.' },
+        parameters: {
+            type: 'Type de nœud à trouver, correspondance exacte (par ex. « SpinalSystemServiceTicketTypeTicket »).',
+            filterProperty: 'Propriété d\'info testée par « regexFilter » (par défaut « name »).',
+            regexFilter: 'Regex que la propriété doit satisfaire, par ex. « ^(?!Terminées$) » pour tous les noms sauf « Terminées ».',
+            contextName: 'Contexte dans lequel chercher. Laissez vide lorsque le nœud de départ est le contexte lui-même.',
+        },
     },
     GET_NODE_CHILD: {
         label: 'Trouver un enfant',
