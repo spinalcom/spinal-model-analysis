@@ -130,6 +130,16 @@ These are **not** regular algorithms. The DAG executor intercepts them:
 
 Combines all categories into `ALGORITHM_DEFINITIONS[]`, creates a shared `ALGORITHM_REGISTRY` instance, and exports `ALGORITHMS` (name-keyed object).
 
+#### Catalog (`catalog.ts`)
+
+What a builder shows when the user looks for a block. `getAlgorithmCatalog(locale)` returns the algorithms grouped by **user-facing category** (`ALGORITHM_CATEGORIES`: ordered, with a localized label and description), ready to serve — the api-server's `/algorithms` route is this, serialized.
+
+- **Category**: the one of the block's family (the `*_ALGORITHMS` array it is declared in, see `FAMILY_CATEGORIES`), unless its definition names another (`category: 'ENDPOINT'`). A block added to a family file needs nothing more.
+- **Keywords** (`definitions/keywords.ts`, or inline `keywords`): words a user may type that are in neither the label nor the description — synonyms, symbols, the usual French / English term. Never shown, never a filter; a block needs an entry only when such a word exists.
+- **Parameter metadata** (`IAlgorithmParameter`): `options` (the allowed values), `default` (what `run()` uses when the parameter is empty — documentation, keep it in sync) and `multiline`. A builder renders the right control from them.
+
+`AnalysisFactoryService.validateConfig` checks every block against this declaration when an analytic is saved: unknown algorithm or parameter name (with a "did you mean"), required parameter left empty, value outside `options`, text where a number or boolean is expected.
+
 ### Services (`src/services/`)
 
 | File | Class | Purpose |

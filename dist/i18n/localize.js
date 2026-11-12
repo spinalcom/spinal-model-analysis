@@ -1,9 +1,20 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.localizeAlgorithm = exports.getLocaleTranslations = exports.SUPPORTED_LOCALES = void 0;
+exports.localizeAlgorithm = exports.getLocaleTranslations = exports.getCategoryTranslations = exports.SUPPORTED_LOCALES = void 0;
 const en_1 = require("./en");
 const fr_1 = require("./fr");
 exports.SUPPORTED_LOCALES = ['en', 'fr'];
+const CATEGORY_TRANSLATIONS = {
+    fr: fr_1.FR_CATEGORIES,
+};
+/** The category translations of a locale (empty for English and unknown locales). */
+function getCategoryTranslations(locale) {
+    var _a;
+    if (!locale)
+        return {};
+    return (_a = CATEGORY_TRANSLATIONS[locale.toLowerCase()]) !== null && _a !== void 0 ? _a : {};
+}
+exports.getCategoryTranslations = getCategoryTranslations;
 const TRANSLATIONS = {
     en: en_1.EN,
     fr: fr_1.FR,
@@ -34,7 +45,7 @@ function localizeAlgorithm(def, locale = 'en') {
         inputs: def.inputs.map((i) => { var _a, _b; return (Object.assign(Object.assign({}, i), { description: (_b = (_a = t === null || t === void 0 ? void 0 : t.inputs) === null || _a === void 0 ? void 0 : _a[i.name]) !== null && _b !== void 0 ? _b : i.description })); }),
         outputType: def.outputType,
         parameters: def.parameters.map((p) => { var _a, _b; return (Object.assign(Object.assign({}, p), { description: (_b = (_a = t === null || t === void 0 ? void 0 : t.parameters) === null || _a === void 0 ? void 0 : _a[p.name]) !== null && _b !== void 0 ? _b : p.description })); }),
-        tags: (_c = def.tags) !== null && _c !== void 0 ? _c : [],
+        keywords: (_c = def.keywords) !== null && _c !== void 0 ? _c : [],
     };
 }
 exports.localizeAlgorithm = localizeAlgorithm;

@@ -230,8 +230,8 @@ export const HTTP_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'string',
     parameters: [
-      { name: 'curl', type: 'string', description: 'The curl command to parse and execute (used when no curl input is wired).', required: false },
-      { name: 'timeoutMs', type: 'number', description: 'Request timeout in milliseconds (default 30000).', required: false },
+      { name: 'curl', type: 'string', description: 'The curl command to parse and execute (used when no curl input is wired).', multiline: true, required: false },
+      { name: 'timeoutMs', type: 'number', description: 'Request timeout in milliseconds (default 30000).', default: 30000, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       const curlStr = typeof input === 'string' && input.trim() !== ''

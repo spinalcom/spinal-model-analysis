@@ -19,6 +19,7 @@ import {
 export const REGISTER_ALGORITHMS: AlgorithmDefinition[] = [
     createAlgorithm({
         name: 'CURRENT_NODE',
+        category: 'NODE',
         description:
             'Returns the current work node from the execution context. ' +
             'Used as a root/source block in workflows to inject the work node into the DAG.',

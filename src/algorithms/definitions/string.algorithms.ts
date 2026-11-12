@@ -30,7 +30,7 @@ export const STRING_ALGORITHMS: AlgorithmDefinition[] = [
         ],
         outputType: 'string',
         parameters: [
-            { name: 'template', type: 'string', description: 'The template string with positional placeholders, e.g. "Bearer {0}".', required: true },
+            { name: 'template', type: 'string', description: 'The template string with positional placeholders, e.g. "Bearer {0}".', multiline: true, required: true },
         ],
         run: async (input, params): AlgorithmRunResult => {
             const template = params?.template;

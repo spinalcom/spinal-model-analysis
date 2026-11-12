@@ -239,7 +239,7 @@ exports.BOOLEAN_ALGORITHMS = [
         ],
         outputType: 'boolean',
         parameters: [
-            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', required: false },
+            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!Array.isArray(input) || input.length < 2)
@@ -258,7 +258,7 @@ exports.BOOLEAN_ALGORITHMS = [
         outputType: 'boolean',
         parameters: [
             { name: 'expected', type: 'string', description: 'The value to compare against.', required: true },
-            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', required: false },
+            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if ((params === null || params === void 0 ? void 0 : params.expected) === undefined)

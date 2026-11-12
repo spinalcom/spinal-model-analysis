@@ -63,8 +63,8 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
-            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
-            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', default: true, required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!Array.isArray(input) || input.length < 2) {
@@ -95,7 +95,7 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             // cast to `any` so this compiles against any version. On an older doc-service the
             // extra arg is harmlessly ignored — the attribute still updates, it just doesn't
             // stamp directModificationDate.
-            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, categoryName, { [label]: (0, utils_1.toAttributeText)(value) }, updateDirectModificationDate);
             return value;
         }),
     }),
@@ -110,8 +110,8 @@ exports.NODE_ATTRIBUTES_ALGORITHMS = [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
             { name: 'value', type: 'string', description: 'The value to set', required: true },
-            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
-            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', default: true, required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!isSpinalNode(input))

@@ -79,7 +79,7 @@ export const FLOW_CONTROL_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'any',
     parameters: [
-      { name: 'prefix', type: 'string', description: 'Optional label prepended to the log line (default "[LOG]").', required: false },
+      { name: 'prefix', type: 'string', description: 'Optional label prepended to the log line (default "[LOG]").', default: '[LOG]', required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       const prefix =

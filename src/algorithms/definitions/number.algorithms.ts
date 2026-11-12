@@ -91,14 +91,13 @@ export const NUMBER_ALGORITHMS: AlgorithmDefinition[] = [
     parameters: [
       { name: 'min', type: 'number', description: 'Lower bound (inclusive)', required: true },
       { name: 'max', type: 'number', description: 'Upper bound (float: exclusive; integer: inclusive)', required: true },
-      { name: 'integer', type: 'boolean', description: 'When true, return an integer in [min, max] inclusive instead of a float. Defaults to false.', required: false },
+      { name: 'integer', type: 'boolean', description: 'When true, return an integer in [min, max] inclusive instead of a float. Defaults to false.', default: false, required: false },
     ],
     run: async (_input, params): AlgorithmRunResult => {
-      const min = params?.min as number;
-      const max = params?.max as number;
-      if (typeof min !== 'number' || typeof max !== 'number') {
-        throw new Error('RANDOM_NUMBER requires numeric min and max parameters');
-      }
+      // Numeric strings are accepted, like every other numeric block: parameters saved by the
+      // builder can come back as text.
+      const min = toNumber(params?.min, 'RANDOM_NUMBER min');
+      const max = toNumber(params?.max, 'RANDOM_NUMBER max');
 
       const asInteger = params?.integer === true || params?.integer === 'true';
       if (asInteger) {
@@ -273,7 +272,7 @@ export const NUMBER_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'number',
     parameters: [
-      { name: 'decimals', type: 'number', description: 'Number of decimal places to round to (default 0).', required: false },
+      { name: 'decimals', type: 'number', description: 'Number of decimal places to round to (default 0).', default: 0, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       const n = toNumber(input, 'ROUND input');

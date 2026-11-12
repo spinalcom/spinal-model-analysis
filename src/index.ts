@@ -163,7 +163,16 @@ export {
   AlgorithmRegistry,
 } from './algorithms/definitions/core';
 
-export { ALGORITHM_TAGS } from './algorithms/definitions/tags';
+export { ALGORITHM_KEYWORDS } from './algorithms/definitions/keywords';
+
+// The block catalog, ready to serve: user-facing categories (localized, ordered) and the
+// algorithms of each. The api-server's /algorithms route is this, serialized.
+export {
+  ALGORITHM_CATEGORIES,
+  getAlgorithmCatalog,
+  getAlgorithmCategory,
+} from './algorithms/catalog';
+export type { IAlgorithmCatalog, IAlgorithmCategory, ICatalogAlgorithm } from './algorithms/catalog';
 
 // Runtime capability probe: whether the installed documentation-service exposes the file API
 // the file-backed Excel blocks need. Lets clients/organs report Excel availability without a

@@ -51,11 +51,16 @@ export interface AlgorithmDefinition {
     readonly outputType: string;
     readonly parameters: AlgorithmParameters;
     /**
-     * Cross-cutting search tags. Optional in a definition — createAlgorithm merges
-     * these with the central ALGORITHM_TAGS map (by name), so every created algorithm
-     * ends up with a de-duplicated tags array.
+     * The catalog category the block is listed under, when it is not the one of its family
+     * (see catalog.ts) — e.g. the endpoint blocks of the node family.
      */
-    readonly tags?: readonly string[];
+    readonly category?: string;
+    /**
+     * Search keywords: words a user may type that are in neither the label nor the description.
+     * Optional in a definition — createAlgorithm merges these with the central ALGORITHM_KEYWORDS
+     * map (by name), de-duplicated. Never shown, never a filter.
+     */
+    readonly keywords?: readonly string[];
     run: (input: AlgorithmInputValue | AlgorithmInputValue[], params?: AlgorithmParams, context?: AlgorithmRunContext) => AlgorithmRunResult;
 }
 /**

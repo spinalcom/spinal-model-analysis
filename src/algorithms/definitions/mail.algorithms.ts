@@ -77,11 +77,11 @@ export const MAIL_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'any',
     parameters: [
       { name: 'subject', type: 'string', description: 'Subject template, e.g. "Ticket {0}: new step".', required: true },
-      { name: 'body', type: 'string', description: 'Body template, e.g. "Your ticket {0} moved to step {1}."', required: true },
-      { name: 'format', type: 'string', description: '"text" (default) or "html".', required: false },
+      { name: 'body', type: 'string', description: 'Body template, e.g. "Your ticket {0} moved to step {1}."', multiline: true, required: true },
+      { name: 'format', type: 'string', description: '"text" (default) or "html".', options: ['text', 'html'], default: 'text', required: false },
       { name: 'cc', type: 'string', description: 'Optional CC address(es), separated by "," or ";".', required: false },
       { name: 'bcc', type: 'string', description: 'Optional BCC address(es), separated by "," or ";".', required: false },
-      { name: 'dryRun', type: 'boolean', description: 'Build the mail without sending it (default false) — returns what would be sent.', required: false },
+      { name: 'dryRun', type: 'boolean', description: 'Build the mail without sending it (default false) — returns what would be sent.', default: false, required: false },
     ],
     run: async (input, params, context): AlgorithmRunResult => {
       // One wired input → it IS the recipients (possibly a list of addresses); more → [to, ...values].

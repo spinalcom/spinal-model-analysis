@@ -18,10 +18,11 @@ const { SpinalGraphService } = require('spinal-env-viewer-graph-service');
 const WorkflowBlockManagerService = require(path.join(ROOT, 'services/WorkflowBlockManagerService')).default;
 const WorkflowExecution = require(path.join(ROOT, 'services/WorkflowExecutionService'));
 const AnalysisExecutionService = require(path.join(ROOT, 'services/AnalysisExecutionService')).default;
+const AnalysisFactoryService = require(path.join(ROOT, 'services/AnalysisFactoryService')).default;
 const core = require(path.join(ROOT, 'algorithms/definitions/core'));
 
 // Silence the engine's progress and isolated-failure logs so test output stays readable.
-const NOISE = /^\[(AnalysisFactory|AnalysisExecution|Execution)\]|^Context .* already exists/;
+const NOISE = /^\[(AnalysisFactory|AnalysisExecution|Execution)\]|^Context .* already exists|^attribute \S+ already exists in Model/;
 for (const level of ['log', 'error', 'warn']) {
   const original = console[level].bind(console);
   console[level] = (...args) => {
@@ -36,15 +37,31 @@ const blockManager = new WorkflowBlockManagerService();
 
 const clone = (value) => JSON.parse(JSON.stringify(value));
 
-/** An algorithm stand-in with no declared inputs / parameters. */
+/**
+ * An algorithm stand-in. Replacing a real block keeps that block's declared inputs and parameters
+ * (configs are validated against them); a new name declares none.
+ */
 function fakeAlgorithm(name, run) {
-  return core.createAlgorithm({ name, description: 'test stand-in', inputs: [], outputType: 'any', parameters: [], run });
+  const real = mod.ALGORITHM_DEFINITIONS.find((algorithm) => algorithm.name === name);
+  return core.createAlgorithm({
+    name,
+    description: 'test stand-in',
+    inputs: real ? real.inputs : [],
+    outputType: real ? real.outputType : 'any',
+    parameters: real ? real.parameters : [],
+    run,
+  });
 }
 
 /** The real catalog, with the given stand-ins replacing the same-named algorithms. */
 function makeRegistry(overrides = {}) {
   const real = mod.ALGORITHM_DEFINITIONS.filter((algorithm) => !overrides[algorithm.name]);
   return new core.AlgorithmRegistry([...real, ...Object.values(overrides)]);
+}
+
+/** A factory that validates configs against `registry` — needed when a test uses stand-ins the real catalog doesn't have. */
+function makeFactory(registry) {
+  return new AnalysisFactoryService(manager, blockManager, registry);
 }
 
 function makeExecutor(registry) {
@@ -74,8 +91,8 @@ const blockNames = (dag) => dag.blocks.map((block) => block.name).sort();
 const outputOf = (dag, context, name) => context.blockOutputs.get(blockByName(dag, name).id);
 
 /** Creates the analysis from a config and loads its execution-workflow DAG. */
-async function createAndLoad(config, graph) {
-  const node = await factory.createFromJSON(config, graph);
+async function createAndLoad(config, graph, withFactory = factory) {
+  const node = await withFactory.createFromJSON(config, graph);
   const dag = await blockManager.loadWorkflowDAG(await manager.getAnalysisExecutionWorkflowNode(node));
   return { node, dag };
 }
@@ -99,6 +116,7 @@ module.exports = {
   clone,
   fakeAlgorithm,
   makeRegistry,
+  makeFactory,
   makeExecutor,
   runDag,
   blockByName,

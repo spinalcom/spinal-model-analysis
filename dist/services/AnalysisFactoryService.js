@@ -15,7 +15,37 @@ const analysisAnchor_1 = require("../constants/analysisAnchor");
 const analysisWorkflowBlock_1 = require("../constants/analysisWorkflowBlock");
 const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
 const utils_1 = require("./utils");
+const algorithms_1 = require("../algorithms/algorithms");
 const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
+/** A parameter left empty: absent, null, or blank text. */
+const isBlankParameter = (value) => value === undefined || value === null || (typeof value === 'string' && value.trim() === '');
+/** Edit distance between two names (case-insensitive), to suggest the one a typo meant. */
+function editDistance(a, b) {
+    const s = a.toLowerCase();
+    const t = b.toLowerCase();
+    let previous = Array.from({ length: t.length + 1 }, (_, j) => j);
+    for (let i = 1; i <= s.length; i++) {
+        const current = [i];
+        for (let j = 1; j <= t.length; j++) {
+            current[j] = Math.min(previous[j] + 1, current[j - 1] + 1, previous[j - 1] + (s[i - 1] === t[j - 1] ? 0 : 1));
+        }
+        previous = current;
+    }
+    return previous[t.length];
+}
+/** ` — did you mean "X"?` for the candidate closest to a mistyped name, or '' when none is close. */
+function didYouMean(name, candidates) {
+    let best;
+    let bestDistance = Infinity;
+    for (const candidate of candidates) {
+        const distance = editDistance(name, candidate);
+        if (distance < bestDistance) {
+            best = candidate;
+            bestDistance = distance;
+        }
+    }
+    return best !== undefined && bestDistance <= Math.max(2, Math.floor(name.length / 3)) ? ` — did you mean "${best}"?` : '';
+}
 /**
  * Factory service for creating complete analysis configurations from a JSON descriptor.
  *
@@ -32,9 +62,10 @@ const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-vie
  * ```
  */
 class AnalysisFactoryService {
-    constructor(nodeManager, blockManager) {
+    constructor(nodeManager, blockManager, registry = algorithms_1.ALGORITHM_REGISTRY) {
         this.nodeManager = nodeManager;
         this.blockManager = blockManager;
+        this.registry = registry;
     }
     // ─────────────────────────────────────────────────────
     //  MAIN ENTRY POINT
@@ -822,6 +853,13 @@ class AnalysisFactoryService {
         if (!block.algorithmName || typeof block.algorithmName !== 'string') {
             errors.push(`${path}: missing or invalid "algorithmName"`);
         }
+        else if (!this.registry.has(block.algorithmName)) {
+            const known = this.registry.list().map((algorithm) => algorithm.name);
+            errors.push(`${path}: unknown algorithm "${block.algorithmName}"${didYouMean(block.algorithmName, known)}`);
+        }
+        else {
+            errors.push(...this.validateParameters(block, this.registry.get(block.algorithmName), path));
+        }
         // Validate inputs
         if (block.inputs) {
             for (const inputRef of block.inputs) {
@@ -881,6 +919,48 @@ class AnalysisFactoryService {
             }
             if (block.elseWorkflow) {
                 errors.push(...this.validateSubWorkflow(block.elseWorkflow, availableRefs, knownItemRefs, `${path}.elseWorkflow`));
+            }
+        }
+        return errors;
+    }
+    /**
+     * Validates a block's parameters against its algorithm's declaration, so a mistake is refused
+     * when the analytic is saved instead of failing — or being silently ignored — at every run:
+     * an unknown parameter name, a required parameter left empty, a value outside the allowed
+     * choices, text where a number or a boolean is expected.
+     */
+    validateParameters(block, definition, path) {
+        var _a;
+        const errors = [];
+        const declared = new Map(definition.parameters.map((parameter) => [parameter.name, parameter]));
+        const given = (_a = block.parameters) !== null && _a !== void 0 ? _a : {};
+        for (const [name, value] of Object.entries(given)) {
+            const parameter = declared.get(name);
+            if (!parameter) {
+                const names = [...declared.keys()];
+                errors.push(`${path}: unknown parameter "${name}" for ${definition.name}${didYouMean(name, names)}` +
+                    (names.length ? ` (its parameters: ${names.join(', ')})` : ' (it takes no parameter)'));
+                continue;
+            }
+            if (isBlankParameter(value))
+                continue;
+            const text = String(value).trim();
+            if (parameter.options) {
+                if (!parameter.options.some((option) => String(option).toLowerCase() === text.toLowerCase())) {
+                    errors.push(`${path}: parameter "${name}" must be one of ${parameter.options.map((o) => JSON.stringify(o)).join(', ')}, ` +
+                        `got ${JSON.stringify(value)}`);
+                }
+            }
+            else if (parameter.type === 'number' && !(typeof value === 'number' ? Number.isFinite(value) : !isNaN(Number(text)))) {
+                errors.push(`${path}: parameter "${name}" must be a number, got ${JSON.stringify(value)}`);
+            }
+            else if (parameter.type === 'boolean' && typeof value !== 'boolean' && !/^(true|false)$/i.test(text)) {
+                errors.push(`${path}: parameter "${name}" must be true or false, got ${JSON.stringify(value)}`);
+            }
+        }
+        for (const parameter of definition.parameters) {
+            if (parameter.required && isBlankParameter(given[parameter.name])) {
+                errors.push(`${path}: missing required parameter "${parameter.name}" of ${definition.name}`);
             }
         }
         return errors;

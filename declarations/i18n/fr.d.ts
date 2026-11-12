@@ -1,4 +1,4 @@
-import { LocaleTranslations } from './localize';
+import { CategoryTranslations, LocaleTranslations } from './localize';
 /**
  * French translations for algorithm metadata, keyed by the stable algorithm name.
  *
@@ -11,4 +11,6 @@ import { LocaleTranslations } from './localize';
  * current algorithms; keep it in sync as algorithms are added or their English text
  * changes (translations lag the source until updated).
  */
+/** French names of the catalog categories (see algorithms/catalog.ts), keyed by category id. */
+export declare const FR_CATEGORIES: CategoryTranslations;
 export declare const FR: LocaleTranslations;

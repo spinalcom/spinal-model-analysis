@@ -73,6 +73,8 @@ const NOT_FOUND_PARAM = {
   description:
     'What to do when nothing matches: "error" (default — the block fails) or "null" (return null, so ' +
     'EXISTS — e.g. inside a FILTER — can test whether something was found).',
+  options: ['error', 'null'],
+  default: 'error',
   required: false,
 };
 
@@ -99,6 +101,7 @@ const RELATION_TYPE_PARAM = {
   name: 'relationType',
   type: 'string',
   description: 'PtrLst, LstPtr or Ref. Leave empty to use the type the parent already has for this relation (else PtrLst).',
+  options: RELATION_TYPES,
   required: false,
 };
 
@@ -284,7 +287,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'SpinalNode[]',
     parameters: [
-      { name: 'deduplicate', type: 'boolean', description: 'If true, keep each node only once (by id), preserving first occurrence. Default false (plain concatenation).', required: false },
+      { name: 'deduplicate', type: 'boolean', description: 'If true, keep each node only once (by id), preserving first occurrence. Default false (plain concatenation).', default: false, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       // Variadic collapse: 0 -> [], 1 -> the value as-is, 2+ -> array of the inputs.
@@ -454,7 +457,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'SpinalNode[]',
     parameters: [
       { name: 'type', type: 'string', description: 'Node type to find, matched exactly (e.g. "SpinalSystemServiceTicketTypeTicket").', required: false },
-      { name: 'filterProperty', type: 'string', description: 'Info property tested by "regexFilter" (default "name").', required: false },
+      { name: 'filterProperty', type: 'string', description: 'Info property tested by "regexFilter" (default "name").', default: 'name', required: false },
       { name: 'regexFilter', type: 'string', description: 'Regex the property must match, e.g. "^(?!Terminées$)" for every name except "Terminées".', required: false },
       { name: 'contextName', type: 'string', description: 'Context to search in. Leave empty when the start node is the context itself.', required: false },
     ],
@@ -516,7 +519,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'any',
     parameters: [
-      { name: 'property', type: 'string', description: 'Info key to read (default "name").', required: false },
+      { name: 'property', type: 'string', description: 'Info key to read (default "name").', default: 'name', required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       if (!isSpinalNode(input)) throw new Error('GET_NODE_INFO expects a SpinalNode input');
@@ -543,7 +546,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'SpinalNode',
     parameters: [
       { name: 'regex', type: 'string', description: 'Optional regex on the relation name to limit which children are traversed.', required: false },
-      { name: 'filterProperty', type: 'string', description: 'Info property to match on (default "name").', required: false },
+      { name: 'filterProperty', type: 'string', description: 'Info property to match on (default "name").', default: 'name', required: false },
       { name: 'regexFilter', type: 'string', description: 'Regex the property value must match to select the child.', required: true },
       NOT_FOUND_PARAM,
     ],
@@ -704,6 +707,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
 
   createAlgorithm({
     name: 'ENDPOINT_NODE_CURRENT_VALUE',
+    category: 'ENDPOINT',
     description: 'For a node representing an endpoint, returns the current value.',
     inputs: [
       { name: 'endpoint', types: ['SpinalNode'], description: 'The endpoint node whose current value to read.', required: true },
@@ -723,6 +727,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
 
   createAlgorithm({
     name: 'ENDPOINT_NODE_CURRENT_VALUE_MODEL',
+    category: 'ENDPOINT',
     description:
       'For a node representing an endpoint, returns the bindable currentValue MODEL ' +
       '(not the primitive value). Use this to populate an input register that a COV ' +
@@ -744,6 +749,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
 
   createAlgorithm({
     name: 'SET_ENDPOINT_VALUE',
+    category: 'ENDPOINT',
     description:
       'Sets the current value of an endpoint node. Takes 2 inputs: [endpointNode, value]. ' +
       'Returns the value that was set.',
@@ -753,7 +759,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'any',
     parameters: [
-      { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+      { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       if (!Array.isArray(input) || input.length < 2) {
@@ -780,6 +786,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
 
   createAlgorithm({
     name: 'SET_ENDPOINT_VALUE_PARAM',
+    category: 'ENDPOINT',
     description:
       'Sets the current value of an endpoint node to a static parameter value. ' +
       'Takes 1 input: endpointNode, and a "value" parameter. Returns the value that was set.',
@@ -789,7 +796,7 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     outputType: 'any',
     parameters: [
       { name: 'value', type: 'string', description: 'The value to set (string, number, or boolean)', required: true },
-      { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+      { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       if (!isSpinalNode(input)) {
@@ -840,6 +847,8 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
         description:
           'When a child with the same name and type already exists under the relation: "reuse" (default — ' +
           'return it), "error" (fail), or "allow" (create another one anyway).',
+        options: ['reuse', 'error', 'allow'],
+        default: 'reuse',
         required: false,
       },
     ],

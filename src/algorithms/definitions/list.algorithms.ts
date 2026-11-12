@@ -12,7 +12,7 @@ export const LIST_ALGORITHMS: AlgorithmDefinition[] = [
         inputs: [],
         outputType: 'string',
         parameters: [
-            { name: 'json', type: 'string', description: 'Optional JSON array string to initialize the list', required: false },
+            { name: 'json', type: 'string', description: 'Optional JSON array string to initialize the list', multiline: true, required: false },
         ],
         run: async (_input, params): AlgorithmRunResult => {
             const json = params?.json;
@@ -163,17 +163,20 @@ export const LIST_ALGORITHMS: AlgorithmDefinition[] = [
 
     createAlgorithm({
         name: 'LIST_GET',
-        description: 'Gets an element at a specific index from a JSON array.',
+        description:
+            'Gets the element at an index of a list — a live array (e.g. a row of GET_EXCEL_RANGE), whose ' +
+            'elements keep their type, or a JSON array string, whose elements come back as strings.',
         inputs: [
-            { name: 'list', types: ['string'], description: 'The JSON array (as a JSON string) to operate on.', required: true },
+            { name: 'list', types: ['any[]', 'string'], description: 'The array, or a JSON array string, to read from.', required: true },
         ],
-        outputType: 'string',
+        outputType: 'any',
         parameters: [
             { name: 'index', type: 'number', description: 'The index of the element to get (supports negative indexing)', required: true },
         ],
         run: async (input, params): AlgorithmRunResult => {
-            if (typeof input !== 'string') throw new Error('Expected a JSON array string input');
-            const arr = JSON.parse(input);
+            const live = Array.isArray(input);
+            if (!live && typeof input !== 'string') throw new Error('Expected an array or a JSON array string input');
+            const arr = live ? input : JSON.parse(input as string);
             if (!Array.isArray(arr)) throw new Error('Input is not a JSON array');
 
             const rawIndex = params?.index;
@@ -187,6 +190,7 @@ export const LIST_ALGORITHMS: AlgorithmDefinition[] = [
             }
 
             const value = arr[resolvedIndex];
+            if (live) return value as any;
             return typeof value === 'object' ? JSON.stringify(value) : String(value);
         },
     }),

@@ -313,12 +313,92 @@ function toNumericValue(value) {
     }
     return null;
 }
+/** Column letters of a 1-based column index: 1 → "A", 27 → "AA". */
+function columnLetters(index) {
+    let letters = '';
+    for (let n = index; n > 0; n = Math.floor((n - 1) / 26)) {
+        letters = String.fromCharCode(65 + ((n - 1) % 26)) + letters;
+    }
+    return letters;
+}
+const isBlankCell = (value) => value === null || value === undefined || (typeof value === 'string' && value.trim() === '');
+/**
+ * The header scan stops after this many empty cells in a row. A column with no name is skipped,
+ * so a table may have a few blank columns, but the workbook API has no "last used column" to stop at.
+ */
+const HEADER_GAP_LIMIT = 20;
+/** The named columns of a header row, left to right. */
+function readHeaderRow(filler, sheet, headerRow) {
+    const headers = [];
+    for (let column = 1, gap = 0; gap < HEADER_GAP_LIMIT; column++) {
+        const value = filler.getCell(`${sheet}!${columnLetters(column)}${headerRow}`);
+        const name = isBlankCell(value) ? '' : (0, utils_1.toAttributeText)(value).trim();
+        if (name) {
+            headers.push({ name, column });
+            gap = 0;
+        }
+        else {
+            gap++;
+        }
+    }
+    return headers;
+}
+/**
+ * Resolves the "columns" parameter ("Nom=name, Priorité=priority, Local") against the header row:
+ * the columns to read and the key each one gets. Two columns under one key would silently keep
+ * only the last one, so that is an error.
+ */
+function selectColumns(raw, headers, sheet) {
+    var _a, _b;
+    const text = typeof raw === 'string' ? raw.trim() : '';
+    if (!text) {
+        const columnOfName = new Map();
+        for (const { name, column } of headers) {
+            const other = columnOfName.get(name);
+            if (other !== undefined) {
+                throw new Error(`GET_EXCEL_ROWS: columns ${columnLetters(other)} and ${columnLetters(column)} of sheet "${sheet}" are ` +
+                    `both named "${name}" — rename one in the file, or list the columns to read in "columns"`);
+            }
+            columnOfName.set(name, column);
+        }
+        return headers.map(({ name, column }) => ({ key: name, column }));
+    }
+    const available = headers.map((h) => h.name).join(', ');
+    const selected = text.split(',').map((entry) => entry.trim()).filter(Boolean).map((entry) => {
+        const eq = entry.indexOf('=');
+        const header = (eq === -1 ? entry : entry.slice(0, eq)).trim();
+        const key = (eq === -1 ? '' : entry.slice(eq + 1).trim()) || header;
+        if (!header)
+            throw new Error(`GET_EXCEL_ROWS: the "columns" entry "${entry}" names no column`);
+        let matches = headers.filter((h) => h.name === header);
+        if (matches.length === 0)
+            matches = headers.filter((h) => h.name.toLowerCase() === header.toLowerCase());
+        if (matches.length === 0) {
+            throw new Error(`GET_EXCEL_ROWS: no column "${header}" in sheet "${sheet}" (columns: ${available})`);
+        }
+        if (matches.length > 1) {
+            throw new Error(`GET_EXCEL_ROWS: columns ${matches.map((m) => columnLetters(m.column)).join(' and ')} of sheet "${sheet}" ` +
+                `are both named "${header}" — rename one in the file`);
+        }
+        return { key, column: matches[0].column };
+    });
+    const headerOfKey = new Map();
+    for (const { key, column } of selected) {
+        const header = (_b = (_a = headers.find((h) => h.column === column)) === null || _a === void 0 ? void 0 : _a.name) !== null && _b !== void 0 ? _b : key;
+        const other = headerOfKey.get(key);
+        if (other !== undefined) {
+            throw new Error(`GET_EXCEL_ROWS: "columns" reads both "${other}" and "${header}" as "${key}" — give them different keys`);
+        }
+        headerOfKey.set(key, header);
+    }
+    return selected;
+}
 // ── blocks ───────────────────────────────────────────────────────────────────
 exports.EXCEL_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'LOAD_EXCEL',
         description: 'Loads an .xlsx document stored on a node and returns an Excel workbook handle. From it ' +
-            'you can READ (GET_EXCEL_CELL / GET_EXCEL_COLUMN / GET_EXCEL_RANGE / GET_EXCEL_SHEETS) ' +
+            'you can READ (GET_EXCEL_CELL / GET_EXCEL_COLUMN / GET_EXCEL_RANGE / GET_EXCEL_ROWS / GET_EXCEL_SHEETS) ' +
             'and/or FILL (SET_EXCEL_* blocks) then save with SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. ' +
             'By default it picks the first .xlsx document on the node; set the "filename" parameter ' +
             'to choose a specific one. An optional "defaultColor" (hex, no #) is applied as the ' +
@@ -396,9 +476,9 @@ exports.EXCEL_ALGORITHMS = [
         parameters: [
             { name: 'sheet', type: 'string', description: 'Worksheet name to read from.', required: true },
             { name: 'column', type: 'string', description: 'Column letter (e.g. "B") or 1-based index (e.g. 2).', required: true },
-            { name: 'startRow', type: 'number', description: 'First row to read (1-based). Default 1.', required: false },
+            { name: 'startRow', type: 'number', description: 'First row to read (1-based). Default 1.', default: 1, required: false },
             { name: 'endRow', type: 'number', description: 'Last row to read (1-based, inclusive). Default: the sheet\'s last used row.', required: false },
-            { name: 'skipHeader', type: 'boolean', description: 'Skip the first row in range as a header (default false).', required: false },
+            { name: 'skipHeader', type: 'boolean', description: 'Skip the first row in range as a header (default false).', default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const handle = requireHandle(input, 'GET_EXCEL_COLUMN');
@@ -443,6 +523,55 @@ exports.EXCEL_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'GET_EXCEL_ROWS',
+        description: 'Reads a table as a list of rows, one object per row keyed by the header row — e.g. ' +
+            '[{ "Nom": "Fuite", "Priorité": 2 }, …] — to process each line with a FOREACH (read a cell ' +
+            'with GET_PROPERTY, or give the whole row to CREATE_TICKET). Reads down to the last used row, ' +
+            'so lines added to the file later are picked up; empty rows are skipped, and so are columns ' +
+            'without a name. "columns" keeps only some columns and can rename them: "Nom=name, ' +
+            'Priorité=priority, Local". Values keep their type (numbers, dates, …); empty cells read as ' +
+            'null; formula cells return their computed result.',
+        inputs: [
+            { name: 'workbook', types: ['ExcelWorkbook'], description: 'The workbook from LOAD_EXCEL.', required: true },
+        ],
+        outputType: 'object[]',
+        parameters: [
+            { name: 'sheet', type: 'string', description: 'Worksheet to read. Default: the first sheet.', required: false },
+            { name: 'headerRow', type: 'number', description: 'Row holding the column names (1-based, default 1). The data starts on the next row.', default: 1, required: false },
+            { name: 'columns', type: 'string', description: 'Optional comma-separated columns to keep, as "Header" or "Header=key" to rename one (e.g. "Nom=name, Priorité=priority, Local"). Default: every named column, keyed by its header.', required: false },
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            const { filler } = requireHandle(input, 'GET_EXCEL_ROWS');
+            const sheets = filler.getSheetNames();
+            const sheet = (typeof (params === null || params === void 0 ? void 0 : params.sheet) === 'string' ? params.sheet.trim() : '') || sheets[0];
+            if (!sheet)
+                throw new Error('GET_EXCEL_ROWS: the workbook has no sheet');
+            if (!sheets.includes(sheet)) {
+                throw new Error(`GET_EXCEL_ROWS: no sheet named "${sheet}" (sheets: ${sheets.join(', ')})`);
+            }
+            const headerRow = (params === null || params === void 0 ? void 0 : params.headerRow) === undefined || (params === null || params === void 0 ? void 0 : params.headerRow) === '' ? 1 : Number(params.headerRow);
+            if (!Number.isInteger(headerRow) || headerRow < 1) {
+                throw new Error(`GET_EXCEL_ROWS: "headerRow" must be a row number (1, 2, …), got ${JSON.stringify(params === null || params === void 0 ? void 0 : params.headerRow)}`);
+            }
+            const headers = readHeaderRow(filler, sheet, headerRow);
+            if (headers.length === 0) {
+                throw new Error(`GET_EXCEL_ROWS: row ${headerRow} of sheet "${sheet}" has no column names — set "headerRow" to the row that holds them`);
+            }
+            const columns = selectColumns(params === null || params === void 0 ? void 0 : params.columns, headers, sheet);
+            // Every column is read down to the sheet's last row, so the arrays line up row for row.
+            const cells = columns.map(({ column }) => filler.getColumn(sheet, column, { startRow: headerRow + 1 }));
+            const rowCount = Math.max(0, ...cells.map((values) => values.length));
+            const rows = [];
+            for (let i = 0; i < rowCount; i++) {
+                const row = {};
+                columns.forEach(({ key }, c) => { var _a; row[key] = (_a = cells[c][i]) !== null && _a !== void 0 ? _a : null; });
+                if (Object.values(row).some((value) => !isBlankCell(value)))
+                    rows.push(row);
+            }
+            return rows;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'COLUMNS_TO_TIMESERIES',
         description: 'Pairs a timestamps column with a values column into a timeseries ({ date, value }[]) ' +
             'ready to inject with INSERT_TIMESERIES. Takes 2 inputs: [timestamps, values] (e.g. two ' +
@@ -456,8 +585,8 @@ exports.EXCEL_ALGORITHMS = [
         ],
         outputType: 'SpinalDateValue[]',
         parameters: [
-            { name: 'dateIsExcelSerial', type: 'boolean', description: 'Interpret numeric timestamps as Excel serial day numbers instead of epoch ms (default false).', required: false },
-            { name: 'dropInvalid', type: 'boolean', description: 'Drop rows whose date or value can\'t be parsed (default true). Set false to throw on the first bad row.', required: false },
+            { name: 'dateIsExcelSerial', type: 'boolean', description: 'Interpret numeric timestamps as Excel serial day numbers instead of epoch ms (default false).', default: false, required: false },
+            { name: 'dropInvalid', type: 'boolean', description: 'Drop rows whose date or value can\'t be parsed (default true). Set false to throw on the first bad row.', default: true, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             if (!Array.isArray(input) || input.length < 2) {
@@ -533,7 +662,7 @@ exports.EXCEL_ALGORITHMS = [
         outputType: 'ExcelWorkbook',
         parameters: [
             { name: 'anchor', type: 'string', description: 'Anchor cell to start from, "SheetName!CellRef" (e.g. "Sheet1!B3").', required: true },
-            { name: 'direction', type: 'string', description: 'For 1D arrays: "column" (default, downward) or "row" (rightward). Ignored for 2D arrays.', required: false },
+            { name: 'direction', type: 'string', description: 'For 1D arrays: "column" (default, downward) or "row" (rightward). Ignored for 2D arrays.', options: ['column', 'row'], default: 'column', required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const [handle, payload] = requireHandleAndPayload(input, 'SET_EXCEL_RANGE');
@@ -649,8 +778,8 @@ exports.EXCEL_ALGORITHMS = [
         outputType: 'SpinalNode',
         parameters: [
             { name: 'filename', type: 'string', description: 'File name for the saved document (e.g. "report.xlsx"). ".xlsx" is appended if missing.', required: true },
-            { name: 'ifExists', type: 'string', description: 'What to do if the node already has a document with the same name: "replace" (default — overwrite it), "error" (fail without writing), or "allow" (keep both, may create duplicates).', required: false },
-            { name: 'preserveCharts', type: 'boolean', description: 'If true, restores charts from the original template that ExcelJS would otherwise drop (default: false).', required: false },
+            { name: 'ifExists', type: 'string', description: 'What to do if the node already has a document with the same name: "replace" (default — overwrite it), "error" (fail without writing), or "allow" (keep both, may create duplicates).', options: ['replace', 'error', 'allow'], default: 'replace', required: false },
+            { name: 'preserveCharts', type: 'boolean', description: 'If true, restores charts from the original template that ExcelJS would otherwise drop (default: false).', default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const [handle, nodeRaw] = requireHandleAndPayload(input, 'SAVE_EXCEL_TO_NODE');
@@ -681,7 +810,7 @@ exports.EXCEL_ALGORITHMS = [
         ],
         outputType: 'string',
         parameters: [
-            { name: 'preserveCharts', type: 'boolean', description: 'If true, restores charts from the original template that ExcelJS would otherwise drop (default: false).', required: false },
+            { name: 'preserveCharts', type: 'boolean', description: 'If true, restores charts from the original template that ExcelJS would otherwise drop (default: false).', default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const handle = requireHandle(input, 'EXCEL_TO_BASE64');

@@ -27,8 +27,16 @@ export interface LocalizedAlgorithm {
     inputs: Array<Record<string, unknown>>;
     outputType: string;
     parameters: Array<Record<string, unknown>>;
-    tags: readonly string[];
+    /** Search keywords (not localized, never shown): synonyms a user may type to find the block. */
+    keywords: readonly string[];
 }
+/** Translation of a catalog category, keyed by its id. */
+export type CategoryTranslations = Record<string, {
+    label?: string;
+    description?: string;
+}>;
+/** The category translations of a locale (empty for English and unknown locales). */
+export declare function getCategoryTranslations(locale?: string): CategoryTranslations;
 /** Returns the translation bundle for a locale (empty for unknown locales). */
 export declare function getLocaleTranslations(locale?: string): LocaleTranslations;
 /**

@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.FR = void 0;
+exports.FR = exports.FR_CATEGORIES = void 0;
 /** Description française partagée du paramètre updateDirectModificationDate. */
 const UPDATE_DIRECT_MODIFICATION_DATE_FR = 'Si vrai, met aussi à jour node.info.directModificationDate avec l\'heure courante lors ' +
     'de la modification, afin que le BOS puisse détecter la modification directe (par défaut : faux).';
@@ -23,6 +23,23 @@ const CONTEXT_NAME_FR = 'Contexte dans lequel enregistrer le lien (par ex. « Sp
  * current algorithms; keep it in sync as algorithms are added or their English text
  * changes (translations lag the source until updated).
  */
+/** French names of the catalog categories (see algorithms/catalog.ts), keyed by category id. */
+exports.FR_CATEGORIES = {
+    NODE: { label: 'Nœuds et graphe', description: 'Trouver des nœuds dans le graphe, lire leurs infos, en créer et les lier.' },
+    NODE_ATTRIBUTES: { label: 'Attributs', description: 'Lire et écrire les attributs d\'un nœud.' },
+    ENDPOINT: { label: 'Endpoints', description: 'Lire et écrire la valeur courante d\'un endpoint.' },
+    TIMESERIES: { label: 'Séries temporelles', description: 'Récupérer, nettoyer, agréger et injecter des séries temporelles.' },
+    NUMBER: { label: 'Nombres', description: 'Calculs et agrégations sur des nombres.' },
+    BOOLEAN: { label: 'Logique et comparaison', description: 'Comparer des valeurs et combiner des conditions — les prédicats de IF et FILTER.' },
+    TEXT: { label: 'Texte et conversion', description: 'Construire du texte à partir de valeurs et convertir entre types.' },
+    LIST: { label: 'Listes', description: 'Construire, lire et transformer des listes.' },
+    OBJECT: { label: 'Objets (JSON)', description: 'Construire et lire des objets — ex. une réponse JSON ou une ligne Excel.' },
+    FLOW: { label: 'Flux et exécution', description: 'Boucles et conditions, registres, et ce qui a déclenché l\'exécution.' },
+    TICKET: { label: 'Tickets', description: 'Créer des tickets et les faire avancer dans leur processus.' },
+    EXCEL: { label: 'Excel', description: 'Lire un document Excel, ou en remplir un pour produire un rapport.' },
+    COMMUNICATION: { label: 'Mail et HTTP', description: 'Envoyer un mail, appeler un service externe.' },
+    OTHER: { label: 'Autres', description: 'Blocs sans catégorie.' },
+};
 exports.FR = {
     // ── number ──
     COPY_FIRST_NUMBER: {
@@ -509,8 +526,8 @@ exports.FR = {
     },
     GET_PROPERTY: {
         label: 'Lire une propriété',
-        description: 'Récupère la valeur d\'une propriété d\'un objet JSON (chaîne) par clé. Gère l\'accès imbriqué avec la notation par points (ex. « a.b.c »).',
-        inputs: { object: 'L\'objet JSON (chaîne JSON) sur lequel opérer.' },
+        description: 'Récupère la valeur d\'une propriété d\'un objet par clé — un objet réel (ex. une ligne de GET_EXCEL_ROWS), dont les valeurs gardent leur type (nombres, dates, …), ou une chaîne d\'objet JSON, dont les valeurs sont renvoyées en chaînes. La notation par points atteint les propriétés imbriquées (« a.b.c »), sauf si l\'objet possède la clé telle qu\'écrite (ex. une colonne Excel « Réf. client »).',
+        inputs: { object: 'L\'objet, ou une chaîne d\'objet JSON, à lire.' },
         parameters: { key: 'La clé de la propriété (notation par points pour l\'accès imbriqué).' },
     },
     SET_PROPERTY: {
@@ -592,8 +609,8 @@ exports.FR = {
     },
     LIST_GET: {
         label: 'Élément de la liste',
-        description: 'Récupère l\'élément à un indice donné d\'un tableau JSON.',
-        inputs: { list: 'Le tableau JSON (chaîne JSON) sur lequel opérer.' },
+        description: 'Récupère l\'élément à un indice donné d\'une liste — un tableau réel (ex. une ligne de GET_EXCEL_RANGE), dont les éléments gardent leur type, ou une chaîne de tableau JSON, dont les éléments sont renvoyés en chaînes.',
+        inputs: { list: 'Le tableau, ou une chaîne de tableau JSON, à lire.' },
         parameters: { index: 'L\'indice de l\'élément à récupérer (indices négatifs pris en charge).' },
     },
     LIST_LENGTH: {
@@ -798,14 +815,20 @@ exports.FR = {
     // ── ticket ──
     CREATE_TICKET: {
         label: 'Créer un ticket',
-        description: 'Crée un ticket rattaché au nœud en entrée, sous un contexte de tickets (alias workflow) → processus (alias domaine) résolus par nom via les paramètres. Le ticket est placé automatiquement dans la première étape du processus. Renvoie le nœud du ticket créé (chaînable vers MOVE_TICKET_TO_NEXT_STEP). La résolution est par nom — le premier contexte correspondant, puis le premier processus correspondant à l\'intérieur, sont utilisés.',
-        inputs: { node: 'Le nœud auquel le ticket est rattaché (ex. le nœud de travail / équipement / pièce concerné).' },
+        description: 'Crée un ticket rattaché au nœud en entrée, sous un contexte de tickets (alias workflow) → processus (alias domaine) résolus par nom via les paramètres. Le ticket est placé automatiquement dans la première étape du processus. Renvoie le nœud du ticket (chaînable vers MOVE_TICKET_TO_NEXT_STEP). La résolution est par nom — le premier contexte correspondant, puis le premier processus correspondant à l\'intérieur, sont utilisés. Câblez une deuxième entrée pour donner le ticket à partir de données : un nom, ou un objet comme une ligne de GET_EXCEL_ROWS — ses clés « name », « priority », « description » et « declarer_id » sont les champs du ticket (elles remplacent les paramètres) et toute autre clé devient un attribut du ticket. Les analytiques s\'exécutent à chaque déclenchement : réglez « ifExists » sur « reuse » pour ne créer un ticket qu\'une fois.',
+        inputs: {
+            node: 'Le nœud auquel le ticket est rattaché (ex. le nœud de travail / équipement / pièce concerné).',
+            ticket: 'Optionnel : le nom du ticket, ou un objet de champs et d\'attributs du ticket (ex. une ligne de GET_EXCEL_ROWS lue avec les colonnes « Nom=name, Priorité=priority »).',
+        },
         parameters: {
             contextName: 'Nom du contexte de tickets (alias workflow) auquel appartient le ticket.',
             processName: 'Nom du processus (alias domaine) dans le contexte. Le ticket est créé dans sa première étape.',
-            name: 'Le nom / titre du ticket.',
-            priority: 'Priorité optionnelle du ticket.',
+            name: 'Le nom / titre du ticket (sauf si l\'entrée ticket en donne un).',
+            priority: 'Priorité optionnelle du ticket : 0 (occasionnelle), 1 (normale) ou 2 (urgente).',
+            description: 'Description optionnelle du ticket.',
             ticketType: 'Type de ticket optionnel — « Ticket » (par défaut) ou « Alarm ».',
+            attributesCategory: 'Catégorie d\'attributs des clés supplémentaires de l\'entrée ticket. Par défaut « default » : la catégorie propre du ticket, où le service de tickets conserve son nom, sa priorité, sa description, son étape, …',
+            ifExists: 'Quand le nœud a déjà un ticket du même nom dans ce processus (dans n\'importe quelle étape, archive comprise) : « allow » (par défaut — en créer un autre), « reuse » (le renvoyer, inchangé) ou « error ».',
         },
     },
     GET_TICKETS_FROM_NODE: {
@@ -839,7 +862,7 @@ exports.FR = {
     // ── excel ──
     LOAD_EXCEL: {
         label: 'Charger un Excel',
-        description: 'Charge un document .xlsx stocké sur un nœud et renvoie un classeur Excel. À partir de là, vous pouvez LIRE (GET_EXCEL_CELL / GET_EXCEL_COLUMN / GET_EXCEL_RANGE / GET_EXCEL_SHEETS) et/ou REMPLIR (blocs SET_EXCEL_*) puis enregistrer avec SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. Par défaut, le premier document .xlsx du nœud est chargé ; utilisez le paramètre « filename » pour en choisir un précis. Une « defaultColor » optionnelle (hex, sans #) est appliquée en fond de chaque cellule remplie.',
+        description: 'Charge un document .xlsx stocké sur un nœud et renvoie un classeur Excel. À partir de là, vous pouvez LIRE (GET_EXCEL_CELL / GET_EXCEL_COLUMN / GET_EXCEL_RANGE / GET_EXCEL_ROWS / GET_EXCEL_SHEETS) et/ou REMPLIR (blocs SET_EXCEL_*) puis enregistrer avec SAVE_EXCEL_TO_NODE / EXCEL_TO_BASE64. Par défaut, le premier document .xlsx du nœud est chargé ; utilisez le paramètre « filename » pour en choisir un précis. Une « defaultColor » optionnelle (hex, sans #) est appliquée en fond de chaque cellule remplie.',
         inputs: { node: 'Le nœud portant le document .xlsx en pièce jointe.' },
         parameters: {
             filename: 'Nom du document à charger (ex. « report.xlsx »). Si omis, le premier .xlsx attaché au nœud est utilisé.',
@@ -879,6 +902,16 @@ exports.FR = {
         description: 'Lit une plage rectangulaire sous forme de tableau 2D ligne par ligne. Indiquez la plage via le paramètre « ref » au format « NomFeuille!A1:C100 » (une référence de cellule unique renvoie un tableau 1×1). Les cellules vides renvoient null ; les cellules à formule renvoient leur résultat mis en cache.',
         inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
         parameters: { ref: 'Référence de plage au format « NomFeuille!A1:C100 ».' },
+    },
+    GET_EXCEL_ROWS: {
+        label: 'Lire les lignes Excel',
+        description: 'Lit un tableau sous forme de liste de lignes, un objet par ligne indexé par la ligne d\'en-tête — ex. [{ "Nom": "Fuite", "Priorité": 2 }, …] — pour traiter chaque ligne avec un FOREACH (lire une cellule avec GET_PROPERTY, ou donner la ligne entière à CREATE_TICKET). Lit jusqu\'à la dernière ligne utilisée, donc les lignes ajoutées plus tard au fichier sont prises en compte ; les lignes vides sont ignorées, de même que les colonnes sans nom. « columns » ne garde que certaines colonnes et peut les renommer : « Nom=name, Priorité=priority, Local ». Les valeurs gardent leur type (nombres, dates, …) ; les cellules vides valent null ; les cellules à formule renvoient leur résultat calculé.',
+        inputs: { workbook: 'Le classeur issu de LOAD_EXCEL.' },
+        parameters: {
+            sheet: 'Feuille à lire. Par défaut : la première feuille.',
+            headerRow: 'Ligne contenant les noms de colonnes (à partir de 1, 1 par défaut). Les données commencent à la ligne suivante.',
+            columns: 'Colonnes à garder, séparées par des virgules, sous la forme « En-tête » ou « En-tête=clé » pour en renommer une (ex. « Nom=name, Priorité=priority, Local »). Par défaut : toutes les colonnes nommées, indexées par leur en-tête.',
+        },
     },
     COLUMNS_TO_TIMESERIES: {
         label: 'Colonnes vers série temporelle',

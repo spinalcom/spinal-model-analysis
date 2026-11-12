@@ -149,6 +149,7 @@ exports.EN = {
     GET_EXCEL_CELL: { label: 'Get Excel Cell' },
     GET_EXCEL_COLUMN: { label: 'Get Excel Column' },
     GET_EXCEL_RANGE: { label: 'Get Excel Range' },
+    GET_EXCEL_ROWS: { label: 'Get Excel Rows' },
     COLUMNS_TO_TIMESERIES: { label: 'Columns to Timeseries' },
     SET_EXCEL_VARIABLES: { label: 'Fill Excel Variables' },
     SET_EXCEL_CELLS: { label: 'Set Excel Cells' },

@@ -13,6 +13,7 @@ import {
     ExecutionMetadata,
 } from '../algorithms/definitions/core';
 import { ANCHOR_NODE_TO_LINKED_NODE_RELATION } from '../constants/analysisAnchor';
+import { toWorkNodes } from './workNodes';
 
 /**
  * Represents a resolved trigger configuration ready for use by the orchestrator program.
@@ -264,11 +265,7 @@ export default class AnalysisTriggerService {
 
         // Find leaf block output
         const leafBlock = this.findLeafBlock(dag.blocks);
-        const result = context.blockOutputs.get(leafBlock.id);
-
-        if (Array.isArray(result)) return result as SpinalNode<any>[];
-        if (result && typeof result === 'object') return [result as SpinalNode<any>];
-        return [targetNode];
+        return toWorkNodes(context.blockOutputs.get(leafBlock.id));
     }
 
     private async executeInputWorkflow(

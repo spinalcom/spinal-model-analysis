@@ -204,12 +204,12 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'any',
     parameters: [
-      { name: 'mode', type: 'string', description: 'GRID (generate from start+interval) or STAMP (stamp the input time-of-day values onto the run day). Default GRID.', required: false },
+      { name: 'mode', type: 'string', description: 'GRID (generate from start+interval) or STAMP (stamp the input time-of-day values onto the run day). Default GRID.', options: ['grid', 'stamp'], default: 'grid', required: false },
       { name: 'interval', type: 'string', description: 'GRID spacing: minutes as a number, or "15m"/"1h"/"30s"/"1d". Required in GRID mode.', required: false },
       { name: 'start', type: 'string', description: 'GRID first timestamp\'s time-of-day ("HH:mm" or "HH:mm:ss"). Default "00:00".', required: false },
       { name: 'count', type: 'number', description: 'GRID number of timestamps. Defaults to the length of the wired input array.', required: false },
-      { name: 'dayOffset', type: 'number', description: 'Days to shift from the run day (referenceTime): 0 = today, -1 = yesterday. Default 0.', required: false },
-      { name: 'timezone', type: 'string', description: '"local" (server-local midnight, default) or "utc" (UTC midnight) for the start of the day.', required: false },
+      { name: 'dayOffset', type: 'number', description: 'Days to shift from the run day (referenceTime): 0 = today, -1 = yesterday. Default 0.', default: 0, required: false },
+      { name: 'timezone', type: 'string', description: '"local" (server-local midnight, default) or "utc" (UTC midnight) for the start of the day.', options: ['local', 'utc'], default: 'local', required: false },
     ],
     run: async (input, params, context): AlgorithmRunResult => {
       const referenceTime = context?.execution?.referenceTime ?? Date.now();
@@ -270,7 +270,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
     parameters: [
       {
         name: 'start',
-        type: 'number',
+        type: 'string',
         description:
           'Absolute window start, epoch ms or a parseable date string. ' +
           'Takes precedence over the relative window params. Defaults to the start of the data (0).',
@@ -278,7 +278,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
       },
       {
         name: 'end',
-        type: 'number',
+        type: 'string',
         description:
           'Absolute window end, epoch ms or a parseable date string. ' +
           'Defaults to the execution reference time (or now if unavailable).',
@@ -306,6 +306,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
         name: 'includeValueAtBegin',
         type: 'boolean',
         description: 'If true, include the last recorded value before "start" so the series has a value at the window opening. Default false.',
+        default: false,
         required: false,
       },
       {
@@ -316,6 +317,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
           'carried to the window close. Symmetric to includeValueAtBegin (which seeds the window ' +
           'opening); together they make the series span the full window, so a downstream ' +
           'TIMESERIES_TIME_WEIGHTED_AVERAGE is window-correct. Default false.',
+        default: false,
         required: false,
       },
     ],
@@ -436,10 +438,10 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
     ],
     outputType: 'SpinalDateValue[]',
     parameters: [
-      { name: 'action', type: 'string', description: 'What to do with a detected spike: "drop" (default — remove the point, so the delta bridges its good neighbours) or "interpolate" (replace its value with the neighbours\' trend, keeping the timestamp and point count).', required: false },
+      { name: 'action', type: 'string', description: 'What to do with a detected spike: "drop" (default — remove the point, so the delta bridges its good neighbours) or "interpolate" (replace its value with the neighbours\' trend, keeping the timestamp and point count).', options: ['drop', 'interpolate'], default: 'drop', required: false },
       { name: 'maxDelta', type: 'number', description: 'Largest plausible change between two consecutive samples. A point deviating from the local trend by more than this (while the series recovers around it) is a spike. If omitted, an automatic threshold is used.', required: false },
-      { name: 'factor', type: 'number', description: 'Multiplier for the automatic threshold (factor × median absolute step) when "maxDelta" is not given. Default 6.', required: false },
-      { name: 'cleanEdges', type: 'boolean', description: 'Whether to also clean the first and last points (default true). At an edge there is no "recovery" reading to confirm a spike, so the preceding/following trend is extrapolated instead. Set false to leave the latest (and earliest) point untouched — useful when the last sample is the current, not-yet-confirmed value and you would rather wait for the next reading to decide.', required: false },
+      { name: 'factor', type: 'number', description: 'Multiplier for the automatic threshold (factor × median absolute step) when "maxDelta" is not given. Default 6.', default: 6, required: false },
+      { name: 'cleanEdges', type: 'boolean', description: 'Whether to also clean the first and last points (default true). At an edge there is no "recovery" reading to confirm a spike, so the preceding/following trend is extrapolated instead. Set false to leave the latest (and earliest) point untouched — useful when the last sample is the current, not-yet-confirmed value and you would rather wait for the next reading to decide.', default: true, required: false },
     ],
     run: async (input, params): AlgorithmRunResult => {
       const raw = asSeries(input, 'TIMESERIES_DESPIKE');
@@ -629,6 +631,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
 
   createAlgorithm({
     name: 'PUSH_ENDPOINT_VALUE',
+    category: 'ENDPOINT',
     description:
       'Records a value on an endpoint: updates the node element\'s currentValue (like ' +
       'SET_ENDPOINT_VALUE) AND appends a point to the endpoint\'s timeseries (creating ' +
@@ -643,7 +646,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
     parameters: [
       {
         name: 'date',
-        type: 'number',
+        type: 'string',
         description:
           'Timestamp for the timeseries point, epoch ms or a parseable date string. ' +
           'Defaults to the execution reference time (or now if unavailable).',
@@ -655,6 +658,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
         description:
           'If true, also stamps node.info.directModificationDate with the current time after ' +
           'recording the value, so the BOS can detect the direct modification (default: false).',
+        default: false,
         required: false,
       },
     ],
@@ -738,6 +742,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
         description:
           'If true, set the endpoint node\'s currentValue to the value of the latest (max-date) ' +
           'point after inserting. Default false.',
+        default: false,
         required: false,
       },
       {
@@ -746,6 +751,7 @@ export const TIMESERIES_ALGORITHMS: AlgorithmDefinition[] = [
         description:
           'If true, also stamps node.info.directModificationDate with the current time after ' +
           'inserting, so the BOS can detect the direct modification (default: false).',
+        default: false,
         required: false,
       },
     ],

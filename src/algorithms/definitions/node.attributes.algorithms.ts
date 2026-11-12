@@ -10,7 +10,7 @@ import {
     AlgorithmRunResult,
     createAlgorithm,
 } from './core';
-import { resolveBooleanFlag } from '../../services/utils';
+import { resolveBooleanFlag, toAttributeText } from '../../services/utils';
 
 /** Shared description for the updateDirectModificationDate parameter of the attribute setters. */
 const UPDATE_DIRECT_MODIFICATION_DATE_DESC =
@@ -68,8 +68,8 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
         parameters: [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
-            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
-            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', default: true, required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (!Array.isArray(input) || input.length < 2) {
@@ -102,7 +102,7 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
             // cast to `any` so this compiles against any version. On an older doc-service the
             // extra arg is harmlessly ignored — the attribute still updates, it just doesn't
             // stamp directModificationDate.
-            await (attributeService as any).createOrUpdateAttrsAndCategories(node, categoryName, { [label]: String(value) }, updateDirectModificationDate);
+            await (attributeService as any).createOrUpdateAttrsAndCategories(node, categoryName, { [label]: toAttributeText(value) }, updateDirectModificationDate);
             return value as any;
         },
     }),
@@ -118,8 +118,8 @@ export const NODE_ATTRIBUTES_ALGORITHMS: AlgorithmDefinition[] = [
             { name: 'categoryName', type: 'string', description: 'The attribute category name', required: true },
             { name: 'label', type: 'string', description: 'The attribute label', required: true },
             { name: 'value', type: 'string', description: 'The value to set', required: true },
-            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', required: false },
-            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, required: false },
+            { name: 'createIfNotExist', type: 'boolean', description: 'If true, creates the attribute if it does not exist. If false, only updates existing attributes (default: true).', default: true, required: false },
+            { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');

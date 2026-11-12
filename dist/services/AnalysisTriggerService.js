@@ -14,6 +14,7 @@ const analysisTrigger_1 = require("../constants/analysisTrigger");
 const WorkflowBlockManagerService_1 = require("./WorkflowBlockManagerService");
 const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
 const analysisAnchor_1 = require("../constants/analysisAnchor");
+const workNodes_1 = require("./workNodes");
 /**
  * Service responsible for managing trigger configurations on analysis nodes.
  *
@@ -188,12 +189,7 @@ class AnalysisTriggerService {
             yield this.executor.executeDAG(dag, context);
             // Find leaf block output
             const leafBlock = this.findLeafBlock(dag.blocks);
-            const result = context.blockOutputs.get(leafBlock.id);
-            if (Array.isArray(result))
-                return result;
-            if (result && typeof result === 'object')
-                return [result];
-            return [targetNode];
+            return (0, workNodes_1.toWorkNodes)(context.blockOutputs.get(leafBlock.id));
         });
     }
     executeInputWorkflow(analysisNode, workNode) {

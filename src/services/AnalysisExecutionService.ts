@@ -14,6 +14,7 @@ import WorkflowExecutionService, {
 } from './WorkflowExecutionService';
 import { logMessage } from './utils';
 import { runWithConcurrency } from './concurrency';
+import { toWorkNodes } from './workNodes';
 
 /**
  * Orchestrates the full analysis execution pipeline:
@@ -286,17 +287,7 @@ export default class AnalysisExecutionService {
 
         // Get the output of the leaf block(s) — the final result
         const leafBlock = this.findLeafBlock(dag.blocks);
-        const result = context.blockOutputs.get(leafBlock.id);
-
-        if (Array.isArray(result)) {
-            return result as SpinalNode<any>[];
-        }
-        if (result && typeof result === 'object') {
-            return [result as SpinalNode<any>];
-        }
-
-        // Fallback: just the target node
-        return [targetNode];
+        return toWorkNodes(context.blockOutputs.get(leafBlock.id));
     }
 
     // ─────────────────────────────────────────────────────

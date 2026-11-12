@@ -82,7 +82,7 @@ exports.FLOW_CONTROL_ALGORITHMS = [
         ],
         outputType: 'any',
         parameters: [
-            { name: 'prefix', type: 'string', description: 'Optional label prepended to the log line (default "[LOG]").', required: false },
+            { name: 'prefix', type: 'string', description: 'Optional label prepended to the log line (default "[LOG]").', default: '[LOG]', required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const prefix = typeof (params === null || params === void 0 ? void 0 : params.prefix) === 'string' && params.prefix.length > 0 ? params.prefix : '[LOG]';

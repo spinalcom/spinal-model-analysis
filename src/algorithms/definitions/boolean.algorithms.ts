@@ -243,7 +243,7 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         ],
         outputType: 'boolean',
         parameters: [
-            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', required: false },
+            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', default: false, required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (!Array.isArray(input) || input.length < 2) throw new Error('EQUALS expects 2 inputs: [a, b]');
@@ -263,7 +263,7 @@ export const BOOLEAN_ALGORITHMS: AlgorithmDefinition[] = [
         outputType: 'boolean',
         parameters: [
             { name: 'expected', type: 'string', description: 'The value to compare against.', required: true },
-            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', required: false },
+            { name: 'ignoreCase', type: 'boolean', description: 'Compare text case-insensitively (default false).', default: false, required: false },
         ],
         run: async (input, params): AlgorithmRunResult => {
             if (params?.expected === undefined) throw new Error('EQUALS_PARAM requires an "expected" parameter');

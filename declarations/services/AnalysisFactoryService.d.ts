@@ -2,6 +2,7 @@ import { SpinalNode, SpinalGraph } from 'spinal-env-viewer-graph-service';
 import AnalyticNodeManagerService from './AnalyticNodeManagerService';
 import WorkflowBlockManagerService from './WorkflowBlockManagerService';
 import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
+import { AlgorithmRegistry } from '../algorithms/definitions/core';
 /**
  * Factory service for creating complete analysis configurations from a JSON descriptor.
  *
@@ -20,7 +21,9 @@ import { IAnalysisConfigJSON } from '../interfaces/IAnalysisConfigJSON';
 export default class AnalysisFactoryService {
     private readonly nodeManager;
     private readonly blockManager;
-    constructor(nodeManager: AnalyticNodeManagerService, blockManager: WorkflowBlockManagerService);
+    /** The blocks a config is validated against: their names, parameters and choices. */
+    private readonly registry;
+    constructor(nodeManager: AnalyticNodeManagerService, blockManager: WorkflowBlockManagerService, registry?: AlgorithmRegistry);
     /**
      * Validates a JSON config without touching the database.
      * Returns an array of error messages. Empty array = valid config.
@@ -195,6 +198,13 @@ export default class AnalysisFactoryService {
      * Validates a single block definition.
      */
     private validateBlock;
+    /**
+     * Validates a block's parameters against its algorithm's declaration, so a mistake is refused
+     * when the analytic is saved instead of failing — or being silently ignored — at every run:
+     * an unknown parameter name, a required parameter left empty, a value outside the allowed
+     * choices, text where a number or a boolean is expected.
+     */
+    private validateParameters;
     /**
      * Validates a sub-workflow (FOREACH subWorkflow, IF thenWorkflow/elseWorkflow).
      * Sub-blocks can reference: local refs, parent refs, and known item refs.

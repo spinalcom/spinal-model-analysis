@@ -24,7 +24,7 @@
  * <http://resources.spinalcom.com/licenses.pdf>.
  */
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.touchDirectModificationDate = exports.resolveBooleanFlag = exports.parseValue = exports.logMessage = void 0;
+exports.touchDirectModificationDate = exports.toAttributeText = exports.resolveBooleanFlag = exports.parseValue = exports.logMessage = void 0;
 // Logging function
 function logMessage(message) {
     if (process.env.ADVANCED_LOGGING === 'true') {
@@ -66,6 +66,28 @@ function resolveBooleanFlag(value, defaultValue = false) {
     return defaultValue;
 }
 exports.resolveBooleanFlag = resolveBooleanFlag;
+/**
+ * The text a node attribute stores for a value (attribute values are strings). Dates come from
+ * Excel date cells, which have no time zone (they are read as UTC): they become the date and time
+ * as written in the file — "2026-10-30", or "2026-10-30 14:30" (with ":ss" when the seconds are not
+ * zero) — where String(date) would give locale-dependent text and an ISO "…Z" would claim a UTC
+ * time the file never stated. Plain objects become JSON rather than "[object Object]".
+ */
+function toAttributeText(value) {
+    if (value instanceof Date) {
+        if (isNaN(value.getTime()))
+            return String(value);
+        const [date, time] = value.toISOString().split('T');
+        const clock = time.slice(0, 8);
+        if (clock === '00:00:00')
+            return date;
+        return `${date} ${clock.endsWith(':00') ? clock.slice(0, 5) : clock}`;
+    }
+    if (value !== null && typeof value === 'object' && !Array.isArray(value))
+        return JSON.stringify(value);
+    return String(value);
+}
+exports.toAttributeText = toAttributeText;
 /**
  * Stamps `node.info.directModificationDate` with the current time so downstream
  * consumers (e.g. the other organs) can detect a direct modification of the

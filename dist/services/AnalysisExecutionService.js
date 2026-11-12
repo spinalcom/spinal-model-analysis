@@ -14,6 +14,7 @@ const WorkflowBlockManagerService_1 = require("./WorkflowBlockManagerService");
 const WorkflowExecutionService_1 = require("./WorkflowExecutionService");
 const utils_1 = require("./utils");
 const concurrency_1 = require("./concurrency");
+const workNodes_1 = require("./workNodes");
 /**
  * Orchestrates the full analysis execution pipeline:
  *
@@ -203,15 +204,7 @@ class AnalysisExecutionService {
             yield this.executor.executeDAG(dag, context);
             // Get the output of the leaf block(s) — the final result
             const leafBlock = this.findLeafBlock(dag.blocks);
-            const result = context.blockOutputs.get(leafBlock.id);
-            if (Array.isArray(result)) {
-                return result;
-            }
-            if (result && typeof result === 'object') {
-                return [result];
-            }
-            // Fallback: just the target node
-            return [targetNode];
+            return (0, workNodes_1.toWorkNodes)(context.blockOutputs.get(leafBlock.id));
         });
     }
     // ─────────────────────────────────────────────────────

@@ -1,0 +1,166 @@
+/**
+ * Search keywords for algorithms, keyed by the stable algorithm name.
+ *
+ * A builder finds a block by searching its label, its name and its description; keywords add the
+ * words a user may type that appear in none of them — synonyms, symbols, the usual English or
+ * French term ("email", "seuil", "boucle", ">"). They are never shown and never used to filter,
+ * so a block needs an entry only when such a word exists: no entry is fine.
+ *
+ * createAlgorithm() merges these into each definition's `keywords` (with any declared inline).
+ * An unknown name here is simply ignored.
+ */
+export const ALGORITHM_KEYWORDS: Record<string, readonly string[]> = {
+  // ── number ──
+  COPY_FIRST_NUMBER: ['passthrough', 'copie'],
+  SUM_NUMBERS: ['total', 'addition', 'additionner', 'add', 'plus', '+'],
+  COMPACT_NUMBERS: ['null', 'vide', 'empty', 'nettoyer', 'clean'],
+  SUBTRACT: ['moins', 'minus', 'différence', 'difference', '-'],
+  RANDOM_NUMBER: ['hasard', 'simulation', 'test'],
+  CONSTANT_NUMBER: ['valeur fixe', 'literal', 'value'],
+  ADD_PARAM: ['plus', 'offset', 'décalage', 'somme', '+'],
+  SUBTRACT_PARAM: ['moins', 'minus', 'offset', 'décalage', '-'],
+  MULTIPLY_PARAM: ['fois', 'times', 'gain', 'facteur', 'scale', 'pourcentage', '*'],
+  DIVIDE_PARAM: ['ratio', 'facteur', 'scale', '/'],
+  POLYNOMIAL: ['formule', 'formula', 'équation', 'linéaire', 'linear', 'calibration'],
+  AVERAGE_NUMBERS: ['mean', 'avg'],
+  MIN_NUMBERS: ['plus petit', 'smallest', 'lowest'],
+  MAX_NUMBERS: ['plus grand', 'largest', 'highest', 'pic', 'peak'],
+  ROUND: ['décimales', 'decimals', 'précision'],
+  ABS: ['magnitude', 'signe'],
+  CLAMP: ['limiter', 'limit', 'saturer', 'plage', 'range', 'min', 'max'],
+
+  // ── conversion ──
+  PARSE_NUMBER: ['cast', 'texte', 'string', 'convert'],
+  BOOLEAN_TO_NUMBER: ['cast', 'convert', '0', '1'],
+  NUMBER_TO_BOOLEAN: ['cast', 'convert', 'vrai', 'faux'],
+
+  // ── boolean ──
+  GREATER_THAN: ['seuil', 'threshold', 'dépasse', 'au-dessus', 'above', 'plus grand', '>'],
+  LESS_THAN: ['seuil', 'threshold', 'en dessous', 'below', 'plus petit', '<'],
+  BETWEEN: ['plage', 'range', 'intervalle', 'dans'],
+  NOT_BETWEEN: ['plage', 'range', 'intervalle', 'en dehors', 'outside'],
+  DIFFERENCE_THRESHOLD: ['delta', 'variation', 'tolérance', 'tolerance', 'deadband'],
+  AND: ['tous', 'all', '&&'],
+  OR: ['au moins un', 'any', '||'],
+  NOT: ['inverse', 'négation', 'negate', '!'],
+  EXISTS: ['null', 'vide', 'empty', 'défini', 'defined', 'présent'],
+  EQUALS: ['identique', 'same', 'comparer', 'compare', '=='],
+  EQUALS_PARAM: ['identique', 'vaut', 'comparer', 'compare', '=='],
+  MATCHES_REGEX: ['motif', 'pattern', 'expression régulière', 'contient', 'contains', 'commence par', 'starts with'],
+
+  // ── string ──
+  FORMAT_STRING: ['texte', 'text', 'modèle', 'template', 'message', 'concaténer', 'concat'],
+
+  // ── list ──
+  CREATE_LIST: ['tableau', 'array'],
+  LIST_PUSH: ['append', 'add'],
+  LIST_PUSH_PARAM: ['append', 'add'],
+  LIST_CONCAT: ['fusionner', 'merge', 'join'],
+  LIST_GET: ['index', 'position', 'nth'],
+  LIST_LENGTH: ['size', 'nombre', 'count'],
+  COUNT: ['taille', 'size', 'length', 'nombre', 'combien'],
+  LIST_INCLUDES: ['contains', 'has'],
+  LIST_INDEX_OF: ['position', 'find'],
+  LIST_SLICE: ['sous-liste', 'sublist', 'range'],
+  LIST_FLATTEN: ['imbriqué', 'nested'],
+  LIST_UNIQUE: ['doublons', 'duplicates', 'distinct'],
+
+  // ── object ──
+  CREATE_OBJECT: ['json', 'dictionnaire', 'map'],
+  GET_PROPERTY: ['champ', 'field', 'clé', 'key', 'colonne', 'column', 'json'],
+  SET_PROPERTY: ['champ', 'field', 'clé', 'key', 'json'],
+  SET_PROPERTY_DYNAMIC: ['champ', 'field', 'clé', 'key', 'json'],
+  DELETE_PROPERTY: ['champ', 'field', 'retirer', 'remove'],
+  MERGE_OBJECTS: ['combiner', 'combine', 'assign'],
+  HAS_PROPERTY: ['existe', 'exists', 'clé', 'key'],
+  GET_KEYS: ['champs', 'fields', 'propriétés', 'properties'],
+
+  // ── node ──
+  FIRST_NODE: ['unique', 'single', 'head'],
+  MERGE_NODES: ['union', 'combiner', 'combine', 'concat'],
+  GET_NODE_SERVER_ID: ['dynamicId', 'identifiant'],
+  SET_NODE_INFO: ['renommer', 'rename', 'propriété', 'property'],
+  SET_NODE_INFO_PARAM: ['renommer', 'rename', 'propriété', 'property'],
+  GET_NODE_CHILDREN: ['relation', 'fils', 'descendants'],
+  GET_NODE_PARENTS: ['relation', 'ancêtres', 'ancestors'],
+  FIND_IN_CONTEXT: ['recherche', 'search', 'type', 'tous', 'all', 'descendants', 'findInContext'],
+  GET_NODE_INFO: ['nom', 'name', 'type', 'id', 'propriété', 'property'],
+  GET_NODE_CHILD: ['recherche', 'search', 'regex', 'fils', 'relation'],
+  GET_NODE_PARENT: ['recherche', 'search', 'regex', 'relation'],
+  FILTER_NODE: ['regex', 'garder', 'keep', 'where'],
+  FIND_NODE: ['recherche', 'search', 'regex'],
+  CREATE_NODE: ['ajouter', 'add', 'nouveau', 'new'],
+  LINK_NODES: ['relation', 'attacher', 'attach', 'groupe', 'group', 'addChild'],
+  CURRENT_NODE: ['$node', 'work node', 'self'],
+
+  // ── endpoint ──
+  ENDPOINT_NODE_CURRENT_VALUE: ['lire', 'read', 'mesure', 'capteur', 'sensor', 'point', 'currentValue'],
+  ENDPOINT_NODE_CURRENT_VALUE_MODEL: ['bind', 'cov', 'déclencheur', 'trigger', 'onChange'],
+  SET_ENDPOINT_VALUE: ['écrire', 'write', 'commande', 'command', 'consigne', 'setpoint'],
+  SET_ENDPOINT_VALUE_PARAM: ['écrire', 'write', 'commande', 'command', 'consigne', 'setpoint'],
+  PUSH_ENDPOINT_VALUE: ['écrire', 'write', 'historique', 'history', 'mesure'],
+
+  // ── node attributes ──
+  GET_ATTRIBUTE: ['read', 'catégorie', 'category', 'label', 'propriété'],
+  SET_ATTRIBUTE: ['écrire', 'write', 'mettre à jour', 'update', 'créer'],
+  SET_ATTRIBUTE_PARAM: ['écrire', 'write', 'mettre à jour', 'update', 'créer'],
+  GET_ALL_ATTRIBUTES: ['lister', 'list', 'catégorie', 'category'],
+  GET_ATTRIBUTE_MODEL: ['bind', 'cov', 'déclencheur', 'trigger', 'onChange'],
+  GET_ALL_ATTRIBUTE_MODELS: ['bind', 'cov', 'déclencheur', 'trigger', 'onChange'],
+
+  // ── timeseries ──
+  GENERATE_TIMESTAMPS: ['dates', 'horaires', 'grille', 'grid', 'planning', 'schedule', 'profil'],
+  GET_ENDPOINT_TIMESERIES: ['historique', 'history', 'mesures', 'fenêtre', 'window', 'période'],
+  TIMESERIES_FIRST: ['début', 'start', 'oldest'],
+  TIMESERIES_LAST: ['fin', 'end', 'latest', 'récent'],
+  TIMESERIES_DELTA: ['consommation', 'consumption', 'index', 'compteur', 'meter', 'énergie', 'energy', 'différence'],
+  TIMESERIES_DESPIKE: ['aberrant', 'outlier', 'spike', 'anomalie', 'dropout', 'filtrer', 'clean'],
+  TIMESERIES_TIME_WEIGHTED_AVERAGE: ['twa', 'mean', 'intégrale'],
+  TIMESERIES_MIN: ['creux', 'lowest'],
+  TIMESERIES_MAX: ['pic', 'peak', 'highest'],
+  TIMESERIES_AVERAGE: ['mean', 'avg'],
+  TIMESERIES_SUM: ['total', 'cumul'],
+  TIMESERIES_COUNT: ['échantillons', 'samples', 'size'],
+  INSERT_TIMESERIES: ['import', 'backfill', 'écrire', 'write', 'historique', 'history'],
+
+  // ── flow & execution ──
+  DELAY: ['attendre', 'attente', 'wait', 'pause', 'sleep', 'temporisation'],
+  LOG: ['debug', 'print', 'console', 'trace', 'afficher'],
+  IF: ['condition', 'branche', 'branch', 'alors', 'then', 'else'],
+  FOREACH: ['boucle', 'loop', 'itérer', 'iterate', 'map'],
+  FILTER: ['garder', 'keep', 'where', 'prédicat', 'predicate'],
+  SET_INPUT_REGISTER: ['variable', 'mémoriser', 'store', 'assignation'],
+  FETCH_INPUT_REGISTER: ['variable', 'lire', 'read'],
+  GET_CURRENT_DATE: ['maintenant', 'now', 'heure', 'time', 'timestamp'],
+  GET_EXECUTION_REFERENCE_TIME: ['maintenant', 'now', 'heure', 'time', 'timestamp'],
+  GET_EXECUTION_TRIGGER_TYPE: ['cov', 'cron', 'interval'],
+  GET_EXECUTION_TRIGGER_ID: ['cov', 'cron', 'interval'],
+
+  // ── communication ──
+  CURL_REQUEST: ['http', 'api', 'rest', 'get', 'post', 'webhook', 'requête', 'url', 'fetch'],
+  SEND_MAIL: ['email', 'e-mail', 'courriel', 'notification', 'alerte', 'alert', 'message', 'smtp'],
+
+  // ── ticket ──
+  CREATE_TICKET: ['incident', 'alarme', 'alarm', 'demande', 'intervention', 'workflow', 'import'],
+  GET_TICKETS_FROM_NODE: ['lister', 'list', 'doublon', 'existing'],
+  MOVE_TICKET_TO_NEXT_STEP: ['avancer', 'advance', 'statut', 'status', 'clôturer', 'close'],
+
+  // ── excel ──
+  LOAD_EXCEL: ['xlsx', 'fichier', 'file', 'document', 'tableur', 'spreadsheet', 'ouvrir', 'open', 'modèle', 'template'],
+  GET_EXCEL_VARIABLES: ['xlsx', 'modèle', 'template', 'tokens'],
+  GET_EXCEL_SHEETS: ['xlsx', 'onglets', 'tabs'],
+  GET_EXCEL_CELL: ['xlsx', 'read'],
+  GET_EXCEL_COLUMN: ['xlsx', 'read'],
+  GET_EXCEL_RANGE: ['xlsx', 'read', 'tableau', 'table'],
+  GET_EXCEL_ROWS: ['xlsx', 'read', 'tableau', 'table', 'import', 'csv'],
+  COLUMNS_TO_TIMESERIES: ['xlsx', 'import', 'dates', 'valeurs'],
+  SET_EXCEL_VARIABLES: ['xlsx', 'écrire', 'write', 'rapport', 'report', 'modèle', 'template'],
+  SET_EXCEL_CELLS: ['xlsx', 'écrire', 'write', 'rapport', 'report'],
+  SET_EXCEL_RANGE: ['xlsx', 'écrire', 'write', 'rapport', 'report', 'tableau', 'table'],
+  SET_EXCEL_COMMENTS: ['xlsx', 'notes'],
+  ADD_EXCEL_SHEET: ['xlsx', 'onglet', 'tab'],
+  RENAME_EXCEL_SHEET: ['xlsx', 'onglet', 'tab'],
+  DELETE_EXCEL_SHEET: ['xlsx', 'onglet', 'tab'],
+  SAVE_EXCEL_TO_NODE: ['xlsx', 'export', 'rapport', 'report', 'document', 'fichier', 'file', 'upload'],
+  EXCEL_TO_BASE64: ['xlsx', 'export', 'télécharger', 'download', 'pièce jointe', 'attachment'],
+};

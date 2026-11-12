@@ -10,7 +10,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AlgorithmRegistry = exports.createAlgorithm = exports.toNumber = void 0;
-const tags_1 = require("./tags");
+const keywords_1 = require("./keywords");
 /**
  * Coerces a value into a number for numeric algorithms.
  * Accepts a real number or a numeric string (spinal attribute values come through
@@ -31,9 +31,9 @@ exports.toNumber = toNumber;
 const createAlgorithm = (definition) => {
     var _a, _b;
     return Object.freeze(Object.assign(Object.assign({}, definition), { inputs: definition.inputs.map((i) => (Object.assign({}, i))), parameters: [...definition.parameters], 
-        // Merge inline tags with the central map (by name), de-duplicated.
-        tags: Object.freeze([
-            ...new Set([...((_a = definition.tags) !== null && _a !== void 0 ? _a : []), ...((_b = tags_1.ALGORITHM_TAGS[definition.name]) !== null && _b !== void 0 ? _b : [])]),
+        // Merge inline keywords with the central map (by name), de-duplicated.
+        keywords: Object.freeze([
+            ...new Set([...((_a = definition.keywords) !== null && _a !== void 0 ? _a : []), ...((_b = keywords_1.ALGORITHM_KEYWORDS[definition.name]) !== null && _b !== void 0 ? _b : [])]),
         ]) }));
 };
 exports.createAlgorithm = createAlgorithm;

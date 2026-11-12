@@ -26,6 +26,7 @@ const core_1 = require("./core");
 exports.REGISTER_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'CURRENT_NODE',
+        category: 'NODE',
         description: 'Returns the current work node from the execution context. ' +
             'Used as a root/source block in workflows to inject the work node into the DAG.',
         inputs: [],

@@ -19,7 +19,7 @@ exports.OBJECT_ALGORITHMS = [
         inputs: [],
         outputType: 'string',
         parameters: [
-            { name: 'json', type: 'string', description: 'Optional JSON string to initialize the object', required: false },
+            { name: 'json', type: 'string', description: 'Optional JSON string to initialize the object', multiline: true, required: false },
         ],
         run: (_input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const json = params === null || params === void 0 ? void 0 : params.json;
@@ -33,32 +33,45 @@ exports.OBJECT_ALGORITHMS = [
     }),
     (0, core_1.createAlgorithm)({
         name: 'GET_PROPERTY',
-        description: 'Gets a property value from a JSON object string by key. Supports nested access with dot notation (e.g. "a.b.c").',
+        description: 'Gets a property value by key from an object — a live object (e.g. a row of GET_EXCEL_ROWS), whose ' +
+            'values keep their type (numbers, dates, …), or a JSON object string, whose values come back as ' +
+            'strings. Dot notation reaches nested properties ("a.b.c"), unless the object has the key exactly as ' +
+            'written (e.g. an Excel column "Réf. client").',
         inputs: [
-            { name: 'object', types: ['string'], description: 'The JSON object (as a JSON string) to operate on.', required: true },
+            { name: 'object', types: ['object', 'string'], description: 'The object, or a JSON object string, to read from.', required: true },
         ],
-        outputType: 'string',
+        outputType: 'any',
         parameters: [
             { name: 'key', type: 'string', description: 'The property key (supports dot notation for nested access)', required: true },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            if (typeof input !== 'string')
-                throw new Error('Expected a JSON string input');
+            const live = input !== null && typeof input === 'object';
+            if (live && typeof input.getId === 'function') {
+                throw new Error('GET_PROPERTY reads objects, not nodes — use GET_NODE_INFO or GET_ATTRIBUTE for a node');
+            }
+            if (!live && typeof input !== 'string')
+                throw new Error('Expected an object or a JSON string input');
             const key = params === null || params === void 0 ? void 0 : params.key;
             if (typeof key !== 'string' || key.length === 0) {
                 throw new Error('Invalid or missing key parameter');
             }
-            const obj = JSON.parse(input);
-            const parts = key.split('.');
+            const obj = live ? input : JSON.parse(input);
             let current = obj;
-            for (const part of parts) {
-                if (current === null || current === undefined || typeof current !== 'object') {
-                    return undefined;
+            if (obj !== null && typeof obj === 'object' && Object.prototype.hasOwnProperty.call(obj, key)) {
+                current = obj[key];
+            }
+            else {
+                for (const part of key.split('.')) {
+                    if (current === null || current === undefined || typeof current !== 'object') {
+                        return undefined;
+                    }
+                    current = current[part];
                 }
-                current = current[part];
             }
             if (current === undefined)
                 return undefined;
+            if (live)
+                return current;
             return typeof current === 'object' ? JSON.stringify(current) : String(current);
         }),
     }),

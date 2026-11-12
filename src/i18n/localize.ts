@@ -1,6 +1,6 @@
 import { AlgorithmDefinition } from '../algorithms/definitions/core';
 import { EN } from './en';
-import { FR } from './fr';
+import { FR, FR_CATEGORIES } from './fr';
 
 /** Locales for which the module can serve translated algorithm metadata. */
 export type Locale = 'en' | 'fr';
@@ -33,7 +33,21 @@ export interface LocalizedAlgorithm {
   inputs: Array<Record<string, unknown>>;
   outputType: string;
   parameters: Array<Record<string, unknown>>;
-  tags: readonly string[];
+  /** Search keywords (not localized, never shown): synonyms a user may type to find the block. */
+  keywords: readonly string[];
+}
+
+/** Translation of a catalog category, keyed by its id. */
+export type CategoryTranslations = Record<string, { label?: string; description?: string }>;
+
+const CATEGORY_TRANSLATIONS: Record<string, CategoryTranslations> = {
+  fr: FR_CATEGORIES,
+};
+
+/** The category translations of a locale (empty for English and unknown locales). */
+export function getCategoryTranslations(locale?: string): CategoryTranslations {
+  if (!locale) return {};
+  return CATEGORY_TRANSLATIONS[locale.toLowerCase()] ?? {};
 }
 
 const TRANSLATIONS: Record<string, LocaleTranslations> = {
@@ -64,6 +78,6 @@ export function localizeAlgorithm(def: AlgorithmDefinition, locale = 'en'): Loca
     inputs: def.inputs.map((i) => ({ ...i, description: t?.inputs?.[i.name] ?? i.description })),
     outputType: def.outputType,
     parameters: def.parameters.map((p) => ({ ...p, description: t?.parameters?.[p.name] ?? p.description })),
-    tags: def.tags ?? [],
+    keywords: def.keywords ?? [],
   };
 }

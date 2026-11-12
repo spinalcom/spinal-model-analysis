@@ -97,14 +97,13 @@ exports.NUMBER_ALGORITHMS = [
         parameters: [
             { name: 'min', type: 'number', description: 'Lower bound (inclusive)', required: true },
             { name: 'max', type: 'number', description: 'Upper bound (float: exclusive; integer: inclusive)', required: true },
-            { name: 'integer', type: 'boolean', description: 'When true, return an integer in [min, max] inclusive instead of a float. Defaults to false.', required: false },
+            { name: 'integer', type: 'boolean', description: 'When true, return an integer in [min, max] inclusive instead of a float. Defaults to false.', default: false, required: false },
         ],
         run: (_input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            const min = params === null || params === void 0 ? void 0 : params.min;
-            const max = params === null || params === void 0 ? void 0 : params.max;
-            if (typeof min !== 'number' || typeof max !== 'number') {
-                throw new Error('RANDOM_NUMBER requires numeric min and max parameters');
-            }
+            // Numeric strings are accepted, like every other numeric block: parameters saved by the
+            // builder can come back as text.
+            const min = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.min, 'RANDOM_NUMBER min');
+            const max = (0, core_1.toNumber)(params === null || params === void 0 ? void 0 : params.max, 'RANDOM_NUMBER max');
             const asInteger = (params === null || params === void 0 ? void 0 : params.integer) === true || (params === null || params === void 0 ? void 0 : params.integer) === 'true';
             if (asInteger) {
                 const lo = Math.ceil(min);
@@ -280,7 +279,7 @@ exports.NUMBER_ALGORITHMS = [
         ],
         outputType: 'number',
         parameters: [
-            { name: 'decimals', type: 'number', description: 'Number of decimal places to round to (default 0).', required: false },
+            { name: 'decimals', type: 'number', description: 'Number of decimal places to round to (default 0).', default: 0, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
             const n = (0, core_1.toNumber)(input, 'ROUND input');

@@ -27,6 +27,8 @@ const overrides = {
   ALWAYS_FAILS: H.fakeAlgorithm('ALWAYS_FAILS', async () => { throw new Error('boom'); }),
 };
 const registry = H.makeRegistry(overrides);
+// The stand-ins above are not in the real catalog, so configs are validated against this registry.
+const factory = H.makeFactory(registry);
 const executor = H.makeExecutor(registry);
 const run = (dag, errorPolicy) => H.runDag(executor, dag, { errorPolicy });
 
@@ -36,8 +38,8 @@ const analysis = (analysisName, blocks, extra = {}) =>
   ({ contextName: 'Ctx filter', analysisName, anchorNodeId: anchor.id, executionWorkflow: { blocks }, ...extra });
 const source = (ref, regex) => ({ ref, algorithmName: 'GET_NODE_CHILDREN', inputs: ['$node'], parameters: { regex } });
 const build = async (cfg) => {
-  assert.deepEqual(H.factory.validateConfig(cfg), []);
-  return H.createAndLoad(cfg, graph);
+  assert.deepEqual(factory.validateConfig(cfg), []);
+  return H.createAndLoad(cfg, graph, factory);
 };
 
 describe('FILTER block', () => {
@@ -153,10 +155,10 @@ describe('FILTER block', () => {
     const predicate = (inputs) => ({ ref: 'T', algorithmName: 'GREATER_THAN', inputs, parameters: { threshold: 1 } });
     const noItemRef = analysis('no itemRef', [source('Nums', 'items'),
       { ref: 'F', algorithmName: 'FILTER', inputs: ['Nums'], subWorkflow: { outputRef: 'T', blocks: [predicate(['n'])] } }]);
-    assert.ok(H.factory.validateConfig(noItemRef).some((e) => /FILTER block must have "itemRef"/.test(e)));
+    assert.ok(factory.validateConfig(noItemRef).some((e) => /FILTER block must have "itemRef"/.test(e)));
     const badRef = analysis('bad ref', [source('Nums', 'items'),
       { ref: 'F', algorithmName: 'FILTER', inputs: ['Nums'], itemRef: 'n', subWorkflow: { outputRef: 'T', blocks: [predicate(['Nope'])] } }]);
-    assert.ok(H.factory.validateConfig(badRef).some((e) => /input "Nope" does not resolve/.test(e)));
+    assert.ok(factory.validateConfig(badRef).some((e) => /input "Nope" does not resolve/.test(e)));
   });
 });
 
@@ -168,14 +170,14 @@ describe('errorPolicy on single-work-node (COV-style) runs', () => {
   const service = new H.AnalysisExecutionService(H.manager, registry);
 
   it("stop: the run fails hard (it used to silently run as 'continue')", async () => {
-    const node = await H.factory.createFromJSON(analysis('policy stop', failing, { errorPolicy: 'stop' }), graph);
+    const node = await factory.createFromJSON(analysis('policy stop', failing, { errorPolicy: 'stop' }), graph);
     const [result] = (await service.executeAnalysisForWorkNode(node, anchor.node)).results;
     assert.equal(result.success, false);
     assert.match(result.error, /Boom/);
   });
 
   it('continue: the run succeeds with the failure isolated in blockFailures', async () => {
-    const node = await H.factory.createFromJSON(analysis('policy continue', failing, { errorPolicy: 'continue' }), graph);
+    const node = await factory.createFromJSON(analysis('policy continue', failing, { errorPolicy: 'continue' }), graph);
     const [result] = (await service.executeAnalysisForWorkNode(node, anchor.node)).results;
     assert.equal(result.success, true);
     assert.equal(result.blockFailures.length, 1);
