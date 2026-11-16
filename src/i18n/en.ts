@@ -50,6 +50,7 @@ export const EN: LocaleTranslations = {
   SET_ENDPOINT_VALUE_PARAM: { label: 'Set Endpoint Value (constant)' },
   CREATE_NODE: { label: 'Create Node' },
   LINK_NODES: { label: 'Link Nodes' },
+  SHARE_VALUE: { label: 'Share a Value' },
 
   // ── node attributes ──
   GET_ATTRIBUTE: { label: 'Get Attribute' },

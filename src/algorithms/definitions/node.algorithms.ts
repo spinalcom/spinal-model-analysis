@@ -7,6 +7,8 @@ import {
   SPINAL_RELATION_LST_PTR_TYPE,
   SPINAL_RELATION_TYPE,
 } from 'spinal-env-viewer-graph-service';
+import { Model, Obj, Str } from 'spinal-core-connectorjs_type';
+import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
 import {
   AlgorithmDefinition,
   AlgorithmParams,
@@ -255,6 +257,98 @@ const setNodeInfoProperty = (node: SpinalNode<any>, property: string, value: unk
   } else {
     node.info[property].set(value);
   }
+};
+
+// ── Shared values (SHARE_VALUE) ──────────────────────────────────────────────
+
+/** A place on a node that holds one value: an info property, an element property, or an attribute. */
+type ValuePlace =
+  | { kind: 'info' | 'element'; key: string; text: string }
+  | { kind: 'attr'; category: string; label: string; text: string };
+
+const VALUE_PLACE_FORMS =
+  '"element.<key>" (e.g. "element.currentValue", an endpoint\'s value), "attr.<Category>.<Label>" (an attribute) ' +
+  'or "info.<key>" (an info property)';
+
+/**
+ * Parses a "sourceProperty" / "targetProperty" — the same path syntax as the API's `$modelRef`.
+ * Refuses the keys that are not data: `info.id` (the node's identity) and internals (`_…`).
+ */
+const parseValuePlace = (raw: unknown, paramName: string): ValuePlace => {
+  const text = typeof raw === 'string' ? raw.trim() : '';
+  const invalid = (): Error =>
+    new Error(`SHARE_VALUE: "${paramName}" must be ${VALUE_PLACE_FORMS}, got ${JSON.stringify(raw ?? '')}`);
+  const [kind, ...rest] = text.split('.');
+  if (kind === 'attr') {
+    // The category runs to the first dot and the label is everything after, so a label may hold dots.
+    const category = (rest[0] ?? '').trim();
+    const label = rest.slice(1).join('.').trim();
+    if (!category || !label) throw invalid();
+    return { kind, category, label, text: `attr.${category}.${label}` };
+  }
+  if ((kind !== 'info' && kind !== 'element') || rest.length !== 1) throw invalid();
+  const key = rest[0].trim();
+  if (!key) throw invalid();
+  if (key.startsWith('_') || key === 'model_id' || (kind === 'info' && key === 'id')) {
+    throw new Error(`SHARE_VALUE: "${kind}.${key}" is reserved and cannot be shared`);
+  }
+  return { kind, key, text: `${kind}.${key}` };
+};
+
+const isSamePlace = (a: ValuePlace, b: ValuePlace): boolean => a.text === b.text;
+
+const findAttributeModel = async (node: SpinalNode<any>, category: string, label: string): Promise<any | undefined> => {
+  const attribute = await attributeService.findOneAttributeInCategory(node, category, label);
+  return attribute === -1 ? undefined : attribute;
+};
+
+/** The model held at `place` on `node`, or undefined when there is nothing there. */
+const readValueModel = async (node: SpinalNode<any>, place: ValuePlace): Promise<unknown> => {
+  if (place.kind === 'attr') return (await findAttributeModel(node, place.category, place.label))?.value;
+  const holder: any = place.kind === 'info' ? node.info : await node.getElement(true);
+  return holder?._attribute_names?.includes(place.key) ? holder[place.key] : undefined;
+};
+
+/** What the node does have, to finish a "nothing at this place" error — the usual cause is a typo. */
+const describeAvailableValues = async (node: SpinalNode<any>, place: ValuePlace): Promise<string> => {
+  if (place.kind === 'attr') {
+    const labels: string[] = (await attributeService.getAttributesByCategory(node, place.category).catch(() => []))
+      .map((attribute: any) => attribute.label?.get());
+    return labels.length > 0
+      ? `category "${place.category}" holds: ${labels.join(', ')}`
+      : `it has no attribute in category "${place.category}"`;
+  }
+  const holder: any = place.kind === 'info' ? node.info : await node.getElement(true);
+  if (!holder) return 'it has no element';
+  const keys: string[] = holder._attribute_names.filter((key: string) => holder[key] instanceof Obj);
+  return `its ${place.kind} holds: ${keys.join(', ') || 'no value'}`;
+};
+
+/**
+ * Makes `place` on `node` BE `value` — the same model, not a copy — creating the place when it is
+ * missing (the attribute and its category, or the element of a node that has none). Nothing is
+ * touched when the place already holds that model, so re-running is free.
+ */
+const writeValueModel = async (node: SpinalNode<any>, place: ValuePlace, value: Model): Promise<void> => {
+  if (place.kind === 'attr') {
+    let attribute = await findAttributeModel(node, place.category, place.label);
+    if (!attribute) {
+      await attributeService.createOrUpdateAttrsAndCategories(node, place.category, { [place.label]: '' });
+      attribute = await findAttributeModel(node, place.category, place.label);
+      if (!attribute) throw new Error(`SHARE_VALUE: could not create ${place.text} on ${nodeLabel(node)}`);
+    }
+    if (attribute.value === value) return;
+    attribute.mod_attr('value', value);
+    attribute.lastModificationDate?.set(Date.now());
+    return;
+  }
+  // getElement() gives a node that has no element an empty one.
+  const holder: any = place.kind === 'info' ? node.info : await node.getElement();
+  // A new key named like a method of the holding model ("get", "set", "size", …) would replace it.
+  if (!holder._attribute_names.includes(place.key) && place.key in holder) {
+    throw new Error(`SHARE_VALUE: "${place.key}" is a reserved name and cannot be created in the ${place.kind} of ${nodeLabel(node)}`);
+  }
+  holder.mod_attr(place.key, value); // a no-op when the place already holds this model
 };
 
 export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
@@ -964,6 +1058,78 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
         });
       }
       return childInput as any;
+    },
+  }),
+
+  createAlgorithm({
+    name: 'SHARE_VALUE',
+    description:
+      'Makes two nodes hold the SAME value instead of two copies: the target\'s property becomes the ' +
+      'source\'s, so a write on either node — by an analytic, the BOS, or a connector — shows on both at ' +
+      'once, with nothing to re-run (e.g. a node created under a room sharing the "element.currentValue" ' +
+      'of an endpoint, or two nodes sharing an attribute). Name the value with "sourceProperty": ' +
+      '"element.<key>", "attr.<Category>.<Label>" or "info.<key>"; it lands at the same place on the target ' +
+      'unless "targetProperty" says otherwise, and that place is created when missing. The target\'s own ' +
+      'value there is replaced — best done right after CREATE_NODE, before anything watches the target. ' +
+      'An attribute can only share a text value. Running it again changes nothing. Takes 2 inputs: ' +
+      '[source, target]; returns the target node, for chaining.',
+    inputs: [
+      { name: 'source', types: ['SpinalNode'], description: 'The node that owns the value — it is kept as is.', required: true },
+      { name: 'target', types: ['SpinalNode'], description: 'The node that gets the shared value — its own value at that place is replaced.', required: true },
+    ],
+    outputType: 'SpinalNode',
+    parameters: [
+      {
+        name: 'sourceProperty',
+        type: 'string',
+        description:
+          'The value to share, on the source node: "element.currentValue" (an endpoint\'s value), ' +
+          '"attr.<Category>.<Label>" (an attribute) or "info.<key>" (an info property, e.g. "info.name").',
+        required: true,
+      },
+      {
+        name: 'targetProperty',
+        type: 'string',
+        description: 'Where the value goes on the target node, in the same form. Leave empty to use the same place as on the source.',
+        required: false,
+      },
+    ],
+    run: async (input, params, context): AlgorithmRunResult => {
+      // Two wired inputs, told apart from a lone list of two nodes by the executor's wired-input count.
+      const wired = context?.inputCount;
+      if ((wired !== undefined && wired !== 2) || !Array.isArray(input) || input.length !== 2) {
+        throw new Error('SHARE_VALUE expects 2 inputs: [source, target] — wire both nodes');
+      }
+      const [source, target] = input as unknown[];
+      if (!isSpinalNode(source) || !isSpinalNode(target)) {
+        throw new Error('SHARE_VALUE expects two SpinalNodes: [source, target] — for a list of targets, wrap it in a FOREACH');
+      }
+
+      const from = parseValuePlace(params?.sourceProperty, 'sourceProperty');
+      const rawTarget = params?.targetProperty;
+      const to = typeof rawTarget === 'string' && rawTarget.trim() !== '' ? parseValuePlace(rawTarget, 'targetProperty') : from;
+      if (source.getId().get() === target.getId().get() && isSamePlace(from, to)) {
+        throw new Error(`SHARE_VALUE: ${from.text} of ${nodeLabel(source)} cannot be shared with itself — wire two nodes, or give another "targetProperty"`);
+      }
+
+      const value = await readValueModel(source, from);
+      if (value === undefined) {
+        throw new Error(`SHARE_VALUE: ${nodeLabel(source)} has no ${from.text} — ${await describeAvailableValues(source, from)}`);
+      }
+      if (!(value instanceof Obj)) {
+        throw new Error(`SHARE_VALUE: ${from.text} of ${nodeLabel(source)} is not a single value (text, number or boolean) — an object, a list or a pointer cannot be shared`);
+      }
+      // An attribute rewrites a value that is not text with a new model on its next write, which
+      // would silently drop the share — so, as in the API, only text may be shared into one.
+      if (to.kind === 'attr' && !(value instanceof Str)) {
+        throw new Error(
+          `SHARE_VALUE: ${from.text} of ${nodeLabel(source)} is a ${typeof value.get()}, and an attribute can only share a text ` +
+          `value — share it into "element.<key>" or "info.<key>" of the target instead`
+        );
+      }
+
+      await withKeyLock(`share|${target.getId().get()}|${to.text}`, () => writeValueModel(target, to, value));
+      return target;
     },
   }),
 ];

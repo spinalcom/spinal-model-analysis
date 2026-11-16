@@ -88,6 +88,7 @@ exports.ALGORITHM_KEYWORDS = {
     FIND_NODE: ['recherche', 'search', 'regex'],
     CREATE_NODE: ['ajouter', 'add', 'nouveau', 'new'],
     LINK_NODES: ['relation', 'attacher', 'attach', 'groupe', 'group', 'addChild'],
+    SHARE_VALUE: ['lier', 'lien', 'link', 'partage', 'shared', 'commun', 'miroir', 'mirror', 'synchroniser', 'sync', 'référence', 'reference', 'modelRef', 'alias', 'jumeau', 'twin'],
     CURRENT_NODE: ['$node', 'work node', 'self'],
     // ── endpoint ──
     ENDPOINT_NODE_CURRENT_VALUE: ['lire', 'read', 'mesure', 'capteur', 'sensor', 'point', 'currentValue'],

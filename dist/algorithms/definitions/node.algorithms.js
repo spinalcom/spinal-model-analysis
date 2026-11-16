@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.NODE_ALGORITHMS = void 0;
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const spinal_env_viewer_graph_service_1 = require("spinal-env-viewer-graph-service");
+const spinal_core_connectorjs_type_1 = require("spinal-core-connectorjs_type");
+const spinal_env_viewer_plugin_documentation_service_1 = require("spinal-env-viewer-plugin-documentation-service");
 const core_1 = require("./core");
 const utils_1 = require("../../services/utils");
 const concurrency_1 = require("../../services/concurrency");
@@ -212,6 +214,92 @@ const setNodeInfoProperty = (node, property, value, blockName) => {
         node.info[property].set(value);
     }
 };
+const VALUE_PLACE_FORMS = '"element.<key>" (e.g. "element.currentValue", an endpoint\'s value), "attr.<Category>.<Label>" (an attribute) ' +
+    'or "info.<key>" (an info property)';
+/**
+ * Parses a "sourceProperty" / "targetProperty" — the same path syntax as the API's `$modelRef`.
+ * Refuses the keys that are not data: `info.id` (the node's identity) and internals (`_…`).
+ */
+const parseValuePlace = (raw, paramName) => {
+    var _a;
+    const text = typeof raw === 'string' ? raw.trim() : '';
+    const invalid = () => new Error(`SHARE_VALUE: "${paramName}" must be ${VALUE_PLACE_FORMS}, got ${JSON.stringify(raw !== null && raw !== void 0 ? raw : '')}`);
+    const [kind, ...rest] = text.split('.');
+    if (kind === 'attr') {
+        // The category runs to the first dot and the label is everything after, so a label may hold dots.
+        const category = ((_a = rest[0]) !== null && _a !== void 0 ? _a : '').trim();
+        const label = rest.slice(1).join('.').trim();
+        if (!category || !label)
+            throw invalid();
+        return { kind, category, label, text: `attr.${category}.${label}` };
+    }
+    if ((kind !== 'info' && kind !== 'element') || rest.length !== 1)
+        throw invalid();
+    const key = rest[0].trim();
+    if (!key)
+        throw invalid();
+    if (key.startsWith('_') || key === 'model_id' || (kind === 'info' && key === 'id')) {
+        throw new Error(`SHARE_VALUE: "${kind}.${key}" is reserved and cannot be shared`);
+    }
+    return { kind, key, text: `${kind}.${key}` };
+};
+const isSamePlace = (a, b) => a.text === b.text;
+const findAttributeModel = (node, category, label) => __awaiter(void 0, void 0, void 0, function* () {
+    const attribute = yield spinal_env_viewer_plugin_documentation_service_1.attributeService.findOneAttributeInCategory(node, category, label);
+    return attribute === -1 ? undefined : attribute;
+});
+/** The model held at `place` on `node`, or undefined when there is nothing there. */
+const readValueModel = (node, place) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b;
+    if (place.kind === 'attr')
+        return (_a = (yield findAttributeModel(node, place.category, place.label))) === null || _a === void 0 ? void 0 : _a.value;
+    const holder = place.kind === 'info' ? node.info : yield node.getElement(true);
+    return ((_b = holder === null || holder === void 0 ? void 0 : holder._attribute_names) === null || _b === void 0 ? void 0 : _b.includes(place.key)) ? holder[place.key] : undefined;
+});
+/** What the node does have, to finish a "nothing at this place" error — the usual cause is a typo. */
+const describeAvailableValues = (node, place) => __awaiter(void 0, void 0, void 0, function* () {
+    if (place.kind === 'attr') {
+        const labels = (yield spinal_env_viewer_plugin_documentation_service_1.attributeService.getAttributesByCategory(node, place.category).catch(() => []))
+            .map((attribute) => { var _a; return (_a = attribute.label) === null || _a === void 0 ? void 0 : _a.get(); });
+        return labels.length > 0
+            ? `category "${place.category}" holds: ${labels.join(', ')}`
+            : `it has no attribute in category "${place.category}"`;
+    }
+    const holder = place.kind === 'info' ? node.info : yield node.getElement(true);
+    if (!holder)
+        return 'it has no element';
+    const keys = holder._attribute_names.filter((key) => holder[key] instanceof spinal_core_connectorjs_type_1.Obj);
+    return `its ${place.kind} holds: ${keys.join(', ') || 'no value'}`;
+});
+/**
+ * Makes `place` on `node` BE `value` — the same model, not a copy — creating the place when it is
+ * missing (the attribute and its category, or the element of a node that has none). Nothing is
+ * touched when the place already holds that model, so re-running is free.
+ */
+const writeValueModel = (node, place, value) => __awaiter(void 0, void 0, void 0, function* () {
+    var _c;
+    if (place.kind === 'attr') {
+        let attribute = yield findAttributeModel(node, place.category, place.label);
+        if (!attribute) {
+            yield spinal_env_viewer_plugin_documentation_service_1.attributeService.createOrUpdateAttrsAndCategories(node, place.category, { [place.label]: '' });
+            attribute = yield findAttributeModel(node, place.category, place.label);
+            if (!attribute)
+                throw new Error(`SHARE_VALUE: could not create ${place.text} on ${nodeLabel(node)}`);
+        }
+        if (attribute.value === value)
+            return;
+        attribute.mod_attr('value', value);
+        (_c = attribute.lastModificationDate) === null || _c === void 0 ? void 0 : _c.set(Date.now());
+        return;
+    }
+    // getElement() gives a node that has no element an empty one.
+    const holder = place.kind === 'info' ? node.info : yield node.getElement();
+    // A new key named like a method of the holding model ("get", "set", "size", …) would replace it.
+    if (!holder._attribute_names.includes(place.key) && place.key in holder) {
+        throw new Error(`SHARE_VALUE: "${place.key}" is a reserved name and cannot be created in the ${place.kind} of ${nodeLabel(node)}`);
+    }
+    holder.mod_attr(place.key, value); // a no-op when the place already holds this model
+});
 exports.NODE_ALGORITHMS = [
     (0, core_1.createAlgorithm)({
         name: 'FIRST_NODE',
@@ -479,15 +567,15 @@ exports.NODE_ALGORITHMS = [
             { name: 'property', type: 'string', description: 'Info key to read (default "name").', default: 'name', required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a, _b;
+            var _d, _e;
             if (!isSpinalNode(input))
                 throw new Error('GET_NODE_INFO expects a SpinalNode input');
             const property = typeof (params === null || params === void 0 ? void 0 : params.property) === 'string' && params.property.trim() !== ''
                 ? params.property.trim()
                 : 'name';
             if (property === 'server_id')
-                return ((_a = input._server_id) !== null && _a !== void 0 ? _a : null);
-            const raw = (_b = input.info) === null || _b === void 0 ? void 0 : _b[property];
+                return ((_d = input._server_id) !== null && _d !== void 0 ? _d : null);
+            const raw = (_e = input.info) === null || _e === void 0 ? void 0 : _e[property];
             if (raw === undefined || raw === null)
                 return null;
             const value = typeof (raw === null || raw === void 0 ? void 0 : raw.get) === 'function' ? raw.get() : raw;
@@ -665,10 +753,10 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _c;
+            var _f;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
-            const nodeElement = yield ((_c = input.element) === null || _c === void 0 ? void 0 : _c.load());
+            const nodeElement = yield ((_f = input.element) === null || _f === void 0 ? void 0 : _f.load());
             if (!nodeElement)
                 throw new Error('Node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -689,10 +777,10 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
-            var _d;
+            var _g;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
-            const nodeElement = yield ((_d = input.element) === null || _d === void 0 ? void 0 : _d.load());
+            const nodeElement = yield ((_g = input.element) === null || _g === void 0 ? void 0 : _g.load());
             if (!nodeElement)
                 throw new Error('Node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -715,7 +803,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _e;
+            var _h;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
             }
@@ -724,7 +812,7 @@ exports.NODE_ALGORITHMS = [
             if (!isSpinalNode(node)) {
                 throw new Error('SET_ENDPOINT_VALUE: first input must be a SpinalNode');
             }
-            const nodeElement = yield ((_e = node.element) === null || _e === void 0 ? void 0 : _e.load());
+            const nodeElement = yield ((_h = node.element) === null || _h === void 0 ? void 0 : _h.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE: node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -752,7 +840,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _f;
+            var _j;
             if (!isSpinalNode(input)) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM expects a SpinalNode input');
             }
@@ -760,7 +848,7 @@ exports.NODE_ALGORITHMS = [
             if (value === undefined) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM requires a "value" parameter');
             }
-            const nodeElement = yield ((_f = input.element) === null || _f === void 0 ? void 0 : _f.load());
+            const nodeElement = yield ((_j = input.element) === null || _j === void 0 ? void 0 : _j.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE_PARAM: node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -912,6 +1000,70 @@ exports.NODE_ALGORITHMS = [
                 }));
             }
             return childInput;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
+        name: 'SHARE_VALUE',
+        description: 'Makes two nodes hold the SAME value instead of two copies: the target\'s property becomes the ' +
+            'source\'s, so a write on either node — by an analytic, the BOS, or a connector — shows on both at ' +
+            'once, with nothing to re-run (e.g. a node created under a room sharing the "element.currentValue" ' +
+            'of an endpoint, or two nodes sharing an attribute). Name the value with "sourceProperty": ' +
+            '"element.<key>", "attr.<Category>.<Label>" or "info.<key>"; it lands at the same place on the target ' +
+            'unless "targetProperty" says otherwise, and that place is created when missing. The target\'s own ' +
+            'value there is replaced — best done right after CREATE_NODE, before anything watches the target. ' +
+            'An attribute can only share a text value. Running it again changes nothing. Takes 2 inputs: ' +
+            '[source, target]; returns the target node, for chaining.',
+        inputs: [
+            { name: 'source', types: ['SpinalNode'], description: 'The node that owns the value — it is kept as is.', required: true },
+            { name: 'target', types: ['SpinalNode'], description: 'The node that gets the shared value — its own value at that place is replaced.', required: true },
+        ],
+        outputType: 'SpinalNode',
+        parameters: [
+            {
+                name: 'sourceProperty',
+                type: 'string',
+                description: 'The value to share, on the source node: "element.currentValue" (an endpoint\'s value), ' +
+                    '"attr.<Category>.<Label>" (an attribute) or "info.<key>" (an info property, e.g. "info.name").',
+                required: true,
+            },
+            {
+                name: 'targetProperty',
+                type: 'string',
+                description: 'Where the value goes on the target node, in the same form. Leave empty to use the same place as on the source.',
+                required: false,
+            },
+        ],
+        run: (input, params, context) => __awaiter(void 0, void 0, void 0, function* () {
+            // Two wired inputs, told apart from a lone list of two nodes by the executor's wired-input count.
+            const wired = context === null || context === void 0 ? void 0 : context.inputCount;
+            if ((wired !== undefined && wired !== 2) || !Array.isArray(input) || input.length !== 2) {
+                throw new Error('SHARE_VALUE expects 2 inputs: [source, target] — wire both nodes');
+            }
+            const [source, target] = input;
+            if (!isSpinalNode(source) || !isSpinalNode(target)) {
+                throw new Error('SHARE_VALUE expects two SpinalNodes: [source, target] — for a list of targets, wrap it in a FOREACH');
+            }
+            const from = parseValuePlace(params === null || params === void 0 ? void 0 : params.sourceProperty, 'sourceProperty');
+            const rawTarget = params === null || params === void 0 ? void 0 : params.targetProperty;
+            const to = typeof rawTarget === 'string' && rawTarget.trim() !== '' ? parseValuePlace(rawTarget, 'targetProperty') : from;
+            if (source.getId().get() === target.getId().get() && isSamePlace(from, to)) {
+                throw new Error(`SHARE_VALUE: ${from.text} of ${nodeLabel(source)} cannot be shared with itself — wire two nodes, or give another "targetProperty"`);
+            }
+            const value = yield readValueModel(source, from);
+            if (value === undefined) {
+                throw new Error(`SHARE_VALUE: ${nodeLabel(source)} has no ${from.text} — ${yield describeAvailableValues(source, from)}`);
+            }
+            if (!(value instanceof spinal_core_connectorjs_type_1.Obj)) {
+                throw new Error(`SHARE_VALUE: ${from.text} of ${nodeLabel(source)} is not a single value (text, number or boolean) — an object, a list or a pointer cannot be shared`);
+            }
+            // An attribute rewrites a value that is not text with a new model on its next write, which
+            // would silently drop the share — so, as in the API, only text may be shared into one.
+            if (to.kind === 'attr' && !(value instanceof spinal_core_connectorjs_type_1.Str)) {
+                throw new Error(`SHARE_VALUE: ${from.text} of ${nodeLabel(source)} is a ${typeof value.get()}, and an attribute can only share a text ` +
+                    `value — share it into "element.<key>" or "info.<key>" of the target instead`);
+            }
+            yield (0, concurrency_1.withKeyLock)(`share|${target.getId().get()}|${to.text}`, () => writeValueModel(target, to, value));
+            return target;
         }),
     }),
 ];

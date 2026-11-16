@@ -305,6 +305,18 @@ exports.FR = {
             contextName: CONTEXT_NAME_FR,
         },
     },
+    SHARE_VALUE: {
+        label: 'Partager une valeur',
+        description: 'Fait porter à deux nœuds la MÊME valeur au lieu de deux copies : la propriété de la cible devient celle de la source, si bien qu\'une écriture sur l\'un des deux nœuds — par une analytique, le BOS ou un connecteur — apparaît aussitôt sur les deux, sans rien ré-exécuter (par ex. un nœud créé sous une pièce qui partage le « element.currentValue » d\'un endpoint, ou deux nœuds qui partagent un attribut). Désignez la valeur avec « sourceProperty » : « element.<clé> », « attr.<Catégorie>.<Label> » ou « info.<clé> » ; elle arrive au même endroit sur la cible, sauf si « targetProperty » en indique un autre, et cet endroit est créé s\'il manque. La valeur propre de la cible à cet endroit est remplacée — à faire de préférence juste après CREATE_NODE, avant que quoi que ce soit n\'observe la cible. Un attribut ne peut partager qu\'une valeur texte. Ré-exécuter le bloc ne change rien. Prend 2 entrées : [source, cible] ; renvoie le nœud cible, pour enchaîner.',
+        inputs: {
+            source: 'Le nœud qui possède la valeur — elle est conservée telle quelle.',
+            target: 'Le nœud qui reçoit la valeur partagée — sa propre valeur à cet endroit est remplacée.',
+        },
+        parameters: {
+            sourceProperty: 'La valeur à partager, sur le nœud source : « element.currentValue » (la valeur d\'un endpoint), « attr.<Catégorie>.<Label> » (un attribut) ou « info.<clé> » (une propriété d\'info, par ex. « info.name »).',
+            targetProperty: 'Où placer la valeur sur le nœud cible, sous la même forme. Laissez vide pour reprendre le même endroit que sur la source.',
+        },
+    },
     // ── node attributes ──
     GET_ATTRIBUTE: {
         label: 'Lire un attribut',
