@@ -1,0 +1,42 @@
+{
+  "contextName": "Confort",
+  "analysisName": "Température moyenne par étage",
+  "description": "Anchor: a building. Work nodes: its floors. Every hour, averages the temperature of the rooms of the floor that have a temperature endpoint and writes it on the floor (attribute Confort / Température moyenne). Pattern: CRON trigger, FILTER with EXISTS to skip what is missing, FOREACH collecting one value per element, then an aggregation.",
+  "status": "Inactive",
+  "triggers": [
+    { "id": "EveryHour", "type": "CRON", "cronExpression": "0 * * * *" }
+  ],
+  "worknodeResolver": {
+    "blocks": [
+      { "ref": "Floors", "algorithmName": "GET_NODE_CHILDREN", "inputs": ["$node"], "parameters": { "regex": "^hasGeographicFloor$" } }
+    ]
+  },
+  "executionWorkflow": {
+    "blocks": [
+      { "ref": "Rooms", "algorithmName": "GET_NODE_CHILDREN", "inputs": ["$node"], "parameters": { "regex": "^hasGeographicRoom$" } },
+      {
+        "ref": "Rooms with a sensor", "algorithmName": "FILTER", "inputs": ["Rooms"], "itemRef": "candidate",
+        "subWorkflow": {
+          "outputRef": "Has a sensor",
+          "blocks": [
+            { "ref": "Maybe a sensor", "algorithmName": "GET_NODE_CHILD", "inputs": ["candidate"], "parameters": { "regex": "^hasBmsEndpoint$", "regexFilter": "Temp", "ifNotFound": "null" } },
+            { "ref": "Has a sensor", "algorithmName": "EXISTS", "inputs": ["Maybe a sensor"] }
+          ]
+        }
+      },
+      {
+        "ref": "Temperatures", "algorithmName": "FOREACH", "inputs": ["Rooms with a sensor"], "itemRef": "room",
+        "subWorkflow": {
+          "outputRef": "Temperature",
+          "blocks": [
+            { "ref": "Sensor", "algorithmName": "GET_NODE_CHILD", "inputs": ["room"], "parameters": { "regex": "^hasBmsEndpoint$", "regexFilter": "Temp" } },
+            { "ref": "Temperature", "algorithmName": "ENDPOINT_NODE_CURRENT_VALUE", "inputs": ["Sensor"] }
+          ]
+        }
+      },
+      { "ref": "Average", "algorithmName": "AVERAGE_NUMBERS", "inputs": ["Temperatures"] },
+      { "ref": "Rounded", "algorithmName": "ROUND", "inputs": ["Average"], "parameters": { "decimals": 1 } },
+      { "ref": "Save", "algorithmName": "SET_ATTRIBUTE", "inputs": ["$node", "Rounded"], "parameters": { "categoryName": "Confort", "label": "Température moyenne" } }
+    ]
+  }
+}

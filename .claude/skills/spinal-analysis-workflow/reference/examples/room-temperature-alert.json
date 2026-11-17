@@ -1,0 +1,167 @@
+{
+  "contextName": "Confort",
+  "analysisName": "Alerte température pièce",
+  "description": "Anchor: a floor. Work nodes: its rooms that have a temperature endpoint. Each time a room's temperature changes by more than 0.5, writes the attribute Confort / État of the room: « Trop chaud » above 26, else « OK ». Pattern: a resolver that keeps only the nodes the analytic can work on (FILTER + EXISTS), a COV trigger on an input register, IF.",
+  "status": "Inactive",
+  "triggers": [
+    {
+      "id": "TemperatureChange",
+      "type": "COV",
+      "inputRegister": "I0",
+      "threshold": 0.5
+    }
+  ],
+  "worknodeResolver": {
+    "blocks": [
+      {
+        "ref": "Rooms",
+        "algorithmName": "GET_NODE_CHILDREN",
+        "inputs": [
+          "$node"
+        ],
+        "parameters": {
+          "regex": "^hasGeographicRoom$"
+        }
+      },
+      {
+        "ref": "Rooms with a sensor",
+        "algorithmName": "FILTER",
+        "inputs": [
+          "Rooms"
+        ],
+        "itemRef": "candidate",
+        "subWorkflow": {
+          "outputRef": "Has a sensor",
+          "blocks": [
+            {
+              "ref": "Maybe a sensor",
+              "algorithmName": "GET_NODE_CHILD",
+              "inputs": [
+                "candidate"
+              ],
+              "parameters": {
+                "regex": "^hasBmsEndpoint$",
+                "regexFilter": "Temp",
+                "ifNotFound": "null"
+              }
+            },
+            {
+              "ref": "Has a sensor",
+              "algorithmName": "EXISTS",
+              "inputs": [
+                "Maybe a sensor"
+              ]
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "inputWorkflow": {
+    "blocks": [
+      {
+        "ref": "Sensor",
+        "algorithmName": "GET_NODE_CHILD",
+        "inputs": [
+          "$node"
+        ],
+        "parameters": {
+          "regex": "^hasBmsEndpoint$",
+          "regexFilter": "Temp"
+        }
+      },
+      {
+        "ref": "Temperature model",
+        "algorithmName": "ENDPOINT_NODE_CURRENT_VALUE_MODEL",
+        "inputs": [
+          "Sensor"
+        ]
+      },
+      {
+        "ref": "Watch temperature",
+        "algorithmName": "SET_INPUT_REGISTER",
+        "inputs": [
+          "Temperature model"
+        ],
+        "registerAs": "I0"
+      },
+      {
+        "ref": "Keep sensor",
+        "algorithmName": "SET_INPUT_REGISTER",
+        "inputs": [
+          "Sensor"
+        ],
+        "registerAs": "I1"
+      }
+    ]
+  },
+  "executionWorkflow": {
+    "blocks": [
+      {
+        "ref": "Sensor",
+        "algorithmName": "FETCH_INPUT_REGISTER",
+        "parameters": {
+          "registerName": "I1"
+        }
+      },
+      {
+        "ref": "Temperature",
+        "algorithmName": "ENDPOINT_NODE_CURRENT_VALUE",
+        "inputs": [
+          "Sensor"
+        ]
+      },
+      {
+        "ref": "Too hot",
+        "algorithmName": "GREATER_THAN",
+        "inputs": [
+          "Temperature"
+        ],
+        "parameters": {
+          "threshold": 26
+        }
+      },
+      {
+        "ref": "Write state",
+        "algorithmName": "IF",
+        "inputs": [
+          "Too hot"
+        ],
+        "thenWorkflow": {
+          "outputRef": "Hot",
+          "blocks": [
+            {
+              "ref": "Hot",
+              "algorithmName": "SET_ATTRIBUTE_PARAM",
+              "inputs": [
+                "$node"
+              ],
+              "parameters": {
+                "categoryName": "Confort",
+                "label": "État",
+                "value": "Trop chaud"
+              }
+            }
+          ]
+        },
+        "elseWorkflow": {
+          "outputRef": "Ok",
+          "blocks": [
+            {
+              "ref": "Ok",
+              "algorithmName": "SET_ATTRIBUTE_PARAM",
+              "inputs": [
+                "$node"
+              ],
+              "parameters": {
+                "categoryName": "Confort",
+                "label": "État",
+                "value": "OK"
+              }
+            }
+          ]
+        }
+      }
+    ]
+  }
+}
