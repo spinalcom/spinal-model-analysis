@@ -56,6 +56,21 @@ Inputs, in this order:
 
 Parameters: none.
 
+## GET_NODE_BY_SERVER_ID
+
+Node by Server ID · French label in the builder: « Nœud par ID serveur »
+
+`GET_NODE_BY_SERVER_ID(serverId?: number | string) → SpinalNode`
+
+Returns the node with the given server id — the reverse of GET_NODE_SERVER_ID. Give the id in the "serverId" parameter, or wire it (a number or a numeric text, e.g. read from an Excel cell or an attribute). A node this organ has already loaded is returned at once; any other is loaded from the hub. For a list of ids, use a FOREACH.
+
+Inputs, in this order:
+1. `serverId` (number | string, optional) — Optional dynamic server id; when wired, it overrides the "serverId" parameter.
+
+Parameters:
+- `serverId` (number, optional) — Server id of the node (unless the serverId input is wired).
+- `ifNotFound` (string, optional, one of "error", "null", default "error") — What to do when nothing matches: "error" (default — the block fails) or "null" (return null, so EXISTS — e.g. inside a FILTER — can test whether something was found).
+
 ## SET_NODE_INFO
 
 Set Node Info · French label in the builder: « Définir une info du nœud »

@@ -1,7 +1,7 @@
 <!-- Generated from the module by scripts/build-skill-reference.cjs (npm run build). Do not edit. -->
 # Blocks — index
 
-135 blocks, from spinal-model-analysis 3.3.0. One line each: `NAME(inputs) → output` · parameters (`*` = required) — what it does.
+136 blocks, from spinal-model-analysis 3.3.0. One line each: `NAME(inputs) → output` · parameters (`*` = required) — what it does.
 An input marked `?` is optional, `...` takes one or more. Read `blocks/<CATEGORY>.md` for the full description,
 the parameter choices and defaults of the blocks you use — block and parameter names must match exactly.
 
@@ -13,6 +13,7 @@ Find nodes through the graph, read their info, create and link them.
 - `MERGE_NODES(...nodes: SpinalNode | SpinalNode[]) → SpinalNode[]` · deduplicate — Merges several node inputs into a single SpinalNode array.
 - `GET_CONTEXT() → SpinalNode` · name* — Returns the context (SpinalContext) with the given name from the graph.
 - `GET_NODE_SERVER_ID(node: SpinalNode) → number` — Returns the ID of a SpinalNode.
+- `GET_NODE_BY_SERVER_ID(serverId?: number | string) → SpinalNode` · serverId, ifNotFound — Returns the node with the given server id — the reverse of GET_NODE_SERVER_ID.
 - `SET_NODE_INFO(node: SpinalNode, value: any) → SpinalNode` · property* — Sets a property on a node's info to a dynamic value input.
 - `SET_NODE_INFO_PARAM(node: SpinalNode) → SpinalNode` · property*, value* — Sets a property on a node's info to a static parameter value.
 - `GET_NODE_CHILDREN(node: SpinalNode | SpinalNode[]) → SpinalNode[]` · regex — Returns the children of a node — or of every node of a list, merged without duplicates.

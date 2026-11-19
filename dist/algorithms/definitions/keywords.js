@@ -76,6 +76,7 @@ exports.ALGORITHM_KEYWORDS = {
     FIRST_NODE: ['unique', 'single', 'head'],
     MERGE_NODES: ['union', 'combiner', 'combine', 'concat'],
     GET_NODE_SERVER_ID: ['dynamicId', 'identifiant'],
+    GET_NODE_BY_SERVER_ID: ['dynamicId', 'identifiant', 'load', 'charger', 'ptr', 'récupérer', 'fetch'],
     SET_NODE_INFO: ['renommer', 'rename', 'propriété', 'property'],
     SET_NODE_INFO_PARAM: ['renommer', 'rename', 'propriété', 'property'],
     GET_NODE_CHILDREN: ['relation', 'fils', 'descendants'],

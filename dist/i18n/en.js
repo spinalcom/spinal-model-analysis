@@ -34,6 +34,7 @@ exports.EN = {
     MERGE_NODES: { label: 'Merge Nodes' },
     GET_CONTEXT: { label: 'Get Context' },
     GET_NODE_SERVER_ID: { label: 'Node Server ID' },
+    GET_NODE_BY_SERVER_ID: { label: 'Node by Server ID' },
     GET_NODE_INFO: { label: 'Node Info' },
     SET_NODE_INFO: { label: 'Set Node Info' },
     SET_NODE_INFO_PARAM: { label: 'Set Node Info (constant)' },

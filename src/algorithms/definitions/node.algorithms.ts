@@ -7,7 +7,7 @@ import {
   SPINAL_RELATION_LST_PTR_TYPE,
   SPINAL_RELATION_TYPE,
 } from 'spinal-env-viewer-graph-service';
-import { Model, Obj, Str } from 'spinal-core-connectorjs_type';
+import { FileSystem, Model, Obj, Str } from 'spinal-core-connectorjs_type';
 import { attributeService } from 'spinal-env-viewer-plugin-documentation-service';
 import {
   AlgorithmDefinition,
@@ -85,6 +85,55 @@ const resolveNotFoundPolicy = (raw: unknown, blockName: string): 'error' | 'null
   const policy = String(raw).trim().toLowerCase();
   if (policy === 'error' || policy === 'null') return policy;
   throw new Error(`${blockName}: "ifNotFound" must be "error" or "null", got ${JSON.stringify(raw)}`);
+};
+
+// ── GET_NODE_BY_SERVER_ID ────────────────────────────────────────────────────
+
+/** How long the hub has to answer a load before the block fails (it never answers some ids). */
+const SERVER_ID_LOAD_TIMEOUT_MS = 30_000;
+
+/** The wired id, else the parameter, as a positive integer. */
+const resolveServerId = (input: unknown, param: unknown): number => {
+  const raw = [input, param].find((value) => value !== undefined && value !== null && String(value).trim() !== '');
+  if (raw === undefined) {
+    throw new Error('GET_NODE_BY_SERVER_ID needs a server id: set the "serverId" parameter or wire the serverId input');
+  }
+  if (typeof raw !== 'number' && typeof raw !== 'string') {
+    throw new Error(`GET_NODE_BY_SERVER_ID expects a server id (a number), got ${Array.isArray(raw) ? 'a list — use a FOREACH' : typeof raw}`);
+  }
+  const serverId = Number(String(raw).trim());
+  if (!Number.isInteger(serverId) || serverId <= 0) {
+    throw new Error(`GET_NODE_BY_SERVER_ID: ${JSON.stringify(raw)} is not a server id (a positive whole number)`);
+  }
+  return serverId;
+};
+
+/**
+ * The model with this server id: from memory when this process already holds it, else from the
+ * hub. Resolves undefined when the hub has no such id.
+ */
+const loadByServerId = (serverId: number): Promise<unknown> => {
+  const loaded = (FileSystem as any)._objects?.[serverId];
+  if (loaded !== undefined) return Promise.resolve(loaded);
+  const fs = (FileSystem as any).get_inst?.();
+  if (!fs) {
+    return Promise.reject(new Error(`GET_NODE_BY_SERVER_ID: server id ${serverId} is not loaded and there is no hub connection to load it`));
+  }
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(
+      () => reject(new Error(`GET_NODE_BY_SERVER_ID: the hub did not answer for server id ${serverId} within ${SERVER_ID_LOAD_TIMEOUT_MS / 1000} s`)),
+      SERVER_ID_LOAD_TIMEOUT_MS
+    );
+    try {
+      fs.load_ptr(serverId, (model: unknown) => {
+        clearTimeout(timer);
+        resolve(model ?? undefined);
+      });
+    } catch (error) {
+      clearTimeout(timer);
+      reject(error as Error);
+    }
+  });
 };
 
 // ── Graph writes (CREATE_NODE / LINK_NODES) ──────────────────────────────────
@@ -439,6 +488,38 @@ export const NODE_ALGORITHMS: AlgorithmDefinition[] = [
     run: async (input): AlgorithmRunResult => {
       if (!isSpinalNode(input)) throw new Error('Expected SpinalNode input');
       return input._server_id;
+    },
+  }),
+  createAlgorithm({
+    name: 'GET_NODE_BY_SERVER_ID',
+    description:
+      'Returns the node with the given server id — the reverse of GET_NODE_SERVER_ID. Give the id in the ' +
+      '"serverId" parameter, or wire it (a number or a numeric text, e.g. read from an Excel cell or an ' +
+      'attribute). A node this organ has already loaded is returned at once; any other is loaded from the hub. ' +
+      'For a list of ids, use a FOREACH.',
+    inputs: [
+      { name: 'serverId', types: ['number', 'string'], description: 'Optional dynamic server id; when wired, it overrides the "serverId" parameter.', required: false },
+    ],
+    outputType: 'SpinalNode',
+    parameters: [
+      { name: 'serverId', type: 'number', description: 'Server id of the node (unless the serverId input is wired).', required: false },
+      NOT_FOUND_PARAM,
+    ],
+    run: async (input, params): AlgorithmRunResult => {
+      const notFound = resolveNotFoundPolicy(params?.ifNotFound, 'GET_NODE_BY_SERVER_ID');
+      const serverId = resolveServerId(input, params?.serverId);
+      const model = await loadByServerId(serverId);
+      if (model === undefined) {
+        if (notFound === 'null') return null as any;
+        throw new Error(`GET_NODE_BY_SERVER_ID: no node with server id ${serverId}`);
+      }
+      if (!isSpinalNode(model)) {
+        const kind = (model as any)?.constructor?.name ?? typeof model;
+        throw new Error(`GET_NODE_BY_SERVER_ID: server id ${serverId} is a ${kind}, not a node`);
+      }
+      // Blocks reading nodes by id (tickets, …) go through SpinalGraphService: register it.
+      SpinalGraphService._addNode(model);
+      return model;
     },
   }),
   createAlgorithm({

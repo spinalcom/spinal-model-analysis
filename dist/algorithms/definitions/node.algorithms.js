@@ -75,6 +75,51 @@ const resolveNotFoundPolicy = (raw, blockName) => {
         return policy;
     throw new Error(`${blockName}: "ifNotFound" must be "error" or "null", got ${JSON.stringify(raw)}`);
 };
+// ── GET_NODE_BY_SERVER_ID ────────────────────────────────────────────────────
+/** How long the hub has to answer a load before the block fails (it never answers some ids). */
+const SERVER_ID_LOAD_TIMEOUT_MS = 30000;
+/** The wired id, else the parameter, as a positive integer. */
+const resolveServerId = (input, param) => {
+    const raw = [input, param].find((value) => value !== undefined && value !== null && String(value).trim() !== '');
+    if (raw === undefined) {
+        throw new Error('GET_NODE_BY_SERVER_ID needs a server id: set the "serverId" parameter or wire the serverId input');
+    }
+    if (typeof raw !== 'number' && typeof raw !== 'string') {
+        throw new Error(`GET_NODE_BY_SERVER_ID expects a server id (a number), got ${Array.isArray(raw) ? 'a list — use a FOREACH' : typeof raw}`);
+    }
+    const serverId = Number(String(raw).trim());
+    if (!Number.isInteger(serverId) || serverId <= 0) {
+        throw new Error(`GET_NODE_BY_SERVER_ID: ${JSON.stringify(raw)} is not a server id (a positive whole number)`);
+    }
+    return serverId;
+};
+/**
+ * The model with this server id: from memory when this process already holds it, else from the
+ * hub. Resolves undefined when the hub has no such id.
+ */
+const loadByServerId = (serverId) => {
+    var _a, _b, _c;
+    const loaded = (_a = spinal_core_connectorjs_type_1.FileSystem._objects) === null || _a === void 0 ? void 0 : _a[serverId];
+    if (loaded !== undefined)
+        return Promise.resolve(loaded);
+    const fs = (_c = (_b = spinal_core_connectorjs_type_1.FileSystem).get_inst) === null || _c === void 0 ? void 0 : _c.call(_b);
+    if (!fs) {
+        return Promise.reject(new Error(`GET_NODE_BY_SERVER_ID: server id ${serverId} is not loaded and there is no hub connection to load it`));
+    }
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error(`GET_NODE_BY_SERVER_ID: the hub did not answer for server id ${serverId} within ${SERVER_ID_LOAD_TIMEOUT_MS / 1000} s`)), SERVER_ID_LOAD_TIMEOUT_MS);
+        try {
+            fs.load_ptr(serverId, (model) => {
+                clearTimeout(timer);
+                resolve(model !== null && model !== void 0 ? model : undefined);
+            });
+        }
+        catch (error) {
+            clearTimeout(timer);
+            reject(error);
+        }
+    });
+};
 // ── Graph writes (CREATE_NODE / LINK_NODES) ──────────────────────────────────
 /** The relation types a link can use, as the graph library names them. */
 const RELATION_TYPES = [spinal_env_viewer_graph_service_1.SPINAL_RELATION_PTR_LST_TYPE, spinal_env_viewer_graph_service_1.SPINAL_RELATION_LST_PTR_TYPE, spinal_env_viewer_graph_service_1.SPINAL_RELATION_TYPE];
@@ -395,6 +440,39 @@ exports.NODE_ALGORITHMS = [
         }),
     }),
     (0, core_1.createAlgorithm)({
+        name: 'GET_NODE_BY_SERVER_ID',
+        description: 'Returns the node with the given server id — the reverse of GET_NODE_SERVER_ID. Give the id in the ' +
+            '"serverId" parameter, or wire it (a number or a numeric text, e.g. read from an Excel cell or an ' +
+            'attribute). A node this organ has already loaded is returned at once; any other is loaded from the hub. ' +
+            'For a list of ids, use a FOREACH.',
+        inputs: [
+            { name: 'serverId', types: ['number', 'string'], description: 'Optional dynamic server id; when wired, it overrides the "serverId" parameter.', required: false },
+        ],
+        outputType: 'SpinalNode',
+        parameters: [
+            { name: 'serverId', type: 'number', description: 'Server id of the node (unless the serverId input is wired).', required: false },
+            NOT_FOUND_PARAM,
+        ],
+        run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
+            var _d, _e;
+            const notFound = resolveNotFoundPolicy(params === null || params === void 0 ? void 0 : params.ifNotFound, 'GET_NODE_BY_SERVER_ID');
+            const serverId = resolveServerId(input, params === null || params === void 0 ? void 0 : params.serverId);
+            const model = yield loadByServerId(serverId);
+            if (model === undefined) {
+                if (notFound === 'null')
+                    return null;
+                throw new Error(`GET_NODE_BY_SERVER_ID: no node with server id ${serverId}`);
+            }
+            if (!isSpinalNode(model)) {
+                const kind = (_e = (_d = model === null || model === void 0 ? void 0 : model.constructor) === null || _d === void 0 ? void 0 : _d.name) !== null && _e !== void 0 ? _e : typeof model;
+                throw new Error(`GET_NODE_BY_SERVER_ID: server id ${serverId} is a ${kind}, not a node`);
+            }
+            // Blocks reading nodes by id (tickets, …) go through SpinalGraphService: register it.
+            spinal_env_viewer_graph_service_1.SpinalGraphService._addNode(model);
+            return model;
+        }),
+    }),
+    (0, core_1.createAlgorithm)({
         name: 'SET_NODE_INFO',
         description: 'Sets a property on a node\'s info to a dynamic value input. Takes 2 inputs: [node, value]. ' +
             'The property key comes from the "property" parameter. Creates the property if it does not ' +
@@ -567,15 +645,15 @@ exports.NODE_ALGORITHMS = [
             { name: 'property', type: 'string', description: 'Info key to read (default "name").', default: 'name', required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _d, _e;
+            var _f, _g;
             if (!isSpinalNode(input))
                 throw new Error('GET_NODE_INFO expects a SpinalNode input');
             const property = typeof (params === null || params === void 0 ? void 0 : params.property) === 'string' && params.property.trim() !== ''
                 ? params.property.trim()
                 : 'name';
             if (property === 'server_id')
-                return ((_d = input._server_id) !== null && _d !== void 0 ? _d : null);
-            const raw = (_e = input.info) === null || _e === void 0 ? void 0 : _e[property];
+                return ((_f = input._server_id) !== null && _f !== void 0 ? _f : null);
+            const raw = (_g = input.info) === null || _g === void 0 ? void 0 : _g[property];
             if (raw === undefined || raw === null)
                 return null;
             const value = typeof (raw === null || raw === void 0 ? void 0 : raw.get) === 'function' ? raw.get() : raw;
@@ -753,10 +831,10 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _f;
+            var _h;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
-            const nodeElement = yield ((_f = input.element) === null || _f === void 0 ? void 0 : _f.load());
+            const nodeElement = yield ((_h = input.element) === null || _h === void 0 ? void 0 : _h.load());
             if (!nodeElement)
                 throw new Error('Node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -777,10 +855,10 @@ exports.NODE_ALGORITHMS = [
         outputType: 'any',
         parameters: [],
         run: (input) => __awaiter(void 0, void 0, void 0, function* () {
-            var _g;
+            var _j;
             if (!isSpinalNode(input))
                 throw new Error('Expected SpinalNode input');
-            const nodeElement = yield ((_g = input.element) === null || _g === void 0 ? void 0 : _g.load());
+            const nodeElement = yield ((_j = input.element) === null || _j === void 0 ? void 0 : _j.load());
             if (!nodeElement)
                 throw new Error('Node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -803,7 +881,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _h;
+            var _k;
             if (!Array.isArray(input) || input.length < 2) {
                 throw new Error('SET_ENDPOINT_VALUE expects 2 inputs: [endpointNode, value]');
             }
@@ -812,7 +890,7 @@ exports.NODE_ALGORITHMS = [
             if (!isSpinalNode(node)) {
                 throw new Error('SET_ENDPOINT_VALUE: first input must be a SpinalNode');
             }
-            const nodeElement = yield ((_h = node.element) === null || _h === void 0 ? void 0 : _h.load());
+            const nodeElement = yield ((_k = node.element) === null || _k === void 0 ? void 0 : _k.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE: node has no element to load');
             const currentValue = nodeElement.currentValue;
@@ -840,7 +918,7 @@ exports.NODE_ALGORITHMS = [
             { name: 'updateDirectModificationDate', type: 'boolean', description: UPDATE_DIRECT_MODIFICATION_DATE_DESC, default: false, required: false },
         ],
         run: (input, params) => __awaiter(void 0, void 0, void 0, function* () {
-            var _j;
+            var _l;
             if (!isSpinalNode(input)) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM expects a SpinalNode input');
             }
@@ -848,7 +926,7 @@ exports.NODE_ALGORITHMS = [
             if (value === undefined) {
                 throw new Error('SET_ENDPOINT_VALUE_PARAM requires a "value" parameter');
             }
-            const nodeElement = yield ((_j = input.element) === null || _j === void 0 ? void 0 : _j.load());
+            const nodeElement = yield ((_l = input.element) === null || _l === void 0 ? void 0 : _l.load());
             if (!nodeElement)
                 throw new Error('SET_ENDPOINT_VALUE_PARAM: node has no element to load');
             const currentValue = nodeElement.currentValue;

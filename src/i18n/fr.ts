@@ -170,6 +170,15 @@ export const FR: LocaleTranslations = {
     description: 'Renvoie l\'identifiant d\'un nœud.',
     inputs: { node: 'Le nœud dont on veut l\'identifiant serveur.' },
   },
+  GET_NODE_BY_SERVER_ID: {
+    label: 'Nœud par ID serveur',
+    description: 'Renvoie le nœud portant l\'identifiant serveur donné — l\'inverse de GET_NODE_SERVER_ID. Donnez l\'identifiant dans le paramètre « serverId », ou câblez-le (un nombre ou un texte numérique, lu par ex. dans une cellule Excel ou un attribut). Un nœud déjà chargé par cet organe est renvoyé tout de suite ; sinon il est chargé depuis le hub. Pour une liste d\'identifiants, utilisez un FOREACH.',
+    inputs: { serverId: 'Identifiant serveur dynamique, optionnel ; s\'il est câblé, il remplace le paramètre « serverId ».' },
+    parameters: {
+      serverId: 'Identifiant serveur du nœud (sauf si l\'entrée serverId est câblée).',
+      ifNotFound: 'Que faire si aucun nœud ne porte cet identifiant : « error » (par défaut — le bloc échoue) ou « null » (renvoie null, pour qu\'EXISTS — par ex. dans un FILTER — puisse tester si quelque chose a été trouvé).',
+    },
+  },
   GET_NODE_INFO: {
     label: 'Info du nœud',
     description: 'Lit un champ de l\'info d\'un nœud : « name » (par défaut), « type », « id », « server_id » ou toute autre clé d\'info. Renvoie la valeur simple (chaîne / nombre / booléen), ou null si la clé est absente. Première étape habituelle d\'un prédicat sur un nœud — par ex. GET_NODE_INFO « type » → EQUALS_PARAM « geographicRoom », ou GET_NODE_INFO « name » → MATCHES_REGEX « ^Bureau ».',
